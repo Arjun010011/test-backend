@@ -19,17 +19,27 @@ class CandidateProfile extends Model
         'cgpa',
         'graduation_year',
         'skills',
+        'skill_categories',
         'bio',
         'location',
+        'address_line_1',
+        'address_line_2',
+        'city',
+        'state',
+        'country',
+        'postal_code',
         'linkedin_url',
         'github_url',
         'portfolio_url',
+        'profile_completed_at',
     ];
 
     protected function casts(): array
     {
         return [
             'skills' => 'array',
+            'skill_categories' => 'array',
+            'profile_completed_at' => 'datetime',
         ];
     }
 

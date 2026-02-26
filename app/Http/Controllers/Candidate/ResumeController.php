@@ -48,7 +48,7 @@ class ResumeController extends Controller
         $scan = $scanResume($file);
 
         DB::transaction(function () use ($user, $file, $scan): void {
-            $path = $file->store('resumes/' . $user->id);
+            $path = $file->store('resumes/'.$user->id);
 
             $resume = $user->resumes()->create([
                 'file_path' => $path,
@@ -62,7 +62,7 @@ class ResumeController extends Controller
 
             $user->resumes()->whereKeyNot($resume->id)->update(['is_primary' => false]);
 
-            $this->syncCandidateSkills($user->id, $scan['extracted_skills']);
+            $this->syncCandidateSkills($user->id, $scan['extracted_skills'], $scan['skill_categories']);
         });
 
         return to_route('candidate.resume.edit')->with('status', 'resume-uploaded');
@@ -90,18 +90,15 @@ class ResumeController extends Controller
 
     /**
      * @param  list<string>  $skills
+     * @param  array<string, list<string>>  $skillCategories
      */
-    protected function syncCandidateSkills(int $userId, array $skills): void
+    protected function syncCandidateSkills(int $userId, array $skills, array $skillCategories): void
     {
-        if ($skills === []) {
-            return;
-        }
-
         $profile = CandidateProfile::firstOrCreate(['user_id' => $userId]);
-        $currentSkills = $profile->skills ?? [];
 
         $profile->forceFill([
-            'skills' => array_values(array_unique(array_merge($currentSkills, $skills))),
+            'skills' => array_values(array_unique($skills)),
+            'skill_categories' => $skillCategories === [] ? [] : $skillCategories,
         ])->save();
     }
 }

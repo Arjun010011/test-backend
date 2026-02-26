@@ -11,10 +11,10 @@ import {
     SidebarMenuButton,
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
+import { dashboard } from '@/routes';
+import { edit as editOnboarding } from '@/routes/candidate/onboarding';
 import type { NavItem } from '@/types';
 import AppLogo from './app-logo';
-import { dashboard } from '@/routes';
-import { edit as editResume } from '@/routes/candidate/resume';
 
 const mainNavItems: NavItem[] = [
     {
@@ -23,8 +23,8 @@ const mainNavItems: NavItem[] = [
         icon: LayoutGrid,
     },
     {
-        title: 'Resume',
-        href: editResume(),
+        title: 'Profile',
+        href: editOnboarding(),
         icon: FileText,
     },
 ];

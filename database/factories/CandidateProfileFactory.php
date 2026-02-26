@@ -16,6 +16,20 @@ class CandidateProfileFactory extends Factory
      */
     public function definition(): array
     {
+        $skills = fake()->randomElements(
+            ['React', 'Laravel', 'PHP', 'Python', 'AWS', 'Docker', 'SQL'],
+            fake()->numberBetween(2, 5),
+        );
+        $skillCategories = [];
+
+        foreach (config('resume.skill_categories', []) as $category => $categorySkills) {
+            $matched = array_values(array_intersect($skills, $categorySkills));
+
+            if ($matched !== []) {
+                $skillCategories[$category] = $matched;
+            }
+        }
+
         return [
             'user_id' => \App\Models\User::factory()->candidate(),
             'phone' => fake()->phoneNumber(),
@@ -24,12 +38,20 @@ class CandidateProfileFactory extends Factory
             'major' => fake()->randomElement(['Computer Science', 'Information Technology', 'Electronics']),
             'cgpa' => fake()->randomFloat(2, 6, 10),
             'graduation_year' => fake()->numberBetween(2020, 2026),
-            'skills' => fake()->randomElements(['React', 'Laravel', 'PHP', 'Python', 'AWS', 'Docker', 'SQL'], fake()->numberBetween(2, 5)),
+            'skills' => $skills,
+            'skill_categories' => $skillCategories,
             'bio' => fake()->paragraph(),
             'location' => fake()->city(),
-            'linkedin_url' => 'https://linkedin.com/in/' . fake()->userName(),
-            'github_url' => 'https://github.com/' . fake()->userName(),
+            'address_line_1' => fake()->streetAddress(),
+            'address_line_2' => fake()->secondaryAddress(),
+            'city' => fake()->city(),
+            'state' => fake()->state(),
+            'country' => fake()->country(),
+            'postal_code' => fake()->postcode(),
+            'linkedin_url' => 'https://linkedin.com/in/'.fake()->userName(),
+            'github_url' => 'https://github.com/'.fake()->userName(),
             'portfolio_url' => fake()->url(),
+            'profile_completed_at' => now(),
         ];
     }
 }

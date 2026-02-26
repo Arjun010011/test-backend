@@ -11,7 +11,7 @@ test('guests are redirected to the login page', function () {
 });
 
 test('authenticated users can visit the dashboard', function () {
-    $user = User::factory()->create();
+    $user = User::factory()->admin()->create();
     $this->actingAs($user);
 
     $response = $this->get(route('dashboard'));
@@ -23,6 +23,10 @@ test('dashboard shows candidate resume and profile details', function () {
     CandidateProfile::factory()->create([
         'user_id' => $user->id,
         'skills' => ['Laravel', 'React'],
+        'skill_categories' => [
+            'Frameworks' => ['Laravel', 'React'],
+        ],
+        'profile_completed_at' => now(),
         'university' => 'State University',
     ]);
 
@@ -44,5 +48,8 @@ test('dashboard shows candidate resume and profile details', function () {
         ->where('candidateResume.extracted_skills', ['Laravel', 'PHP'])
         ->where('candidateProfile.university', 'State University')
         ->where('candidateProfile.skills', ['Laravel', 'React'])
+        ->where('candidateProfile.skill_categories', [
+            'Frameworks' => ['Laravel', 'React'],
+        ])
     );
 });

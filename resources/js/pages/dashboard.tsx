@@ -1,8 +1,9 @@
 import { Head, Link, usePage } from '@inertiajs/react';
 import AppLayout from '@/layouts/app-layout';
-import type { BreadcrumbItem } from '@/types';
 import { dashboard } from '@/routes';
-import { edit as editResume, show as showResume } from '@/routes/candidate/resume';
+import { edit as editOnboarding } from '@/routes/candidate/onboarding';
+import { show as showResume } from '@/routes/candidate/resume';
+import type { BreadcrumbItem } from '@/types';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -28,20 +29,32 @@ type CandidateProfile = {
     graduation_year: number | null;
     location: string | null;
     skills: string[];
+    skill_categories: Record<string, string[]>;
 };
 
 type PageProps = {
     candidateResume: CandidateResume | null;
     candidateProfile: CandidateProfile | null;
+    status?: string;
 };
 
 export default function Dashboard() {
-    const { candidateResume, candidateProfile } = usePage<PageProps>().props;
+    const { candidateResume, candidateProfile, status } = usePage<PageProps>().props;
+    const hasScannedSkills = (candidateResume?.extracted_skills.length ?? 0) > 0;
+    const categorizedSkills = Object.entries(
+        candidateProfile?.skill_categories ?? {},
+    ).filter(([, skills]) => skills.length > 0);
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Dashboard" />
             <div className="flex h-full flex-1 flex-col gap-6 overflow-x-auto rounded-xl p-4">
+                {status === 'profile-updated' && (
+                    <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900 dark:border-emerald-500/40 dark:bg-emerald-500/10 dark:text-emerald-200">
+                        Profile updated successfully.
+                    </div>
+                )}
+
                 <div className="grid gap-6 lg:grid-cols-3">
                     <div className="rounded-xl border border-border/70 bg-card p-5 shadow-xs lg:col-span-2">
                         <div className="flex items-center justify-between gap-4">
@@ -65,7 +78,7 @@ export default function Dashboard() {
                                     </a>
                                 )}
                                 <Link
-                                    href={editResume().url}
+                                    href={editOnboarding().url}
                                     className="text-sm font-medium text-primary hover:text-primary/80"
                                 >
                                     {candidateResume ? 'Replace' : 'Upload'}
@@ -123,11 +136,21 @@ export default function Dashboard() {
                     </div>
 
                     <div className="rounded-xl border border-border/70 bg-card p-5 shadow-xs">
-                        <div className="text-sm font-semibold text-foreground">
-                            Profile snapshot
+                        <div className="flex items-center justify-between gap-4">
+                            <div className="text-sm font-semibold text-foreground">
+                                Profile snapshot
+                            </div>
+                            <Link
+                                href={editOnboarding().url}
+                                className="text-sm font-medium text-primary hover:text-primary/80"
+                            >
+                                Edit profile
+                            </Link>
                         </div>
                         <p className="text-sm text-muted-foreground">
-                            Visible to recruiters once your resume is scanned.
+                            {hasScannedSkills
+                                ? 'Visible to recruiters.'
+                                : 'Visible to recruiters once your resume is scanned.'}
                         </p>
 
                         {candidateProfile ? (
@@ -177,6 +200,37 @@ export default function Dashboard() {
                                                     {skill}
                                                 </span>
                                             ))}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {categorizedSkills.length > 0 && (
+                                    <div>
+                                        <div className="text-xs uppercase text-muted-foreground">
+                                            Skill categories
+                                        </div>
+                                        <div className="mt-2 space-y-3">
+                                            {categorizedSkills.map(
+                                                ([category, skills]) => (
+                                                    <div key={category}>
+                                                        <div className="text-xs font-semibold text-foreground">
+                                                            {category}
+                                                        </div>
+                                                        <div className="mt-2 flex flex-wrap gap-2">
+                                                            {skills.map(
+                                                                (skill) => (
+                                                                    <span
+                                                                        key={`${category}-${skill}`}
+                                                                        className="rounded-full border border-muted-foreground/20 bg-muted/40 px-3 py-1 text-xs text-foreground"
+                                                                    >
+                                                                        {skill}
+                                                                    </span>
+                                                                ),
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                ),
+                                            )}
                                         </div>
                                     </div>
                                 )}

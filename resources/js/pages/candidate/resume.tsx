@@ -1,13 +1,13 @@
 import { Form, Head, usePage } from '@inertiajs/react';
+import { edit, store } from '@/actions/App/Http/Controllers/Candidate/ResumeController';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import AppLayout from '@/layouts/app-layout';
-import type { BreadcrumbItem } from '@/types';
-import { edit, store } from '@/actions/App/Http/Controllers/Candidate/ResumeController';
 import { show as showResume } from '@/routes/candidate/resume';
+import type { BreadcrumbItem } from '@/types';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {

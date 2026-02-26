@@ -43,7 +43,9 @@ class DashboardController extends Controller
                 'graduation_year' => $profile->graduation_year,
                 'location' => $profile->location,
                 'skills' => $profile->skills ?? [],
+                'skill_categories' => $profile->skill_categories ?? [],
             ],
+            'status' => $request->session()->get('status'),
         ]);
     }
 }
