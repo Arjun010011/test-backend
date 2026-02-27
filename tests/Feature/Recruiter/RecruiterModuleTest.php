@@ -1,0 +1,258 @@
+<?php
+
+use App\Enums\CandidateStatus;
+use App\Models\CandidateProfile;
+use App\Models\RecruiterCollection;
+use App\Models\User;
+use Inertia\Testing\AssertableInertia as Assert;
+
+use function Pest\Laravel\actingAs;
+
+it('blocks non-admin users from recruiter routes', function () {
+    $candidate = User::factory()->candidate()->create();
+
+    actingAs($candidate)
+        ->get(route('recruiter.dashboard'))
+        ->assertForbidden();
+});
+
+it('shows paginated candidate listing for admins', function () {
+    $admin = User::factory()->admin()->create();
+
+    $candidate = User::factory()->candidate()->create([
+        'name' => 'Taylor Recruit',
+        'email' => 'taylor@example.test',
+    ]);
+
+    CandidateProfile::factory()->create([
+        'user_id' => $candidate->id,
+        'profile_completed_at' => now(),
+        'candidate_status' => CandidateStatus::InReview,
+    ]);
+
+    $candidate->resumes()->create([
+        'file_path' => 'resumes/'.$candidate->id.'/resume.txt',
+        'original_name' => 'resume.txt',
+        'mime_type' => 'text/plain',
+        'file_size' => 200,
+        'is_primary' => true,
+        'extracted_skills' => ['Laravel', 'PHP'],
+        'raw_text' => 'Laravel PHP',
+    ]);
+
+    $response = actingAs($admin)->get(route('recruiter.candidates.index', [
+        'search' => 'Laravel',
+    ]));
+
+    $response->assertSuccessful();
+    $response->assertInertia(fn (Assert $page) => $page
+        ->component('recruiter/candidates/index')
+        ->where('candidates.data.0.name', 'Taylor Recruit')
+        ->where('candidates.data.0.status', CandidateStatus::InReview->value)
+    );
+});
+
+it('allows recruiter workflow actions', function () {
+    $admin = User::factory()->admin()->create();
+    $candidate = User::factory()->candidate()->create();
+
+    CandidateProfile::factory()->create([
+        'user_id' => $candidate->id,
+        'profile_completed_at' => now(),
+    ]);
+
+    actingAs($admin)
+        ->post(route('recruiter.candidates.star.toggle', $candidate))
+        ->assertRedirect();
+
+    $this->assertDatabaseHas('recruiter_candidate_stars', [
+        'recruiter_id' => $admin->id,
+        'candidate_user_id' => $candidate->id,
+    ]);
+
+    actingAs($admin)
+        ->patch(route('recruiter.candidates.status.update', $candidate), [
+            'status' => CandidateStatus::Shortlisted->value,
+            'note' => 'Strong profile',
+        ])
+        ->assertRedirect();
+
+    $this->assertDatabaseHas('candidate_profiles', [
+        'user_id' => $candidate->id,
+        'candidate_status' => CandidateStatus::Shortlisted->value,
+    ]);
+
+    actingAs($admin)
+        ->post(route('recruiter.candidates.comments.store', $candidate), [
+            'body' => 'Excellent communication and fundamentals.',
+        ])
+        ->assertRedirect();
+
+    $this->assertDatabaseHas('recruiter_comments', [
+        'recruiter_id' => $admin->id,
+        'candidate_user_id' => $candidate->id,
+    ]);
+
+    actingAs($admin)
+        ->post(route('recruiter.collections.store'), [
+            'name' => 'Q2 Shortlist',
+            'description' => 'Pipeline for Q2 roles',
+        ])
+        ->assertRedirect();
+
+    $collection = RecruiterCollection::query()->where('name', 'Q2 Shortlist')->firstOrFail();
+
+    actingAs($admin)
+        ->post(route('recruiter.candidates.collections.attach', $candidate), [
+            'collection_id' => $collection->id,
+        ])
+        ->assertRedirect();
+
+    $this->assertDatabaseHas('recruiter_collection_candidate', [
+        'recruiter_collection_id' => $collection->id,
+        'candidate_user_id' => $candidate->id,
+    ]);
+
+    actingAs($admin)
+        ->delete(route('recruiter.candidates.collections.remove', [$candidate, $collection]))
+        ->assertRedirect();
+
+    $this->assertDatabaseMissing('recruiter_collection_candidate', [
+        'recruiter_collection_id' => $collection->id,
+        'candidate_user_id' => $candidate->id,
+    ]);
+});
+
+it('shows progressed education status on candidate detail page', function () {
+    $admin = User::factory()->admin()->create();
+    $candidate = User::factory()->candidate()->create();
+
+    CandidateProfile::factory()->create([
+        'user_id' => $candidate->id,
+        'profile_completed_at' => now(),
+        'degree' => 'B.Tech',
+        'major' => 'Computer Science',
+        'graduation_year' => now()->addYear()->year,
+        'is_currently_studying' => true,
+        'current_semester' => 6,
+        'total_semesters' => 8,
+        'semester_recorded_at' => now()->subYear()->toDateString(),
+    ]);
+
+    actingAs($admin)
+        ->get(route('recruiter.candidates.show', $candidate))
+        ->assertSuccessful()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('recruiter/candidates/show')
+            ->where('candidate.education.is_completed', true)
+            ->where('candidate.education.projected_semester', 8)
+            ->where('candidate.education.status_label', 'Completed')
+            ->where('candidate.degree', 'B.Tech')
+        );
+});
+
+it('allows updating and deleting recruiter collections', function () {
+    $admin = User::factory()->admin()->create();
+
+    $collection = RecruiterCollection::factory()->create([
+        'recruiter_id' => $admin->id,
+        'name' => 'Initial Name',
+    ]);
+
+    actingAs($admin)
+        ->put(route('recruiter.collections.update', $collection), [
+            'name' => 'Updated Name',
+            'description' => 'Updated description',
+        ])
+        ->assertRedirect();
+
+    $this->assertDatabaseHas('recruiter_collections', [
+        'id' => $collection->id,
+        'name' => 'Updated Name',
+        'description' => 'Updated description',
+    ]);
+
+    actingAs($admin)
+        ->delete(route('recruiter.collections.destroy', $collection))
+        ->assertRedirect(route('recruiter.collections.index'));
+
+    $this->assertDatabaseMissing('recruiter_collections', [
+        'id' => $collection->id,
+    ]);
+});
+
+it('allows recruiter to edit and delete previous candidate comments', function () {
+    $admin = User::factory()->admin()->create();
+    $candidate = User::factory()->candidate()->create();
+
+    CandidateProfile::factory()->create([
+        'user_id' => $candidate->id,
+        'profile_completed_at' => now(),
+    ]);
+
+    $comment = $admin->recruiterComments()->create([
+        'candidate_user_id' => $candidate->id,
+        'body' => 'Original comment',
+    ]);
+
+    actingAs($admin)
+        ->put(route('recruiter.candidates.comments.update', [$candidate, $comment]), [
+            'body' => 'Edited comment',
+        ])
+        ->assertRedirect();
+
+    $this->assertDatabaseHas('recruiter_comments', [
+        'id' => $comment->id,
+        'body' => 'Edited comment',
+    ]);
+
+    actingAs($admin)
+        ->delete(route('recruiter.candidates.comments.destroy', [$candidate, $comment]))
+        ->assertRedirect();
+
+    $this->assertDatabaseMissing('recruiter_comments', [
+        'id' => $comment->id,
+    ]);
+});
+
+it('shows child collection with inherited parent candidates and supports search', function () {
+    $admin = User::factory()->admin()->create();
+
+    $parent = RecruiterCollection::factory()->create([
+        'recruiter_id' => $admin->id,
+        'name' => 'Backend Roles',
+    ]);
+
+    $child = RecruiterCollection::factory()->create([
+        'recruiter_id' => $admin->id,
+        'parent_id' => $parent->id,
+        'name' => 'Laravel Team',
+    ]);
+
+    $candidate = User::factory()->candidate()->create([
+        'name' => 'Nested Candidate',
+        'email' => 'nested@example.test',
+    ]);
+
+    CandidateProfile::factory()->create([
+        'user_id' => $candidate->id,
+        'profile_completed_at' => now(),
+    ]);
+
+    $parent->candidates()->attach($candidate->id, [
+        'added_by_recruiter_id' => $admin->id,
+    ]);
+
+    actingAs($admin)
+        ->get(route('recruiter.collections.show', [
+            'collection' => $child,
+            'search' => 'Nested',
+        ]))
+        ->assertSuccessful()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('recruiter/collections/show')
+            ->where('collection.name', 'Laravel Team')
+            ->where('collection.parent_name', 'Backend Roles')
+            ->where('candidates.data.0.name', 'Nested Candidate')
+        );
+});

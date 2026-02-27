@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Enums\CandidateStatus;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -40,6 +41,7 @@ class CandidateProfileFactory extends Factory
             'graduation_year' => fake()->numberBetween(2020, 2026),
             'skills' => $skills,
             'skill_categories' => $skillCategories,
+            'candidate_status' => CandidateStatus::New,
             'bio' => fake()->paragraph(),
             'location' => fake()->city(),
             'address_line_1' => fake()->streetAddress(),

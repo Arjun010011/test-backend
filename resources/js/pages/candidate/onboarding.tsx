@@ -1,4 +1,5 @@
 import { Form, Head, usePage } from '@inertiajs/react';
+import { useState } from 'react';
 import {
     edit,
     store,
@@ -25,6 +26,9 @@ type CandidateProfile = {
     major: string | null;
     cgpa: number | null;
     graduation_year: number | null;
+    is_currently_studying: boolean;
+    current_semester: number | null;
+    total_semesters: number | null;
     location: string | null;
     address_line_1: string | null;
     address_line_2: string | null;
@@ -73,7 +77,22 @@ const majorOptions = [
 export default function CandidateOnboarding() {
     const { profile, hasResume, isCompleted, skillCatalog, status } =
         usePage<PageProps>().props;
-    const skillsValue = profile?.skills?.length ? profile.skills.join(', ') : '';
+    const [isCurrentlyStudying, setIsCurrentlyStudying] = useState(
+        profile?.is_currently_studying ?? false,
+    );
+    const catalogMap = new Map(skillCatalog.map((skill) => [skill.toLowerCase(), skill]));
+    const initialSkillTags = (profile?.skills ?? []).map((skill) => {
+        const normalized = catalogMap.get(skill.toLowerCase());
+
+        return {
+            value: normalized ?? skill,
+            valid: normalized !== undefined,
+        };
+    });
+    const [skillTags, setSkillTags] = useState<Array<{ value: string; valid: boolean }>>(
+        initialSkillTags,
+    );
+    const [skillInput, setSkillInput] = useState('');
     const currentYear = new Date().getFullYear();
     const defaultGraduationYears = Array.from(
         { length: 41 },
@@ -88,6 +107,41 @@ export default function CandidateOnboarding() {
     const headingDescription = isCompleted
         ? 'Keep your information up to date so recruiters can reach you quickly.'
         : 'Fill in your details and upload your resume so recruiters can find you.';
+    const filteredSkillSuggestions = skillCatalog
+        .filter(
+            (skill) =>
+                skill.toLowerCase().includes(skillInput.trim().toLowerCase()) &&
+                !skillTags.some((tag) => tag.value.toLowerCase() === skill.toLowerCase()),
+        )
+        .slice(0, 8);
+    const validSkillTags = skillTags.filter((tag) => tag.valid).map((tag) => tag.value);
+
+    const addSkillTag = (rawValue: string) => {
+        const trimmed = rawValue.trim();
+
+        if (trimmed === '') {
+            return;
+        }
+
+        const canonical = catalogMap.get(trimmed.toLowerCase());
+        const value = canonical ?? trimmed;
+        const exists = skillTags.some((tag) => tag.value.toLowerCase() === value.toLowerCase());
+
+        if (exists) {
+            setSkillInput('');
+
+            return;
+        }
+
+        setSkillTags((previous) => [
+            ...previous,
+            {
+                value,
+                valid: canonical !== undefined,
+            },
+        ]);
+        setSkillInput('');
+    };
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
@@ -240,6 +294,55 @@ export default function CandidateOnboarding() {
                                         </select>
                                         <InputError message={errors.graduation_year} />
                                     </div>
+
+                                    <div className="grid gap-2 sm:col-span-2">
+                                        <input type="hidden" name="is_currently_studying" value="0" />
+                                        <label className="flex items-center gap-3 rounded-lg border border-border/60 px-3 py-2 text-sm">
+                                            <input
+                                                id="is_currently_studying"
+                                                name="is_currently_studying"
+                                                type="checkbox"
+                                                value="1"
+                                                defaultChecked={profile?.is_currently_studying ?? false}
+                                                onChange={(event) => setIsCurrentlyStudying(event.target.checked)}
+                                                className="size-4"
+                                            />
+                                            I am currently studying this degree
+                                        </label>
+                                        <InputError message={errors.is_currently_studying} />
+                                    </div>
+
+                                    {isCurrentlyStudying && (
+                                        <>
+                                            <div className="grid gap-2">
+                                                <Label htmlFor="current_semester">Current semester</Label>
+                                                <Input
+                                                    id="current_semester"
+                                                    name="current_semester"
+                                                    type="number"
+                                                    min={1}
+                                                    max={20}
+                                                    defaultValue={profile?.current_semester ?? ''}
+                                                    required={isCurrentlyStudying}
+                                                />
+                                                <InputError message={errors.current_semester} />
+                                            </div>
+
+                                            <div className="grid gap-2">
+                                                <Label htmlFor="total_semesters">Total semesters</Label>
+                                                <Input
+                                                    id="total_semesters"
+                                                    name="total_semesters"
+                                                    type="number"
+                                                    min={1}
+                                                    max={20}
+                                                    defaultValue={profile?.total_semesters ?? ''}
+                                                    required={isCurrentlyStudying}
+                                                />
+                                                <InputError message={errors.total_semesters} />
+                                            </div>
+                                        </>
+                                    )}
                                 </div>
                             </section>
 
@@ -378,34 +481,64 @@ export default function CandidateOnboarding() {
                                 <div className="grid gap-4">
                                     <div className="grid gap-2">
                                         <Label htmlFor="skills">Skills</Label>
-                                        <Input
-                                            id="skills"
-                                            name="skills"
-                                            placeholder="Laravel, React, AWS"
-                                            defaultValue={skillsValue}
-                                        />
+                                        <div className="rounded-xl border border-slate-200 bg-slate-50/60 p-3">
+                                            <div className="flex flex-wrap gap-2">
+                                                {skillTags.map((tag) => (
+                                                    <button
+                                                        key={`${tag.value}-${tag.valid ? 'valid' : 'invalid'}`}
+                                                        type="button"
+                                                        onClick={() =>
+                                                            setSkillTags((previous) =>
+                                                                previous.filter(
+                                                                    (item) => item.value !== tag.value,
+                                                                ),
+                                                            )
+                                                        }
+                                                        className={`rounded-full border px-2.5 py-1 text-xs ${
+                                                            tag.valid
+                                                                ? 'border-blue-200 bg-blue-50 text-blue-700'
+                                                                : 'border-amber-200 bg-amber-50 text-amber-700'
+                                                        }`}
+                                                    >
+                                                        {tag.value} ×
+                                                    </button>
+                                                ))}
+                                            </div>
+                                            <Input
+                                                id="skills"
+                                                value={skillInput}
+                                                onChange={(event) => setSkillInput(event.target.value)}
+                                                onKeyDown={(event) => {
+                                                    if (event.key === 'Enter' || event.key === ',') {
+                                                        event.preventDefault();
+                                                        addSkillTag(skillInput);
+                                                    }
+                                                }}
+                                                placeholder="Type skill and press Enter (e.g. Java)"
+                                                className="mt-3 border-slate-300 bg-white"
+                                            />
+                                            {filteredSkillSuggestions.length > 0 && (
+                                                <div className="mt-2 flex flex-wrap gap-1.5">
+                                                    {filteredSkillSuggestions.map((skill) => (
+                                                        <button
+                                                            key={skill}
+                                                            type="button"
+                                                            onClick={() => addSkillTag(skill)}
+                                                            className="rounded-full border border-slate-300 bg-white px-2.5 py-1 text-xs text-slate-700 hover:bg-slate-100"
+                                                        >
+                                                            {skill}
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            )}
+                                            {validSkillTags.map((skill) => (
+                                                <input key={skill} type="hidden" name="skills[]" value={skill} />
+                                            ))}
+                                        </div>
                                         <p className="text-xs text-muted-foreground">
-                                            Enter comma-separated skills. We will merge these with the
-                                            resume scan.
+                                            Skills are validated against predefined tags. Unrecognized tags stay visible but are not saved.
                                         </p>
                                         <InputError message={errors.skills} />
-                                        {skillCatalog.length > 0 && (
-                                            <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
-                                                {skillCatalog.slice(0, 10).map((skill) => (
-                                                    <span
-                                                        key={skill}
-                                                        className="rounded-full border border-muted-foreground/20 bg-muted/40 px-2 py-1"
-                                                    >
-                                                        {skill}
-                                                    </span>
-                                                ))}
-                                                {skillCatalog.length > 10 && (
-                                                    <span className="rounded-full border border-muted-foreground/20 bg-muted/40 px-2 py-1">
-                                                        +{skillCatalog.length - 10} more
-                                                    </span>
-                                                )}
-                                            </div>
-                                        )}
                                     </div>
 
                                     <div className="grid gap-2">

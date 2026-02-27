@@ -12,9 +12,13 @@ class DashboardController extends Controller
     /**
      * Show the application dashboard.
      */
-    public function show(Request $request): Response
+    public function show(Request $request): Response|\Illuminate\Http\RedirectResponse
     {
         $user = $request->user();
+
+        if (in_array($user?->role, [\App\Enums\Role::Admin, \App\Enums\Role::SuperAdmin])) {
+            return redirect()->route('recruiter.dashboard');
+        }
 
         $user?->load([
             'candidateProfile',
@@ -41,6 +45,10 @@ class DashboardController extends Controller
                 'degree' => $profile->degree,
                 'major' => $profile->major,
                 'graduation_year' => $profile->graduation_year,
+                'is_currently_studying' => (bool) $profile->is_currently_studying,
+                'current_semester' => $profile->current_semester,
+                'total_semesters' => $profile->total_semesters,
+                'education' => $profile->educationStatus(),
                 'location' => $profile->location,
                 'skills' => $profile->skills ?? [],
                 'skill_categories' => $profile->skill_categories ?? [],

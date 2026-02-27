@@ -34,3 +34,83 @@ This project is a modern recruitment and applicant tracking platform built to ha
   - A test Candidate user.
   - A Candidate Profile populated with initial skills (React, Laravel, Tailwind CSS).
   - A comprehensive Resume record to simulate document uploads and test the skill extraction schema.
+
+### 5. Recruiter (Admin) Module
+
+The Recruiter Module has been fully implemented with a SaaS-grade UI and robust backend architecture, fulfilling all requirements.
+
+#### 1. Database Migrations
+We created pivot tables and entities for the recruiter feature set:
+- `recruiter_candidate_stars`: Tracks starred candidates per recruiter.
+- `recruiter_collections` & `recruiter_collection_candidate`: Allows assigning candidates to custom collections.
+- `recruiter_comments`: Private recruiter notes on candidates.
+- `candidate_status_histories`: Audit log for candidate status changes.
+- `candidate_status`: Enum column added to candidate profiles.
+
+#### 2. Model Relationships
+- **User**: Added `recruiterCollections`, `recruiterComments`, `starredByRecruiters`.
+- **CandidateProfile**: Casts `candidate_status` to the `CandidateStatus` enum.
+- **RecruiterCollection** / **RecruiterComment**: Belongs to `User` (Recruiter) and `User` (Candidate).
+
+#### 3. Controller Skeletons
+The backend is powered by localized singular controllers:
+- `RecruiterDashboardController`: High-level recruitment metrics.
+- `RecruiterCandidateController`: Core candidate listing, viewing, starring, and status updates.
+- `RecruiterCollectionController`: Collection management.
+- `RecruiterCandidateCommentController`: Private comment handling.
+
+#### 4. Policies
+Authorization is handled via Laravel Policies to ensure data isolation:
+- `CandidateProfilePolicy`, `RecruiterCollectionPolicy`, `RecruiterCommentPolicy`.
+- SuperAdmins bypass restrictions (`Gate::before`), while regular Recruiters (`Admin`) only view/modify their own collections and comments.
+
+#### 5. Route Definitions
+Routes are protected by `['auth', 'role:admin']` and prefixed with `/recruiter`:
+- `GET /recruiter/dashboard`
+- `GET /recruiter/candidates`, `GET /recruiter/candidates/{candidate}`
+- `POST /recruiter/candidates/{candidate}/star`
+- `PATCH /recruiter/candidates/{candidate}/status`
+- `POST /recruiter/collections`
+
+#### 6. Service Class Example
+The `RecruiterService` encapsulates complex business logic to keep controllers clean. It handles candidate querying with efficient eager loading to prevent N+1 issues:
+```php
+public function queryCandidates(User $user, array $filters): LengthAwarePaginator
+{
+    return User::query()
+        ->candidatesWithSkills($filters['search'] ? [$filters['search']] : [])
+        // Filtering, sorting, and eager loading logic...
+        ->paginate($filters['per_page']);
+}
+```
+
+#### 7. React Layout Component
+`RecruiterLayout.tsx` provides a responsive left-sidebar navigation with a clean content area, sticky header, global search, and a user dropdown, mirroring modern SaaS applications.
+
+#### 8. Candidate Table Component
+`candidate-table.tsx` features a modern data table mapping candidates to columns: Avatar, Name/Email, Skills (rendered as tag chips), Status Badge, and inline Star toggle actions.
+
+#### 9. Example Filter Logic
+In `index.tsx`, filtering relies on React state synchronized with Inertia routing completely debounced:
+```tsx
+const query = useMemo(() => ({
+    search: search.trim() === '' ? null : search,
+    status: status === '' ? null : status,
+    starred: starred ? 1 : null,
+}), [search, status, starred]);
+
+useEffect(() => {
+    router.get(index.url({ query }), {}, { preserveState: true, replace: true });
+}, [query]);
+```
+
+#### 10. UI Styling Examples
+Using TailwindCSS v4 with CSS-first configuration:
+- Soft shadows, rounded-xl cards: `rounded-2xl border border-slate-200/70 bg-white p-5 shadow-sm`
+- Status Badges: Defined dynamically using color maps (e.g., `bg-blue-100 text-blue-700`).
+
+#### 11. Architectural Decisions
+- **Inertia.js + Wayfinder**: We use `laravel/wayfinder` for strongly typed frontend routing, eliminating hardcoded URLs.
+- **Service Repository Pattern**: `RecruiterService` isolates database queries from controllers.
+- **Resource Classes**: `RecruiterCandidateResource` strictly shapes JSON responses, ensuring no sensitive data leaks.
+- **Action-Driven Endpoints**: Features like starring and commenting use specific RESTful endpoints rather than massive generic update controllers.

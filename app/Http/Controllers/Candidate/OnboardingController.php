@@ -7,6 +7,7 @@ use App\Actions\Candidate\ScanResume;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Candidate\OnboardingRequest;
 use App\Models\CandidateProfile;
+use App\Models\Skill;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -25,6 +26,11 @@ class OnboardingController extends Controller
         abort_unless($user?->isCandidate(), 403);
 
         $profile = $user->candidateProfile;
+        $dbSkillCatalog = Skill::query()
+            ->active()
+            ->orderBy('name')
+            ->pluck('name')
+            ->all();
 
         return Inertia::render('candidate/onboarding', [
             'profile' => $profile === null ? null : [
@@ -34,6 +40,9 @@ class OnboardingController extends Controller
                 'major' => $profile->major,
                 'cgpa' => $profile->cgpa,
                 'graduation_year' => $profile->graduation_year,
+                'is_currently_studying' => (bool) $profile->is_currently_studying,
+                'current_semester' => $profile->current_semester,
+                'total_semesters' => $profile->total_semesters,
                 'location' => $profile->location,
                 'address_line_1' => $profile->address_line_1,
                 'address_line_2' => $profile->address_line_2,
@@ -49,7 +58,7 @@ class OnboardingController extends Controller
             ],
             'hasResume' => $user->resumes()->exists(),
             'isCompleted' => $profile?->profile_completed_at !== null,
-            'skillCatalog' => config('resume.skill_catalog', []),
+            'skillCatalog' => $dbSkillCatalog !== [] ? $dbSkillCatalog : config('resume.skill_catalog', []),
             'status' => $request->session()->get('status'),
         ]);
     }
@@ -72,12 +81,61 @@ class OnboardingController extends Controller
         $existingProfile = $user->candidateProfile;
         $wasProfileCompleted = $existingProfile?->profile_completed_at !== null;
         $scan = $file === null ? null : $scanResume($file);
-        $manualSkills = $normalizeSkills->fromString($request->input('skills'));
+        $manualSkillInputs = $request->input('skills');
+        $manualSkills = is_string($manualSkillInputs)
+            ? $normalizeSkills->fromString($manualSkillInputs)
+            : $normalizeSkills->normalize(is_array($manualSkillInputs) ? $manualSkillInputs : []);
+        $allowedSkills = Skill::query()
+            ->active()
+            ->pluck('name')
+            ->all();
+        $allowedCatalog = $allowedSkills !== [] ? $allowedSkills : config('resume.skill_catalog', []);
+        $allowedMap = [];
+
+        foreach ($allowedCatalog as $allowedSkill) {
+            $allowedMap[strtolower($allowedSkill)] = $allowedSkill;
+        }
+
+        $manualSkills = collect($manualSkills)
+            ->map(fn (string $skill): ?string => $allowedMap[strtolower($skill)] ?? null)
+            ->filter()
+            ->values()
+            ->all();
         $resumeSkills = $scan['extracted_skills'] ?? ($existingProfile?->skills ?? []);
         $mergedSkills = $normalizeSkills->merge($manualSkills, $resumeSkills);
         $skillCategories = $scanResume->categorize($mergedSkills);
+        $isCurrentlyStudying = $request->boolean('is_currently_studying');
+        $currentSemester = $isCurrentlyStudying
+            ? (int) $request->input('current_semester')
+            : null;
+        $totalSemesters = $isCurrentlyStudying
+            ? (int) $request->input('total_semesters')
+            : null;
+        $semesterRecordedAt = null;
 
-        DB::transaction(function () use ($request, $user, $file, $scan, $mergedSkills, $skillCategories): void {
+        if ($isCurrentlyStudying) {
+            $semesterChanged = $existingProfile === null
+                || ! $existingProfile->is_currently_studying
+                || (int) $existingProfile->current_semester !== $currentSemester
+                || (int) $existingProfile->total_semesters !== $totalSemesters;
+
+            $semesterRecordedAt = $semesterChanged
+                ? now()->toDateString()
+                : $existingProfile->semester_recorded_at?->toDateString();
+        }
+
+        DB::transaction(function () use (
+            $request,
+            $user,
+            $file,
+            $scan,
+            $mergedSkills,
+            $skillCategories,
+            $isCurrentlyStudying,
+            $currentSemester,
+            $totalSemesters,
+            $semesterRecordedAt,
+        ): void {
             if ($file !== null && $scan !== null) {
                 $path = $file->store('resumes/'.$user->id);
 
@@ -103,6 +161,10 @@ class OnboardingController extends Controller
                     'major' => $request->string('major')->toString(),
                     'cgpa' => $request->input('cgpa'),
                     'graduation_year' => (int) $request->input('graduation_year'),
+                    'is_currently_studying' => $isCurrentlyStudying,
+                    'current_semester' => $currentSemester,
+                    'total_semesters' => $totalSemesters,
+                    'semester_recorded_at' => $semesterRecordedAt,
                     'location' => $request->string('location')->toString(),
                     'address_line_1' => $request->string('address_line_1')->toString(),
                     'address_line_2' => $request->filled('address_line_2')

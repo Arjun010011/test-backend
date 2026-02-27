@@ -27,6 +27,17 @@ type CandidateProfile = {
     degree: string | null;
     major: string | null;
     graduation_year: number | null;
+    is_currently_studying: boolean;
+    current_semester: number | null;
+    total_semesters: number | null;
+    education: {
+        is_currently_studying: boolean;
+        current_semester: number | null;
+        total_semesters: number | null;
+        projected_semester: number | null;
+        is_completed: boolean;
+        status_label: string;
+    };
     location: string | null;
     skills: string[];
     skill_categories: Record<string, string[]>;
@@ -176,6 +187,13 @@ export default function Dashboard() {
                                         </div>
                                     </div>
                                 )}
+
+                                <div>
+                                    <div className="text-xs uppercase text-muted-foreground">
+                                        Education status
+                                    </div>
+                                    <div>{candidateProfile.education.status_label}</div>
+                                </div>
 
                                 {candidateProfile.location && (
                                     <div>

@@ -4,6 +4,7 @@ namespace App\Http\Requests\Candidate;
 
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\File;
 
 class OnboardingRequest extends FormRequest
@@ -32,6 +33,22 @@ class OnboardingRequest extends FormRequest
             'major' => ['required', 'string', 'max:255'],
             'cgpa' => ['nullable', 'numeric', 'min:0', 'max:10'],
             'graduation_year' => ['required', 'integer', 'between:1950,2035'],
+            'is_currently_studying' => ['nullable', 'boolean'],
+            'current_semester' => [
+                Rule::requiredIf(fn (): bool => $this->boolean('is_currently_studying')),
+                'nullable',
+                'integer',
+                'min:1',
+                'max:20',
+            ],
+            'total_semesters' => [
+                Rule::requiredIf(fn (): bool => $this->boolean('is_currently_studying')),
+                'nullable',
+                'integer',
+                'min:1',
+                'max:20',
+                'gte:current_semester',
+            ],
             'location' => ['required', 'string', 'max:255'],
             'address_line_1' => ['required', 'string', 'max:255'],
             'address_line_2' => ['nullable', 'string', 'max:255'],
@@ -43,7 +60,8 @@ class OnboardingRequest extends FormRequest
             'github_url' => ['nullable', 'url', 'max:255'],
             'portfolio_url' => ['nullable', 'url', 'max:255'],
             'bio' => ['nullable', 'string', 'max:2000'],
-            'skills' => ['nullable', 'string', 'max:1000'],
+            'skills' => ['nullable', 'array', 'max:100'],
+            'skills.*' => ['nullable', 'string', 'max:120'],
             'resume' => [
                 $hasExistingResume ? 'nullable' : 'required',
                 File::types(['pdf', 'doc', 'docx', 'txt'])->max(5 * 1024),
@@ -62,6 +80,9 @@ class OnboardingRequest extends FormRequest
             'degree.required' => 'Please select your degree.',
             'major.required' => 'Please select your major.',
             'graduation_year.required' => 'Please select your graduation year.',
+            'current_semester.required' => 'Please enter your current semester.',
+            'total_semesters.required' => 'Please enter total semesters for your degree.',
+            'total_semesters.gte' => 'Total semesters must be greater than or equal to current semester.',
             'location.required' => 'Please enter your current location.',
             'address_line_1.required' => 'Please enter your address line 1.',
             'city.required' => 'Please enter your city.',
@@ -92,5 +113,24 @@ class OnboardingRequest extends FormRequest
             'github_url' => 'GitHub URL',
             'portfolio_url' => 'portfolio URL',
         ];
+    }
+
+    protected function prepareForValidation(): void
+    {
+        $skills = $this->input('skills');
+
+        if (is_string($skills)) {
+            $skills = preg_split('/[,\n;]+/u', $skills) ?: [];
+        }
+
+        if (is_array($skills)) {
+            $this->merge([
+                'skills' => collect($skills)
+                    ->map(fn ($skill): string => trim((string) $skill))
+                    ->filter(fn (string $skill): bool => $skill !== '')
+                    ->values()
+                    ->all(),
+            ]);
+        }
     }
 }

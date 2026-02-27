@@ -152,3 +152,69 @@ it('updates profile details without requiring a new resume upload', function () 
     expect($profile->skills)->toContain('TypeScript', 'Laravel');
     expect(Resume::query()->where('user_id', $user->id)->count())->toBe(1);
 });
+
+it('stores current semester details for candidates who are still studying', function () {
+    Storage::fake();
+
+    $user = User::factory()->candidate()->create();
+    $file = UploadedFile::fake()->createWithContent('resume.txt', 'Experienced in PHP and Laravel.');
+
+    actingAs($user)
+        ->post(route('candidate.onboarding.store'), [
+            'phone' => '+1 555 222 3333',
+            'university' => 'Tech Institute',
+            'degree' => 'B.Tech',
+            'major' => 'Computer Science',
+            'cgpa' => 8.2,
+            'graduation_year' => 2027,
+            'is_currently_studying' => '1',
+            'current_semester' => 6,
+            'total_semesters' => 8,
+            'location' => 'Austin, TX',
+            'address_line_1' => '100 Main Street',
+            'city' => 'Austin',
+            'state' => 'TX',
+            'country' => 'USA',
+            'postal_code' => '73301',
+            'skills' => 'Laravel',
+            'resume' => $file,
+        ])
+        ->assertRedirect(route('dashboard'));
+
+    $profile = CandidateProfile::query()->where('user_id', $user->id)->firstOrFail();
+
+    expect($profile->is_currently_studying)->toBeTrue();
+    expect($profile->current_semester)->toBe(6);
+    expect($profile->total_semesters)->toBe(8);
+    expect($profile->semester_recorded_at)->not->toBeNull();
+});
+
+it('stores only predefined manual skills and ignores invalid skill tags', function () {
+    Storage::fake();
+
+    $user = User::factory()->candidate()->create();
+    $file = UploadedFile::fake()->createWithContent('resume.txt', 'Experienced in Laravel and PHP.');
+
+    actingAs($user)
+        ->post(route('candidate.onboarding.store'), [
+            'phone' => '+1 555 222 8888',
+            'university' => 'Tech Institute',
+            'degree' => 'B.Tech',
+            'major' => 'Computer Science',
+            'graduation_year' => 2027,
+            'location' => 'Austin, TX',
+            'address_line_1' => '100 Main Street',
+            'city' => 'Austin',
+            'state' => 'TX',
+            'country' => 'USA',
+            'postal_code' => '73301',
+            'skills' => ['Java', 'WrongTagSkill'],
+            'resume' => $file,
+        ])
+        ->assertRedirect(route('dashboard'));
+
+    $profile = CandidateProfile::query()->where('user_id', $user->id)->firstOrFail();
+
+    expect($profile->skills)->toContain('Java');
+    expect($profile->skills)->not->toContain('WrongTagSkill');
+});
