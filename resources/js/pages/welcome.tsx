@@ -8,28 +8,50 @@ export default function Welcome({
 }) {
     const { auth } = usePage().props;
 
+    const workflowStages = [
+        {
+            title: 'Candidate Intake',
+            description: 'Collect candidate profile and resume details.',
+            color: 'from-sky-500 to-blue-600',
+        },
+        {
+            title: 'Recruiter Review',
+            description: 'Review candidates, comment, and organize collections.',
+            color: 'from-orange-400 to-amber-500',
+        },
+        {
+            title: 'Status Tracking',
+            description: 'Update and track each candidate stage clearly.',
+            color: 'from-emerald-500 to-teal-600',
+        },
+    ];
+
     return (
         <>
             <Head title="Welcome" />
-            <div className="relative min-h-screen overflow-hidden bg-background">
-                <div className="pointer-events-none absolute inset-0">
-                    <div className="absolute -top-32 left-1/2 h-80 w-80 -translate-x-1/2 rounded-full bg-sky-500/10 blur-3xl" />
-                    <div className="absolute right-0 bottom-0 h-72 w-72 translate-x-1/3 rounded-full bg-indigo-500/10 blur-3xl" />
-                </div>
 
-                <div className="mx-auto flex w-full max-w-6xl flex-col gap-16 px-6 pt-10 pb-20">
-                    <header className="flex items-center justify-between">
-                        <div className="flex items-center gap-3 text-sm font-semibold">
-                            <span className="flex h-9 w-9 items-center justify-center rounded-full border border-border bg-background">
-                                CP
-                            </span>
-                            Candidate Portal
+            <div className="min-h-screen bg-slate-50 px-6 py-8 text-slate-900 sm:px-8 lg:px-10">
+                <div className="mx-auto max-w-6xl space-y-8">
+                    <header className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-sky-100 bg-white px-4 py-3 shadow-sm sm:px-6">
+                        <div className="flex items-center gap-3">
+                            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-linear-to-br from-blue-700 to-sky-500 text-sm font-bold text-white">
+                                EB
+                            </div>
+                            <div>
+                                <p className="text-xs font-semibold tracking-[0.2em] text-sky-600 uppercase">
+                                    Edu Bricz
+                                </p>
+                                <p className="text-sm font-semibold">
+                                    Internal Hiring Portal
+                                </p>
+                            </div>
                         </div>
-                        <nav className="flex items-center gap-3">
+
+                        <nav className="flex items-center gap-2 sm:gap-3">
                             {auth.user ? (
                                 <Link
                                     href={dashboard()}
-                                    className="text-sm font-medium text-foreground hover:text-primary"
+                                    className="rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-sky-200 hover:text-sky-700"
                                 >
                                     Dashboard
                                 </Link>
@@ -37,14 +59,14 @@ export default function Welcome({
                                 <>
                                     <Link
                                         href={login()}
-                                        className="text-sm font-medium text-foreground hover:text-primary"
+                                        className="rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-sky-200 hover:text-sky-700"
                                     >
                                         Sign in
                                     </Link>
                                     {canRegister && (
                                         <Link
                                             href={register()}
-                                            className="rounded-full border border-border bg-foreground px-4 py-2 text-xs font-semibold tracking-wide text-background uppercase transition hover:bg-foreground/90"
+                                            className="rounded-full bg-linear-to-r from-blue-700 to-sky-500 px-5 py-2 text-sm font-semibold text-white"
                                         >
                                             Create account
                                         </Link>
@@ -54,80 +76,53 @@ export default function Welcome({
                         </nav>
                     </header>
 
-                    <main className="grid gap-12 lg:grid-cols-[1.2fr_0.8fr] lg:items-center">
-                        <div className="space-y-6">
-                            <div className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-background/70 px-3 py-1 text-xs font-medium tracking-[0.2em] text-muted-foreground uppercase">
-                                Candidate experience
-                            </div>
-                            <h1 className="text-4xl font-semibold tracking-tight text-foreground sm:text-5xl">
-                                Edubricz candidate registration portal
-                            </h1>
-                            <p className="max-w-xl text-sm leading-relaxed text-muted-foreground sm:text-base">
-                                Upload your resume, surface your strongest
-                                skills, and stay ready for the roles that match
-                                your experience.
-                            </p>
-                            <div className="flex flex-wrap gap-3">
-                                {auth.user ? (
-                                    <Link
-                                        href={dashboard()}
-                                        className="rounded-full border border-border bg-foreground px-6 py-3 text-xs font-semibold tracking-wide text-background uppercase transition hover:bg-foreground/90"
-                                    >
-                                        Go to dashboard
-                                    </Link>
-                                ) : (
-                                    <>
-                                        <Link
-                                            href={login()}
-                                            className="rounded-full border border-border bg-foreground px-6 py-3 text-xs font-semibold tracking-wide text-background uppercase transition hover:bg-foreground/90"
-                                        >
-                                            Sign in
-                                        </Link>
-                                        {canRegister && (
-                                            <Link
-                                                href={register()}
-                                                className="rounded-full border border-border/70 bg-background px-6 py-3 text-xs font-semibold tracking-wide text-foreground uppercase transition hover:border-border"
-                                            >
-                                                Create account
-                                            </Link>
-                                        )}
-                                    </>
-                                )}
-                            </div>
-                        </div>
-
-                        <div className="grid gap-4">
-                            {[
-                                {
-                                    title: 'Resume intelligence',
-                                    description:
-                                        'Upload once and keep your skills auto-synced to your profile.',
-                                },
-                                {
-                                    title: 'Instant visibility',
-                                    description:
-                                        'Share a single, polished view of your profile for fast matching.',
-                                },
-                                {
-                                    title: 'Private by default',
-                                    description:
-                                        'Your documents stay linked to your account and never exposed publicly.',
-                                },
-                            ].map((item) => (
-                                <div
-                                    key={item.title}
-                                    className="rounded-2xl border border-border/60 bg-background/80 p-5 shadow-[0_12px_40px_-30px_rgba(15,23,42,0.5)] backdrop-blur"
+                    <section className="rounded-3xl bg-linear-to-r from-blue-700 via-sky-600 to-cyan-500 px-6 py-10 text-white sm:px-8">
+                        <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">
+                            Manage candidate operations in one place
+                        </h1>
+                        <p className="mt-3 max-w-2xl text-sm text-sky-50 sm:text-base">
+                            Intake, review, and status tracking for Edu Bricz
+                            teams.
+                        </p>
+                        <div className="mt-6">
+                            {auth.user ? (
+                                <Link
+                                    href={dashboard()}
+                                    className="inline-flex rounded-full bg-white px-6 py-3 text-sm font-bold text-sky-700"
                                 >
-                                    <h3 className="text-sm font-semibold text-foreground">
-                                        {item.title}
-                                    </h3>
-                                    <p className="mt-2 text-sm text-muted-foreground">
-                                        {item.description}
+                                    Continue to dashboard
+                                </Link>
+                            ) : (
+                                <Link
+                                    href={login()}
+                                    className="inline-flex rounded-full bg-orange-400 px-6 py-3 text-sm font-bold text-slate-900"
+                                >
+                                    Sign in securely
+                                </Link>
+                            )}
+                        </div>
+                    </section>
+
+                    <section className="grid gap-4 lg:grid-cols-3">
+                        {workflowStages.map((stage) => (
+                            <article
+                                key={stage.title}
+                                className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"
+                            >
+                                <div
+                                    className={`h-2 w-full bg-linear-to-r ${stage.color}`}
+                                />
+                                <div className="p-5">
+                                    <h2 className="text-lg font-bold text-slate-900">
+                                        {stage.title}
+                                    </h2>
+                                    <p className="mt-2 text-sm text-slate-600">
+                                        {stage.description}
                                     </p>
                                 </div>
-                            ))}
-                        </div>
-                    </main>
+                            </article>
+                        ))}
+                    </section>
                 </div>
             </div>
         </>
