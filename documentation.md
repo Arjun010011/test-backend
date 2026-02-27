@@ -13,6 +13,35 @@ This project is a modern recruitment and applicant tracking platform built to ha
 
 ## Recently Implemented Features
 
+## Work Completed Today (February 27, 2026)
+
+### 1. Recruiter Collections + Dashboard Module
+- Added complete recruiter workflows:
+  - Recruiter dashboard with candidate pipeline metrics.
+  - Candidate listing/detail pages with status updates and starring.
+  - Collection management (create, update, nested collections, attach candidates).
+  - Recruiter comments and audit history tracking for status changes.
+- Introduced backend foundations:
+  - New recruiter controllers, requests, resources, policies, middleware, and `RecruiterService`.
+  - New models: `RecruiterCollection`, `RecruiterComment`, `CandidateStatusHistory`, `Skill`.
+  - New enum: `CandidateStatus`.
+- Extended schema:
+  - Added recruiter collections/comment/star/history tables.
+  - Added `candidate_status`, education progress fields, and collection hierarchy support.
+- Added/updated feature tests for login redirection, recruiter module flows, onboarding, and resume paths.
+
+### 2. Candidate Story + Location Data Enhancements
+- Extended `candidate_profiles` with storytelling and locality fields:
+  - Added candidate story fields for richer profile context.
+  - Added district support and location config (`config/location.php`).
+- Updated candidate onboarding validation and save logic.
+- Updated recruiter filtering/index requests and recruiter resources/service to expose and use new fields.
+- Refreshed relevant recruiter and candidate UI pages/components to surface the new data.
+
+### 3. Welcome Page UX Improvements
+- Redesigned `resources/js/pages/welcome.tsx` with an improved layout and explicit workflow stages.
+- Updated feature coverage in `tests/Feature/ExampleTest.php` for the welcome experience.
+
 ### 1. Role-Based Access Control
 - **`Role` Enum**: Introduced a strict type-safe enum (`app/Enums/Role.php`) defining the core capabilities of users across the platform:
   - `Candidate`
