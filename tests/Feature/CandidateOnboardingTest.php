@@ -42,17 +42,21 @@ it('stores onboarding details, resume, and merged skills', function () {
             'major' => 'Computer Science',
             'cgpa' => 8.4,
             'graduation_year' => 2026,
-            'location' => 'San Francisco, CA',
+            'location' => 'Bengaluru, Karnataka',
             'address_line_1' => '123 Market Street',
             'address_line_2' => 'Suite 5',
-            'city' => 'San Francisco',
-            'state' => 'CA',
-            'country' => 'USA',
-            'postal_code' => '94105',
+            'city' => 'Bengaluru',
+            'state' => 'Karnataka',
+            'district' => 'Bengaluru Urban',
+            'country' => 'India',
+            'postal_code' => '560001',
             'linkedin_url' => 'https://linkedin.com/in/example',
             'github_url' => 'https://github.com/example',
             'portfolio_url' => 'https://example.com',
             'bio' => 'Backend engineer with full-stack experience.',
+            'achievements' => 'Won university innovation award in 2025.',
+            'hackathons_experience' => 'Participated in 3 hackathons, secured 2nd place once.',
+            'projects_description' => 'Built a smart attendance tracker using Laravel and React.',
             'skills' => 'React, AWS',
             'resume' => $file,
         ])
@@ -66,6 +70,9 @@ it('stores onboarding details, resume, and merged skills', function () {
     expect($profile->profile_completed_at)->not->toBeNull();
     expect($profile->skills)->toContain('PHP', 'Laravel', 'React', 'AWS');
     expect($profile->skill_categories['Frameworks'] ?? [])->toContain('Laravel', 'React');
+    expect($profile->achievements)->toBe('Won university innovation award in 2025.');
+    expect($profile->hackathons_experience)->toBe('Participated in 3 hackathons, secured 2nd place once.');
+    expect($profile->projects_description)->toBe('Built a smart attendance tracker using Laravel and React.');
 });
 
 it('shows friendly validation errors when required fields are missing', function () {
@@ -93,12 +100,13 @@ it('accepts onboarding without optional links', function () {
             'major' => 'Computer Science',
             'cgpa' => 8.4,
             'graduation_year' => 2026,
-            'location' => 'San Francisco, CA',
+            'location' => 'Mumbai, Maharashtra',
             'address_line_1' => '123 Market Street',
-            'city' => 'San Francisco',
-            'state' => 'CA',
-            'country' => 'USA',
-            'postal_code' => '94105',
+            'city' => 'Mumbai',
+            'state' => 'Maharashtra',
+            'district' => 'Mumbai Suburban',
+            'country' => 'India',
+            'postal_code' => '400001',
             'bio' => 'Backend engineer with full-stack experience.',
             'skills' => 'React, AWS',
             'resume' => $file,
@@ -110,6 +118,9 @@ it('accepts onboarding without optional links', function () {
     expect($profile->linkedin_url)->toBeNull();
     expect($profile->github_url)->toBeNull();
     expect($profile->portfolio_url)->toBeNull();
+    expect($profile->achievements)->toBeNull();
+    expect($profile->hackathons_experience)->toBeNull();
+    expect($profile->projects_description)->toBeNull();
 });
 
 it('updates profile details without requiring a new resume upload', function () {
@@ -135,10 +146,11 @@ it('updates profile details without requiring a new resume upload', function () 
             'major' => 'Computer Science',
             'cgpa' => 9.1,
             'graduation_year' => 2026,
-            'location' => 'Bangalore',
+            'location' => 'Bengaluru, Karnataka',
             'address_line_1' => '42 Residency Road',
-            'city' => 'Bangalore',
+            'city' => 'Bengaluru',
             'state' => 'Karnataka',
+            'district' => 'Bengaluru Urban',
             'country' => 'India',
             'postal_code' => '560001',
             'skills' => 'TypeScript',
@@ -170,12 +182,13 @@ it('stores current semester details for candidates who are still studying', func
             'is_currently_studying' => '1',
             'current_semester' => 6,
             'total_semesters' => 8,
-            'location' => 'Austin, TX',
+            'location' => 'Hyderabad, Telangana',
             'address_line_1' => '100 Main Street',
-            'city' => 'Austin',
-            'state' => 'TX',
-            'country' => 'USA',
-            'postal_code' => '73301',
+            'city' => 'Hyderabad',
+            'state' => 'Telangana',
+            'district' => 'Hyderabad',
+            'country' => 'India',
+            'postal_code' => '500001',
             'skills' => 'Laravel',
             'resume' => $file,
         ])
@@ -202,12 +215,13 @@ it('stores only predefined manual skills and ignores invalid skill tags', functi
             'degree' => 'B.Tech',
             'major' => 'Computer Science',
             'graduation_year' => 2027,
-            'location' => 'Austin, TX',
+            'location' => 'Pune, Maharashtra',
             'address_line_1' => '100 Main Street',
-            'city' => 'Austin',
-            'state' => 'TX',
-            'country' => 'USA',
-            'postal_code' => '73301',
+            'city' => 'Pune',
+            'state' => 'Maharashtra',
+            'district' => 'Pune',
+            'country' => 'India',
+            'postal_code' => '411001',
             'skills' => ['Java', 'WrongTagSkill'],
             'resume' => $file,
         ])
@@ -217,4 +231,60 @@ it('stores only predefined manual skills and ignores invalid skill tags', functi
 
     expect($profile->skills)->toContain('Java');
     expect($profile->skills)->not->toContain('WrongTagSkill');
+});
+
+it('rejects invalid state and city for the selected country', function () {
+    Storage::fake();
+
+    $user = User::factory()->candidate()->create();
+    $file = UploadedFile::fake()->createWithContent('resume.txt', 'Experienced in Laravel and PHP.');
+
+    actingAs($user)
+        ->post(route('candidate.onboarding.store'), [
+            'phone' => '+91 98765 43210',
+            'university' => 'Tech Institute',
+            'degree' => 'B.Tech',
+            'major' => 'Computer Science',
+            'graduation_year' => 2027,
+            'location' => 'Mumbai, Maharashtra',
+            'address_line_1' => '100 Main Street',
+            'city' => 'Mumbai',
+            'state' => 'Karnataka',
+            'district' => 'Bengaluru Urban',
+            'country' => 'India',
+            'postal_code' => '400001',
+            'skills' => ['Java'],
+            'resume' => $file,
+        ])
+        ->assertSessionHasErrors([
+            'city' => 'Please select a valid city for the selected state.',
+        ]);
+});
+
+it('rejects invalid postal code for selected city', function () {
+    Storage::fake();
+
+    $user = User::factory()->candidate()->create();
+    $file = UploadedFile::fake()->createWithContent('resume.txt', 'Experienced in Laravel and PHP.');
+
+    actingAs($user)
+        ->post(route('candidate.onboarding.store'), [
+            'phone' => '+91 98765 43210',
+            'university' => 'Tech Institute',
+            'degree' => 'B.Tech',
+            'major' => 'Computer Science',
+            'graduation_year' => 2027,
+            'location' => 'Bengaluru, Karnataka',
+            'address_line_1' => '100 Main Street',
+            'city' => 'Bengaluru',
+            'state' => 'Karnataka',
+            'district' => 'Bengaluru Urban',
+            'country' => 'India',
+            'postal_code' => '411001',
+            'skills' => ['Java'],
+            'resume' => $file,
+        ])
+        ->assertSessionHasErrors([
+            'postal_code' => 'Please enter a valid postal code for the selected city.',
+        ]);
 });

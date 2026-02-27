@@ -137,7 +137,7 @@ it('prevents non-candidates from uploading resumes', function () {
         ->assertForbidden();
 });
 
-it('filters candidates by extracted skills', function () {
+it('filters candidates by extracted skills case-insensitively', function () {
     $matchingUser = User::factory()->candidate()->create();
     CandidateProfile::factory()->create([
         'user_id' => $matchingUser->id,
@@ -152,7 +152,7 @@ it('filters candidates by extracted skills', function () {
 
     $admin = User::factory()->admin()->create();
 
-    $matchedIds = User::query()->candidatesWithSkills(['Laravel'])->pluck('id');
+    $matchedIds = User::query()->candidatesWithSkills(['laravel'])->pluck('id');
 
     expect($matchedIds)->toContain($matchingUser->id)
         ->not()->toContain($nonMatchingUser->id)

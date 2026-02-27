@@ -29,6 +29,7 @@ class RecruiterCollectionController extends Controller
 
         $collections = RecruiterCollection::query()
             ->when(! $user->isSuperAdmin(), fn (Builder $query): Builder => $query->where('recruiter_id', $user->id))
+            ->whereNull('parent_id')
             ->with('parent:id,name')
             ->withCount('candidates')
             ->latest()

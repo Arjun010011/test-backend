@@ -83,8 +83,16 @@ export default function RecruiterCollectionShow({ collection, children, candidat
         });
     };
 
-    const removeCandidate = (candidateId: number) => {
-        router.delete(`/recruiter/candidates/${candidateId}/collections/${collection.id}`, {
+    const assignCandidateToSubCollection = (candidateId: number, subCollectionId: number) => {
+        router.post(`/recruiter/candidates/${candidateId}/collections`, {
+            collection_id: subCollectionId,
+        }, {
+            preserveScroll: true,
+        });
+    };
+
+    const removeCandidate = (candidateId: number, collectionId: number = collection.id) => {
+        router.delete(`/recruiter/candidates/${candidateId}/collections/${collectionId}`, {
             preserveScroll: true,
         });
     };
@@ -108,6 +116,28 @@ export default function RecruiterCollectionShow({ collection, children, candidat
         });
     };
 
+    const candidateRows = candidates.data.map((candidate) => {
+        const assignedToCurrent = candidate.collections.some((item) => item.id === collection.id);
+        const assignedViaChild = candidate.collections.some((item) => childIds.has(item.id));
+        const assignedSubCollections = children.data.filter((child) =>
+            candidate.collections.some((item) => item.id === child.id),
+        );
+        const availableSubCollections = children.data.filter((child) =>
+            !candidate.collections.some((item) => item.id === child.id),
+        );
+
+        return {
+            candidate,
+            assignedToCurrent,
+            assignedViaChild,
+            assignedSubCollections,
+            availableSubCollections,
+        };
+    });
+
+    const selectableRows = candidateRows.filter((row) => !row.assignedToCurrent && row.assignedSubCollections.length === 0);
+    const addedRows = candidateRows.filter((row) => row.assignedToCurrent || row.assignedSubCollections.length > 0);
+
     return (
         <RecruiterLayout
             title="Collection Workspace"
@@ -117,7 +147,7 @@ export default function RecruiterCollectionShow({ collection, children, candidat
         >
             <Head title={collection.name} />
 
-            <section className="relative mb-6 overflow-hidden rounded-3xl border border-blue-200/70 bg-gradient-to-r from-blue-700 via-blue-600 to-cyan-500 p-6 text-white shadow-xl">
+            <section className="relative mb-6 overflow-hidden rounded-3xl border border-sky-200/60 bg-gradient-to-r from-sky-700 via-indigo-600 to-cyan-500 p-6 text-white shadow-xl dark:border-sky-400/20 dark:from-sky-500/70 dark:via-indigo-500/60 dark:to-cyan-500/60">
                 <div className="absolute top-0 right-0 h-24 w-24 -translate-y-6 translate-x-6 rounded-full bg-white/10 blur-2xl" />
                 <div className="grid gap-4 md:grid-cols-3">
                     <div className="md:col-span-2">
@@ -141,13 +171,13 @@ export default function RecruiterCollectionShow({ collection, children, candidat
                 </div>
             </section>
 
-            <section className="mb-6 rounded-2xl border border-slate-200/70 bg-white p-5 shadow-sm">
+            <section className="mb-6 rounded-2xl border border-border/70 bg-card/80 p-5 shadow-sm backdrop-blur">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <div>
-                        <div className="text-sm font-semibold text-slate-800">Sub-collections</div>
-                        <div className="text-xs text-slate-500">Create child collections and manage them directly here.</div>
+                        <div className="text-sm font-semibold text-foreground">Sub-collections</div>
+                        <div className="text-xs text-muted-foreground">Create child collections and manage them directly here.</div>
                     </div>
-                    <Button onClick={() => setCreateSubOpen(true)} className="rounded-xl bg-blue-700 hover:bg-blue-800">
+                    <Button onClick={() => setCreateSubOpen(true)} className="rounded-xl">
                         <Plus className="size-4" />
                         Create sub-collection
                     </Button>
@@ -156,33 +186,33 @@ export default function RecruiterCollectionShow({ collection, children, candidat
                 {children.data.length > 0 ? (
                     <div className="mt-4 grid gap-3 md:grid-cols-2">
                         {children.data.map((child) => (
-                            <div key={child.id} className="rounded-xl border border-slate-200/70 bg-slate-50/70 p-4">
+                            <div key={child.id} className="rounded-xl border border-border/70 bg-muted/20 p-4">
                                 <div className="flex items-start justify-between gap-3">
                                     <div>
-                                        <div className="text-sm font-semibold text-slate-800">{child.name}</div>
-                                        <div className="text-xs text-slate-500">{child.description ?? 'No description'}</div>
-                                        <div className="mt-2 text-xs text-slate-500">{child.candidates_count} candidates</div>
+                                        <div className="text-sm font-semibold text-foreground">{child.name}</div>
+                                        <div className="text-xs text-muted-foreground">{child.description ?? 'No description'}</div>
+                                        <div className="mt-2 text-xs text-muted-foreground">{child.candidates_count} candidates</div>
                                     </div>
-                                    <Layers className="size-4 text-slate-400" />
+                                    <Layers className="size-4 text-muted-foreground" />
                                 </div>
                                 <div className="mt-3 flex flex-wrap gap-2">
                                     <Link
                                         href={show(child.id).url}
-                                        className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs hover:bg-slate-100"
+                                        className="rounded-lg border border-border bg-background px-3 py-1.5 text-xs hover:bg-accent/60"
                                     >
                                         View
                                     </Link>
                                     <button
                                         type="button"
                                         onClick={() => openEditChild(child)}
-                                        className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs hover:bg-slate-100"
+                                        className="rounded-lg border border-border bg-background px-3 py-1.5 text-xs hover:bg-accent/60"
                                     >
                                         Edit
                                     </button>
                                     <button
                                         type="button"
                                         onClick={() => deleteChild(child)}
-                                        className="rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs text-red-700 hover:bg-red-100"
+                                        className="rounded-lg border border-red-300/60 bg-red-500/10 px-3 py-1.5 text-xs text-red-700 hover:bg-red-500/20 dark:text-red-300"
                                     >
                                         Delete
                                     </button>
@@ -191,84 +221,142 @@ export default function RecruiterCollectionShow({ collection, children, candidat
                         ))}
                     </div>
                 ) : (
-                    <div className="mt-4 rounded-xl border border-dashed border-slate-300 bg-slate-50 px-4 py-6 text-sm text-slate-500">
+                    <div className="mt-4 rounded-xl border border-dashed border-border bg-muted/20 px-4 py-6 text-sm text-muted-foreground">
                         No sub-collections yet.
                     </div>
                 )}
             </section>
 
-            <section className="rounded-2xl border border-slate-200/70 bg-white p-5 shadow-sm">
+            <section className="rounded-2xl border border-border/70 bg-card/80 p-5 shadow-sm backdrop-blur">
                 <div className="flex items-center justify-between gap-3">
                     <div>
-                        <div className="text-sm font-semibold text-slate-800">Candidate assignment</div>
-                        <div className="text-xs text-slate-500">
+                        <div className="text-sm font-semibold text-foreground">Candidate assignment</div>
+                        <div className="text-xs text-muted-foreground">
                             Search candidates (including inherited parent candidates) and assign them to this collection.
                         </div>
                     </div>
-                    <div className="text-xs text-slate-500">Page {candidates.meta.current_page} / {candidates.meta.last_page}</div>
+                    <div className="text-xs text-muted-foreground">Page {candidates.meta.current_page} / {candidates.meta.last_page}</div>
                 </div>
 
-                <div className="mt-4 space-y-3">
-                    {candidates.data.length > 0 ? candidates.data.map((candidate) => {
-                        const assignedToCurrent = candidate.collections.some((item) => item.id === collection.id);
-                        const assignedViaChild = candidate.collections.some((item) => childIds.has(item.id));
-
-                        return (
-                            <div key={candidate.id} className="rounded-xl border border-slate-200/70 p-4">
+                <div className="mt-4 grid gap-4 lg:grid-cols-2">
+                    <div className="space-y-3 rounded-xl border border-border/70 bg-background/50 p-4">
+                        <div className="text-sm font-semibold text-foreground">Selectable candidates</div>
+                        {selectableRows.length > 0 ? selectableRows.map(({ candidate, availableSubCollections }) => (
+                            <div key={`selectable-${candidate.id}`} className="rounded-xl border border-border/70 bg-card/70 p-4">
                                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                                     <div>
-                                        <div className="text-sm font-semibold text-slate-800">{candidate.name}</div>
-                                        <div className="text-xs text-slate-500">{candidate.email}</div>
+                                        <div className="text-sm font-semibold text-foreground">{candidate.name}</div>
+                                        <div className="text-xs text-muted-foreground">{candidate.email}</div>
                                         <div className="mt-2 flex flex-wrap gap-1.5">
                                             {candidate.skills.slice(0, 6).map((skill) => (
-                                                <span key={`${candidate.id}-${skill}`} className="rounded-full border border-blue-200 bg-blue-50 px-2 py-0.5 text-[11px] text-blue-700">
+                                                <span key={`${candidate.id}-${skill}`} className="rounded-full border border-sky-300/40 bg-sky-500/10 px-2 py-0.5 text-[11px] text-sky-700 dark:text-sky-300">
                                                     {skill}
                                                 </span>
                                             ))}
                                             {candidate.skills.length === 0 && (
-                                                <span className="text-xs text-slate-400">No skills listed</span>
+                                                <span className="text-xs text-muted-foreground">No skills listed</span>
                                             )}
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-2">
                                         <Link
                                             href={showCandidate(candidate.id).url}
-                                            className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-700 hover:bg-slate-100"
+                                            className="inline-flex items-center gap-1 rounded-lg border border-border bg-background px-3 py-1.5 text-xs text-foreground hover:bg-accent/60"
                                         >
                                             View profile
                                         </Link>
-                                        {assignedViaChild && !assignedToCurrent && (
-                                            <span className="rounded-full border border-amber-200 bg-amber-50 px-2 py-1 text-[11px] text-amber-700">
-                                                In child collection
-                                            </span>
-                                        )}
-                                        {assignedToCurrent ? (
+                                        <button
+                                            type="button"
+                                            onClick={() => assignCandidate(candidate.id)}
+                                            className="inline-flex items-center gap-1 rounded-lg border border-primary/30 bg-primary/10 px-3 py-1.5 text-xs text-primary hover:bg-primary/20"
+                                        >
+                                            <Users className="size-3" />
+                                            Add to this collection
+                                        </button>
+                                    </div>
+                                </div>
+                                {children.data.length > 0 && (
+                                    <div className="mt-3 rounded-lg border border-border/60 bg-muted/20 p-3">
+                                        <div className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                                            Add to sub-collection
+                                        </div>
+                                        <div className="mt-2 flex flex-wrap gap-1.5">
+                                            {availableSubCollections.length > 0 ? availableSubCollections.map((subCollection) => (
+                                                <button
+                                                    key={`add-sub-${candidate.id}-${subCollection.id}`}
+                                                    type="button"
+                                                    onClick={() => assignCandidateToSubCollection(candidate.id, subCollection.id)}
+                                                    className="rounded-full border border-primary/40 bg-primary/10 px-2.5 py-1 text-[11px] text-primary hover:bg-primary/20"
+                                                >
+                                                    Add to {subCollection.name}
+                                                </button>
+                                            )) : (
+                                                <span className="text-xs text-muted-foreground">
+                                                    Already added to all sub-collections.
+                                                </span>
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        )) : (
+                            <div className="rounded-xl border border-dashed border-border bg-muted/20 px-4 py-6 text-sm text-muted-foreground">
+                                No selectable candidates for sub-collections.
+                            </div>
+                        )}
+                    </div>
+
+                    <div className="space-y-3 rounded-xl border border-border/70 bg-background/50 p-4">
+                        <div className="text-sm font-semibold text-foreground">Added candidates</div>
+                        {addedRows.length > 0 ? addedRows.map(({ candidate, assignedSubCollections, assignedToCurrent }) => (
+                            <div key={`added-${candidate.id}`} className="rounded-xl border border-border/70 bg-card/70 p-4">
+                                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                                    <div>
+                                        <div className="text-sm font-semibold text-foreground">{candidate.name}</div>
+                                        <div className="text-xs text-muted-foreground">{candidate.email}</div>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <Link
+                                            href={showCandidate(candidate.id).url}
+                                            className="inline-flex items-center gap-1 rounded-lg border border-border bg-background px-3 py-1.5 text-xs text-foreground hover:bg-accent/60"
+                                        >
+                                            View profile
+                                        </Link>
+                                        {assignedToCurrent && (
                                             <button
                                                 type="button"
                                                 onClick={() => removeCandidate(candidate.id)}
-                                                className="inline-flex items-center gap-1 rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs text-red-700 hover:bg-red-100"
+                                                className="inline-flex items-center gap-1 rounded-lg border border-red-300/60 bg-red-500/10 px-3 py-1.5 text-xs text-red-700 hover:bg-red-500/20 dark:text-red-300"
                                             >
-                                                Remove
-                                            </button>
-                                        ) : (
-                                            <button
-                                                type="button"
-                                                onClick={() => assignCandidate(candidate.id)}
-                                                className="inline-flex items-center gap-1 rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs text-blue-700 hover:bg-blue-100"
-                                            >
-                                                <Users className="size-3" />
-                                                Add to this collection
+                                                Remove from parent
                                             </button>
                                         )}
                                     </div>
                                 </div>
+                                <div className="mt-3 rounded-lg border border-border/60 bg-muted/20 p-3">
+                                    <div className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                                        Added list
+                                    </div>
+                                    <div className="mt-2 flex flex-wrap gap-1.5">
+                                        {assignedSubCollections.map((subCollection) => (
+                                            <button
+                                                key={`remove-sub-${candidate.id}-${subCollection.id}`}
+                                                type="button"
+                                                onClick={() => removeCandidate(candidate.id, subCollection.id)}
+                                                className="rounded-full border border-emerald-300/50 bg-emerald-500/10 px-2.5 py-1 text-[11px] text-emerald-700 hover:bg-emerald-500/20 dark:text-emerald-300"
+                                            >
+                                                {subCollection.name} ×
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
                             </div>
-                        );
-                    }) : (
-                        <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-4 py-6 text-sm text-slate-500">
-                            No matching candidates found. Use search to filter by name, email, or skill.
-                        </div>
-                    )}
+                        )) : (
+                            <div className="rounded-xl border border-dashed border-border bg-muted/20 px-4 py-6 text-sm text-muted-foreground">
+                                No candidates added to sub-collections yet.
+                            </div>
+                        )}
+                    </div>
                 </div>
 
                 <div className="mt-4 flex items-center justify-between">
@@ -332,7 +420,7 @@ export default function RecruiterCollectionShow({ collection, children, candidat
                             <Button type="button" variant="outline" onClick={() => setCreateSubOpen(false)}>
                                 Cancel
                             </Button>
-                            <Button type="submit" disabled={createSubForm.processing} className="bg-blue-700 hover:bg-blue-800">
+                            <Button type="submit" disabled={createSubForm.processing}>
                                 {createSubForm.processing ? 'Creating...' : 'Create'}
                             </Button>
                         </DialogFooter>
@@ -389,7 +477,7 @@ export default function RecruiterCollectionShow({ collection, children, candidat
                             <Button type="button" variant="outline" onClick={() => setEditingChild(null)}>
                                 Cancel
                             </Button>
-                            <Button type="submit" disabled={editChildForm.processing} className="bg-blue-700 hover:bg-blue-800">
+                            <Button type="submit" disabled={editChildForm.processing}>
                                 {editChildForm.processing ? 'Saving...' : 'Save changes'}
                             </Button>
                         </DialogFooter>

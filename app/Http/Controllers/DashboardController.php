@@ -52,6 +52,9 @@ class DashboardController extends Controller
                 'location' => $profile->location,
                 'skills' => $profile->skills ?? [],
                 'skill_categories' => $profile->skill_categories ?? [],
+                'achievements' => $profile->achievements,
+                'hackathons_experience' => $profile->hackathons_experience,
+                'projects_description' => $profile->projects_description,
             ],
             'status' => $request->session()->get('status'),
         ]);

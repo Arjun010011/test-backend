@@ -1,5 +1,6 @@
 import { Link } from '@inertiajs/react';
 import { MoreVertical, Star } from 'lucide-react';
+import { StatusBadge } from '@/components/recruiter/status-badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import {
@@ -8,9 +9,8 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Skeleton } from '@/components/ui/skeleton';
-import { StatusBadge } from '@/components/recruiter/status-badge';
 import { PlaceholderPattern } from '@/components/ui/placeholder-pattern';
+import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { show } from '@/routes/recruiter/candidates';
 
@@ -31,6 +31,7 @@ type Props = {
     candidates: RecruiterCandidate[];
     loading?: boolean;
     onToggleStar: (candidateId: number) => void;
+    skillSearchTerm?: string;
 };
 
 function initials(name: string): string {
@@ -42,7 +43,28 @@ function initials(name: string): string {
         .toUpperCase();
 }
 
-export function CandidateTable({ candidates, loading = false, onToggleStar }: Props) {
+function visibleSkills(skills: string[], skillSearchTerm?: string): string[] {
+    const search = (skillSearchTerm ?? '').trim().toLowerCase();
+
+    if (search === '') {
+        return skills.slice(0, 2);
+    }
+
+    const matchedSkill = skills.find((skill) => skill.toLowerCase().includes(search));
+
+    if (matchedSkill === undefined) {
+        return skills.slice(0, 2);
+    }
+
+    return [matchedSkill, ...skills.filter((skill) => skill !== matchedSkill)].slice(0, 2);
+}
+
+export function CandidateTable({
+    candidates,
+    loading = false,
+    onToggleStar,
+    skillSearchTerm,
+}: Props) {
     if (loading) {
         return (
             <div className="rounded-2xl border border-border/60 bg-card p-4 shadow-sm">
@@ -105,7 +127,7 @@ export function CandidateTable({ candidates, loading = false, onToggleStar }: Pr
                                 </td>
                                 <td className="px-4 py-3">
                                     <div className="flex flex-wrap gap-1.5">
-                                        {candidate.skills.slice(0, 4).map((skill) => (
+                                        {visibleSkills(candidate.skills, skillSearchTerm).map((skill) => (
                                             <span
                                                 key={skill}
                                                 className="rounded-full border border-border/70 bg-muted/40 px-2.5 py-1 text-xs"

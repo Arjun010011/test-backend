@@ -1,16 +1,21 @@
 import { Link, usePage } from '@inertiajs/react';
-import { BarChart3, LayoutDashboard, Search, Users, FolderKanban } from 'lucide-react';
+import { BarChart3, LayoutDashboard, Search, Users, FolderKanban, Monitor, Moon, Sun } from 'lucide-react';
 import type { PropsWithChildren } from 'react';
 import { FlashToast } from '@/components/flash-toast';
 import { Button } from '@/components/ui/button';
 import {
     DropdownMenu,
     DropdownMenuContent,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
+import { useAppearance } from '@/hooks/use-appearance';
 import { logout } from '@/routes';
+import { edit as editAppearance } from '@/routes/appearance';
+import { edit as editProfile } from '@/routes/profile';
 import { dashboard as recruiterDashboard } from '@/routes/recruiter';
 import { index as candidatesIndex } from '@/routes/recruiter/candidates';
 import { index as collectionsIndex } from '@/routes/recruiter/collections';
@@ -40,16 +45,17 @@ const sidebarItems = [
 
 export default function RecruiterLayout({ title, children, search, onSearchChange, onSearchSubmit }: Props) {
     const { auth } = usePage<SharedProps>().props;
+    const { appearance, updateAppearance } = useAppearance();
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 text-slate-900">
+        <div className="min-h-screen bg-background text-foreground">
             <div className="mx-auto flex max-w-[1400px] gap-6 px-4 py-6 lg:px-8">
-                <aside className="hidden w-64 shrink-0 rounded-2xl border border-slate-200/70 bg-white/90 p-4 shadow-sm md:block">
+                <aside className="hidden w-64 shrink-0 rounded-2xl border border-border/70 bg-card/80 p-4 shadow-sm backdrop-blur md:block">
                     <div className="mb-6 px-2">
-                        <div className="text-xs uppercase tracking-[0.22em] text-slate-500">
+                        <div className="text-xs uppercase tracking-[0.22em] text-muted-foreground">
                             Recruiter Hub
                         </div>
-                        <div className="mt-1 text-lg font-semibold">Talent Console</div>
+                        <div className="mt-1 text-lg font-semibold text-foreground">Talent Console</div>
                     </div>
                     <nav className="space-y-1.5">
                         {sidebarItems.map((item) => (
@@ -59,7 +65,7 @@ export default function RecruiterLayout({ title, children, search, onSearchChang
                                 className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-colors ${
                                     item.disabled
                                         ? 'pointer-events-none opacity-45'
-                                        : 'hover:bg-slate-100'
+                                        : 'hover:bg-accent hover:text-accent-foreground'
                                 }`}
                             >
                                 <item.icon className="size-4" />
@@ -70,10 +76,10 @@ export default function RecruiterLayout({ title, children, search, onSearchChang
                 </aside>
 
                 <div className="min-w-0 flex-1">
-                    <header className="mb-6 rounded-2xl border border-slate-200/70 bg-white/90 p-4 shadow-sm">
+                    <header className="mb-6 rounded-2xl border border-border/70 bg-card/80 p-4 shadow-sm backdrop-blur">
                         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                             <div>
-                                <h1 className="text-xl font-semibold">{title}</h1>
+                                <h1 className="text-xl font-semibold text-foreground">{title}</h1>
                             </div>
                             <div className="flex items-center gap-3">
                                 {onSearchChange && (
@@ -84,18 +90,18 @@ export default function RecruiterLayout({ title, children, search, onSearchChang
                                             onSearchSubmit?.();
                                         }}
                                     >
-                                        <Search className="absolute top-2.5 left-3 size-4 text-slate-400" />
+                                        <Search className="absolute top-2.5 left-3 size-4 text-muted-foreground" />
                                         <Input
                                             value={search}
                                             onChange={(event) =>
                                                 onSearchChange(event.target.value)
                                             }
                                             placeholder="Search candidates"
-                                            className="pl-9 pr-16"
+                                            className="pl-9 pr-16 bg-background/80"
                                         />
                                         <button
                                             type="submit"
-                                            className="absolute top-1.5 right-1.5 rounded-md border border-border/70 bg-background px-2 py-1 text-xs hover:bg-muted/30"
+                                            className="absolute top-1.5 right-1.5 rounded-md border border-border/70 bg-background px-2 py-1 text-xs hover:bg-accent/70"
                                         >
                                             Go
                                         </button>
@@ -108,9 +114,37 @@ export default function RecruiterLayout({ title, children, search, onSearchChang
                                         </Button>
                                     </DropdownMenuTrigger>
                                     <DropdownMenuContent align="end">
-                                        <DropdownMenuItem className="text-xs text-muted-foreground" disabled>
+                                        <DropdownMenuLabel className="text-xs text-muted-foreground">
                                             {auth.user.email}
+                                        </DropdownMenuLabel>
+                                        <DropdownMenuSeparator />
+                                        <DropdownMenuItem asChild>
+                                            <Link href={editProfile()} prefetch>
+                                                Profile settings
+                                            </Link>
                                         </DropdownMenuItem>
+                                        <DropdownMenuItem asChild>
+                                            <Link href={editAppearance()} prefetch>
+                                                Appearance settings
+                                            </Link>
+                                        </DropdownMenuItem>
+                                        <DropdownMenuSeparator />
+                                        <DropdownMenuItem onClick={() => updateAppearance('light')}>
+                                            <Sun className="mr-2 size-4" />
+                                            Light
+                                            {appearance === 'light' ? ' ✓' : ''}
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem onClick={() => updateAppearance('dark')}>
+                                            <Moon className="mr-2 size-4" />
+                                            Dark
+                                            {appearance === 'dark' ? ' ✓' : ''}
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem onClick={() => updateAppearance('system')}>
+                                            <Monitor className="mr-2 size-4" />
+                                            System
+                                            {appearance === 'system' ? ' ✓' : ''}
+                                        </DropdownMenuItem>
+                                        <DropdownMenuSeparator />
                                         <DropdownMenuItem asChild>
                                             <Link href={logout()} as="button" method="post">
                                                 Sign out

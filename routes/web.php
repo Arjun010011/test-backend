@@ -36,6 +36,7 @@ Route::middleware(['auth', 'role:admin'])->prefix('recruiter')->name('recruiter.
     Route::get('candidates/{candidate}', [RecruiterCandidateController::class, 'show'])->name('candidates.show');
     Route::patch('candidates/{candidate}/status', [RecruiterCandidateController::class, 'updateStatus'])->name('candidates.status.update');
     Route::put('candidates/{candidate}', [RecruiterCandidateController::class, 'update'])->name('candidates.update');
+    Route::delete('candidates/{candidate}', [RecruiterCandidateController::class, 'destroy'])->name('candidates.destroy');
     Route::post('candidates/{candidate}/comments', [RecruiterCandidateController::class, 'storeComment'])->name('candidates.comments.store');
     Route::put('candidates/{candidate}/comments/{comment}', [RecruiterCandidateController::class, 'updateComment'])->name('candidates.comments.update');
     Route::delete('candidates/{candidate}/comments/{comment}', [RecruiterCandidateController::class, 'destroyComment'])->name('candidates.comments.destroy');

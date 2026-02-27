@@ -34,15 +34,14 @@ export default function RecruiterCollectionsIndex({ collections }: Props) {
     const form = useForm({
         name: '',
         description: '',
-        parent_id: '',
+        parent_id: '' as string,
     });
     const editForm = useForm({
         name: '',
         description: '',
-        parent_id: '',
+        parent_id: '' as string,
     });
     const [editingCollection, setEditingCollection] = useState<Collection | null>(null);
-    const collectionMap = new Map(collections.data.map((collection) => [collection.id, collection]));
 
     const submit = (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
@@ -57,7 +56,7 @@ export default function RecruiterCollectionsIndex({ collections }: Props) {
         editForm.setData({
             name: collection.name,
             description: collection.description ?? '',
-            parent_id: collection.parent_id ? String(collection.parent_id) : '',
+            parent_id: '',
         });
     };
 
@@ -86,32 +85,12 @@ export default function RecruiterCollectionsIndex({ collections }: Props) {
         });
     };
 
-    const collectionDepth = (collection: Collection): number => {
-        let depth = 0;
-        let parentId = collection.parent_id;
-        const visited = new Set<number>();
-
-        while (parentId !== null && !visited.has(parentId)) {
-            visited.add(parentId);
-            const parent = collectionMap.get(parentId);
-
-            if (parent === undefined) {
-                break;
-            }
-
-            depth += 1;
-            parentId = parent.parent_id;
-        }
-
-        return depth;
-    };
-
     return (
         <RecruiterLayout title="Collections">
             <Head title="Collections" />
 
             <div className="space-y-4">
-                <section className="rounded-3xl border border-blue-200/70 bg-gradient-to-r from-blue-700 via-blue-600 to-cyan-500 p-6 text-white shadow-xl">
+                <section className="rounded-3xl border border-sky-200/60 bg-gradient-to-r from-sky-700 via-indigo-600 to-cyan-500 p-6 text-white shadow-xl dark:border-sky-400/20 dark:from-sky-500/70 dark:via-indigo-500/60 dark:to-cyan-500/60">
                     <div className="text-xs font-semibold uppercase tracking-[0.2em] text-blue-100">Recruiter</div>
                     <h1 className="mt-2 text-2xl font-bold">Collection Studio</h1>
                     <p className="mt-1 text-sm text-blue-100">
@@ -121,9 +100,9 @@ export default function RecruiterCollectionsIndex({ collections }: Props) {
 
                 <form
                     onSubmit={submit}
-                    className="rounded-2xl border border-slate-200/70 bg-white p-5 shadow-sm"
+                    className="rounded-2xl border border-border/70 bg-card/80 p-5 shadow-sm backdrop-blur"
                 >
-                    <div className="grid gap-3 md:grid-cols-4">
+                    <div className="grid gap-3 md:grid-cols-3">
                         <input
                             value={form.data.name}
                             onChange={(event) => form.setData('name', event.target.value)}
@@ -136,21 +115,10 @@ export default function RecruiterCollectionsIndex({ collections }: Props) {
                             placeholder="Description"
                             className="h-10 rounded-lg border border-input bg-background px-3 text-sm"
                         />
-                        <select
-                            value={form.data.parent_id}
-                            onChange={(event) => form.setData('parent_id', event.target.value)}
-                            className="h-10 rounded-lg border border-input bg-background px-3 text-sm"
-                        >
-                            <option value="">No parent (top-level)</option>
-                            {collections.data.map((collection) => (
-                                <option key={collection.id} value={collection.id}>
-                                    {collection.name}
-                                </option>
-                            ))}
-                        </select>
+                        <input type="hidden" name="parent_id" value={form.data.parent_id} />
                         <button
                             type="submit"
-                            className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-blue-700 px-4 text-sm text-white hover:bg-blue-800"
+                            className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm text-primary-foreground hover:bg-primary/90"
                         >
                             <Plus className="size-4" />
                             Create collection
@@ -162,19 +130,13 @@ export default function RecruiterCollectionsIndex({ collections }: Props) {
                     {collections.data.map((collection) => (
                         <div
                             key={collection.id}
-                            className="rounded-2xl border border-slate-200/70 bg-white p-5 shadow-sm"
-                            style={{ marginLeft: `${collectionDepth(collection) * 12}px` }}
+                            className="rounded-2xl border border-border/70 bg-card/80 p-5 shadow-sm backdrop-blur"
                         >
                             <div className="text-base font-semibold">{collection.name}</div>
                             <p className="mt-1 text-sm text-muted-foreground">
                                 {collection.description ?? 'No description'}
                             </p>
-                            {collection.parent_name && (
-                                <div className="mt-1 text-xs text-slate-500">
-                                    Parent: {collection.parent_name}
-                                </div>
-                            )}
-                            <div className="mt-4 text-sm text-slate-600">
+                            <div className="mt-4 text-sm text-muted-foreground">
                                 {collection.candidates_count} candidates
                             </div>
                             <div className="mt-1 text-xs text-muted-foreground">
@@ -197,7 +159,7 @@ export default function RecruiterCollectionsIndex({ collections }: Props) {
                                 <button
                                     type="button"
                                     onClick={() => deleteCollection(collection)}
-                                    className="inline-flex rounded-lg border border-red-200 px-3 py-2 text-sm text-red-600 hover:bg-red-50"
+                                    className="inline-flex rounded-lg border border-red-300/60 px-3 py-2 text-sm text-red-600 hover:bg-red-500/10"
                                 >
                                     Delete
                                 </button>
@@ -235,20 +197,7 @@ export default function RecruiterCollectionsIndex({ collections }: Props) {
                             placeholder="Description"
                             className="h-10 w-full rounded-lg border border-input bg-background px-3 text-sm"
                         />
-                        <select
-                            value={editForm.data.parent_id}
-                            onChange={(event) => editForm.setData('parent_id', event.target.value)}
-                            className="h-10 w-full rounded-lg border border-input bg-background px-3 text-sm"
-                        >
-                            <option value="">No parent (top-level)</option>
-                            {collections.data
-                                .filter((collection) => collection.id !== editingCollection?.id)
-                                .map((collection) => (
-                                    <option key={collection.id} value={collection.id}>
-                                        {collection.name}
-                                    </option>
-                                ))}
-                        </select>
+                        <input type="hidden" name="parent_id" value={editForm.data.parent_id} />
                         <DialogFooter>
                             <Button type="button" variant="outline" onClick={() => setEditingCollection(null)}>
                                 Cancel

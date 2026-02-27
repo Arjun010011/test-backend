@@ -28,11 +28,15 @@ class CandidateProfile extends Model
         'skill_categories',
         'candidate_status',
         'bio',
+        'achievements',
+        'hackathons_experience',
+        'projects_description',
         'location',
         'address_line_1',
         'address_line_2',
         'city',
         'state',
+        'district',
         'country',
         'postal_code',
         'linkedin_url',
@@ -65,8 +69,29 @@ class CandidateProfile extends Model
      */
     public function scopeWithSkills(Builder $query, array $skills): Builder
     {
+        $driver = $query->getModel()->getConnection()->getDriverName();
+
         foreach ($skills as $skill) {
-            $query->whereJsonContains('skills', $skill);
+            $normalizedSkill = mb_strtolower(trim($skill));
+
+            if ($normalizedSkill === '') {
+                continue;
+            }
+
+            match ($driver) {
+                'mysql', 'mariadb' => $query->whereRaw(
+                    "JSON_SEARCH(LOWER(CAST(COALESCE(skills, JSON_ARRAY()) AS CHAR)), 'one', ?) IS NOT NULL",
+                    [$normalizedSkill],
+                ),
+                'pgsql' => $query->whereRaw(
+                    "LOWER(COALESCE(skills::text, '[]')) LIKE ?",
+                    ['%"'.$normalizedSkill.'"%'],
+                ),
+                default => $query->whereRaw(
+                    "LOWER(COALESCE(skills, '[]')) LIKE ?",
+                    ['%"'.$normalizedSkill.'"%'],
+                ),
+            };
         }
 
         return $query;

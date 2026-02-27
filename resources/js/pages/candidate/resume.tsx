@@ -39,6 +39,9 @@ export default function CandidateResume() {
                     title="Upload your resume"
                     description="We will scan your resume to extract skills for matching."
                 />
+                <section className="rounded-xl border border-cyan-300/40 bg-gradient-to-r from-cyan-500/15 via-sky-500/10 to-indigo-500/15 px-4 py-3 text-sm text-foreground dark:border-cyan-400/20 dark:from-cyan-500/20 dark:via-sky-500/10 dark:to-indigo-500/20">
+                    Keep this file updated so search and skill matching stay accurate.
+                </section>
 
                 {status === 'resume-uploaded' && (
                     <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900 dark:border-emerald-500/40 dark:bg-emerald-500/10 dark:text-emerald-200">
@@ -79,7 +82,7 @@ export default function CandidateResume() {
                 </Form>
 
                 {latestResume && (
-                    <div className="rounded-xl border border-border/60 bg-card p-4 shadow-xs">
+                    <div className="rounded-xl border border-border/60 bg-gradient-to-br from-card to-cyan-500/5 p-4 shadow-xs dark:to-cyan-400/10">
                         <div className="flex flex-col gap-2">
                             <div className="flex items-center justify-between gap-3">
                                 <div className="text-sm font-medium text-foreground">

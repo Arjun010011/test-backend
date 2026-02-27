@@ -34,12 +34,16 @@ type CandidateProfile = {
     address_line_2: string | null;
     city: string | null;
     state: string | null;
+    district: string | null;
     country: string | null;
     postal_code: string | null;
     linkedin_url: string | null;
     github_url: string | null;
     portfolio_url: string | null;
     bio: string | null;
+    achievements: string | null;
+    hackathons_experience: string | null;
+    projects_description: string | null;
     skills: string[];
 };
 
@@ -48,6 +52,15 @@ type PageProps = {
     hasResume: boolean;
     isCompleted: boolean;
     skillCatalog: string[];
+    defaultCountry: string;
+    locationHierarchy: Record<
+        string,
+        {
+            districts: string[];
+            cities: string[];
+            city_postal_patterns?: Record<string, string>;
+        }
+    >;
     status?: string;
 };
 
@@ -74,9 +87,41 @@ const majorOptions = [
     'Other',
 ];
 
+function RequiredStar() {
+    return <span className="ml-1 text-red-500">*</span>;
+}
+
 export default function CandidateOnboarding() {
-    const { profile, hasResume, isCompleted, skillCatalog, status } =
+    const {
+        profile,
+        hasResume,
+        isCompleted,
+        skillCatalog,
+        defaultCountry,
+        locationHierarchy,
+        status,
+    } =
         usePage<PageProps>().props;
+    const initialState =
+        profile?.state !== null &&
+        profile?.state !== undefined &&
+        Object.prototype.hasOwnProperty.call(locationHierarchy, profile.state)
+            ? profile.state
+            : '';
+    const initialDistrict =
+        initialState !== '' &&
+        profile?.district !== null &&
+        profile?.district !== undefined &&
+        locationHierarchy[initialState]?.districts.includes(profile.district)
+            ? profile.district
+            : '';
+    const initialCity =
+        initialState !== '' &&
+        profile?.city !== null &&
+        profile?.city !== undefined &&
+        locationHierarchy[initialState]?.cities.includes(profile.city)
+            ? profile.city
+            : '';
     const [isCurrentlyStudying, setIsCurrentlyStudying] = useState(
         profile?.is_currently_studying ?? false,
     );
@@ -93,6 +138,9 @@ export default function CandidateOnboarding() {
         initialSkillTags,
     );
     const [skillInput, setSkillInput] = useState('');
+    const [selectedState, setSelectedState] = useState(initialState);
+    const [selectedDistrict, setSelectedDistrict] = useState(initialDistrict);
+    const [selectedCity, setSelectedCity] = useState(initialCity);
     const currentYear = new Date().getFullYear();
     const defaultGraduationYears = Array.from(
         { length: 41 },
@@ -115,6 +163,13 @@ export default function CandidateOnboarding() {
         )
         .slice(0, 8);
     const validSkillTags = skillTags.filter((tag) => tag.valid).map((tag) => tag.value);
+    const availableStates = Object.keys(locationHierarchy);
+    const availableDistricts = selectedState === ''
+        ? []
+        : locationHierarchy[selectedState]?.districts ?? [];
+    const availableCities = selectedState === ''
+        ? []
+        : locationHierarchy[selectedState]?.cities ?? [];
 
     const addSkillTag = (rawValue: string) => {
         const trimmed = rawValue.trim();
@@ -149,6 +204,12 @@ export default function CandidateOnboarding() {
 
             <div className="mx-auto flex w-full max-w-3xl flex-col gap-6">
                 <Heading title={headingTitle} description={headingDescription} />
+                <section className="rounded-xl border border-sky-300/40 bg-gradient-to-r from-sky-500/15 via-cyan-500/10 to-indigo-500/15 px-4 py-3 text-sm text-foreground dark:border-sky-400/20 dark:from-sky-500/20 dark:via-cyan-500/10 dark:to-indigo-500/20">
+                    A complete profile with clear skills and resume improves recruiter visibility.
+                </section>
+                <p className="text-xs text-muted-foreground">
+                    Fields marked with <span className="text-red-500">*</span> are required.
+                </p>
 
                 {status === 'onboarding-complete' && (
                     <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900 dark:border-emerald-500/40 dark:bg-emerald-500/10 dark:text-emerald-200">
@@ -169,18 +230,18 @@ export default function CandidateOnboarding() {
                                 </section>
                             )}
 
-                            <section className="space-y-4 rounded-xl border border-border/60 bg-card p-5 shadow-xs">
+                            <section className="space-y-4 rounded-xl border border-border/60 bg-gradient-to-br from-card to-sky-500/5 p-5 shadow-xs dark:to-sky-400/10">
                                 <div className="text-sm font-semibold text-foreground">
                                     Contact information
                                 </div>
 
                                 <div className="grid gap-4 sm:grid-cols-2">
                                     <div className="grid gap-2">
-                                        <Label htmlFor="phone">Phone</Label>
+                                        <Label htmlFor="phone">Phone<RequiredStar /></Label>
                                         <Input
                                             id="phone"
                                             name="phone"
-                                            placeholder="+1 555 123 4567"
+                                            placeholder="+91 98765 43210"
                                             defaultValue={profile?.phone ?? ''}
                                             required
                                         />
@@ -188,11 +249,11 @@ export default function CandidateOnboarding() {
                                     </div>
 
                                     <div className="grid gap-2">
-                                        <Label htmlFor="location">Location</Label>
+                                        <Label htmlFor="location">Location<RequiredStar /></Label>
                                         <Input
                                             id="location"
                                             name="location"
-                                            placeholder="San Francisco, CA"
+                                            placeholder="Bengaluru, Karnataka"
                                             defaultValue={profile?.location ?? ''}
                                             required
                                         />
@@ -201,18 +262,18 @@ export default function CandidateOnboarding() {
                                 </div>
                             </section>
 
-                            <section className="space-y-4 rounded-xl border border-border/60 bg-card p-5 shadow-xs">
+                            <section className="space-y-4 rounded-xl border border-border/60 bg-gradient-to-br from-card to-sky-500/5 p-5 shadow-xs dark:to-sky-400/10">
                                 <div className="text-sm font-semibold text-foreground">
                                     Education
                                 </div>
 
                                 <div className="grid gap-4 sm:grid-cols-2">
                                     <div className="grid gap-2 sm:col-span-2">
-                                        <Label htmlFor="university">College / University</Label>
+                                        <Label htmlFor="university">College / University<RequiredStar /></Label>
                                         <Input
                                             id="university"
                                             name="university"
-                                            placeholder="State University"
+                                            placeholder="IIT Bombay"
                                             defaultValue={profile?.university ?? ''}
                                             required
                                         />
@@ -220,7 +281,7 @@ export default function CandidateOnboarding() {
                                     </div>
 
                                     <div className="grid gap-2">
-                                        <Label htmlFor="degree">Degree</Label>
+                                        <Label htmlFor="degree">Degree<RequiredStar /></Label>
                                         <select
                                             id="degree"
                                             name="degree"
@@ -241,7 +302,7 @@ export default function CandidateOnboarding() {
                                     </div>
 
                                     <div className="grid gap-2">
-                                        <Label htmlFor="major">Major</Label>
+                                        <Label htmlFor="major">Major<RequiredStar /></Label>
                                         <select
                                             id="major"
                                             name="major"
@@ -275,7 +336,7 @@ export default function CandidateOnboarding() {
                                     </div>
 
                                     <div className="grid gap-2">
-                                        <Label htmlFor="graduation_year">Graduation year</Label>
+                                        <Label htmlFor="graduation_year">Graduation year<RequiredStar /></Label>
                                         <select
                                             id="graduation_year"
                                             name="graduation_year"
@@ -346,18 +407,18 @@ export default function CandidateOnboarding() {
                                 </div>
                             </section>
 
-                            <section className="space-y-4 rounded-xl border border-border/60 bg-card p-5 shadow-xs">
+                            <section className="space-y-4 rounded-xl border border-border/60 bg-gradient-to-br from-card to-sky-500/5 p-5 shadow-xs dark:to-sky-400/10">
                                 <div className="text-sm font-semibold text-foreground">
                                     Address
                                 </div>
 
                                 <div className="grid gap-4 sm:grid-cols-2">
                                     <div className="grid gap-2 sm:col-span-2">
-                                        <Label htmlFor="address_line_1">Address line 1</Label>
+                                        <Label htmlFor="address_line_1">Address line 1<RequiredStar /></Label>
                                         <Input
                                             id="address_line_1"
                                             name="address_line_1"
-                                            placeholder="123 Market Street"
+                                            placeholder="42 Residency Road"
                                             defaultValue={profile?.address_line_1 ?? ''}
                                             required
                                         />
@@ -369,54 +430,108 @@ export default function CandidateOnboarding() {
                                         <Input
                                             id="address_line_2"
                                             name="address_line_2"
-                                            placeholder="Apt 4B"
+                                            placeholder="Near Brigade Road"
                                             defaultValue={profile?.address_line_2 ?? ''}
                                         />
                                         <InputError message={errors.address_line_2} />
                                     </div>
 
                                     <div className="grid gap-2">
-                                        <Label htmlFor="city">City</Label>
+                                        <Label htmlFor="country_display">Country<RequiredStar /></Label>
+                                        <input type="hidden" name="country" value={defaultCountry} />
                                         <Input
-                                            id="city"
-                                            name="city"
-                                            placeholder="San Francisco"
-                                            defaultValue={profile?.city ?? ''}
-                                            required
-                                        />
-                                        <InputError message={errors.city} />
-                                    </div>
-
-                                    <div className="grid gap-2">
-                                        <Label htmlFor="state">State</Label>
-                                        <Input
-                                            id="state"
-                                            name="state"
-                                            placeholder="California"
-                                            defaultValue={profile?.state ?? ''}
-                                            required
-                                        />
-                                        <InputError message={errors.state} />
-                                    </div>
-
-                                    <div className="grid gap-2">
-                                        <Label htmlFor="country">Country</Label>
-                                        <Input
-                                            id="country"
-                                            name="country"
-                                            placeholder="United States"
-                                            defaultValue={profile?.country ?? ''}
-                                            required
+                                            id="country_display"
+                                            value={defaultCountry}
+                                            disabled
+                                            className="disabled:opacity-100"
                                         />
                                         <InputError message={errors.country} />
                                     </div>
 
                                     <div className="grid gap-2">
-                                        <Label htmlFor="postal_code">Postal code</Label>
+                                        <Label htmlFor="state">State<RequiredStar /></Label>
+                                        <select
+                                            id="state"
+                                            name="state"
+                                            value={selectedState}
+                                            onChange={(event) => {
+                                                const nextState = event.target.value;
+                                                setSelectedState(nextState);
+                                                setSelectedDistrict('');
+                                                setSelectedCity('');
+                                            }}
+                                            required
+                                            className="border-input bg-background focus-visible:border-ring focus-visible:ring-ring/50 h-10 w-full rounded-md border px-3 py-2 text-sm shadow-xs outline-none focus-visible:ring-[3px] disabled:opacity-60"
+                                        >
+                                            <option value="" disabled>
+                                                Select state
+                                            </option>
+                                            {availableStates.map((stateOption) => (
+                                                <option key={stateOption} value={stateOption}>
+                                                    {stateOption}
+                                                </option>
+                                            ))}
+                                        </select>
+                                        <InputError message={errors.state} />
+                                    </div>
+
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="district">District<RequiredStar /></Label>
+                                        <select
+                                            id="district"
+                                            name="district"
+                                            value={selectedDistrict}
+                                            onChange={(event) => {
+                                                setSelectedDistrict(event.target.value);
+                                                setSelectedCity('');
+                                            }}
+                                            required
+                                            disabled={selectedState === ''}
+                                            className="border-input bg-background focus-visible:border-ring focus-visible:ring-ring/50 h-10 w-full rounded-md border px-3 py-2 text-sm shadow-xs outline-none focus-visible:ring-[3px] disabled:opacity-60"
+                                        >
+                                            <option value="" disabled>
+                                                Select district
+                                            </option>
+                                            {availableDistricts.map((districtOption) => (
+                                                <option key={districtOption} value={districtOption}>
+                                                    {districtOption}
+                                                </option>
+                                            ))}
+                                        </select>
+                                        <InputError message={errors.district} />
+                                    </div>
+
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="city">City<RequiredStar /></Label>
+                                        <select
+                                            id="city"
+                                            name="city"
+                                            value={selectedCity}
+                                            onChange={(event) => {
+                                                setSelectedCity(event.target.value);
+                                            }}
+                                            required
+                                            disabled={selectedDistrict === ''}
+                                            className="border-input bg-background focus-visible:border-ring focus-visible:ring-ring/50 h-10 w-full rounded-md border px-3 py-2 text-sm shadow-xs outline-none focus-visible:ring-[3px] disabled:opacity-60"
+                                        >
+                                            <option value="" disabled>
+                                                Select city
+                                            </option>
+                                            {availableCities.map((cityOption) => (
+                                                <option key={cityOption} value={cityOption}>
+                                                    {cityOption}
+                                                </option>
+                                            ))}
+                                        </select>
+                                        <InputError message={errors.city} />
+                                    </div>
+
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="postal_code">Postal code<RequiredStar /></Label>
                                         <Input
                                             id="postal_code"
                                             name="postal_code"
-                                            placeholder="94105"
+                                            placeholder="560001"
                                             defaultValue={profile?.postal_code ?? ''}
                                             required
                                         />
@@ -425,7 +540,7 @@ export default function CandidateOnboarding() {
                                 </div>
                             </section>
 
-                            <section className="space-y-4 rounded-xl border border-border/60 bg-card p-5 shadow-xs">
+                            <section className="space-y-4 rounded-xl border border-border/60 bg-gradient-to-br from-card to-sky-500/5 p-5 shadow-xs dark:to-sky-400/10">
                                 <div className="text-sm font-semibold text-foreground">
                                     Links
                                 </div>
@@ -473,7 +588,7 @@ export default function CandidateOnboarding() {
                                 </div>
                             </section>
 
-                            <section className="space-y-4 rounded-xl border border-border/60 bg-card p-5 shadow-xs">
+                            <section className="space-y-4 rounded-xl border border-border/60 bg-gradient-to-br from-card to-sky-500/5 p-5 shadow-xs dark:to-sky-400/10">
                                 <div className="text-sm font-semibold text-foreground">
                                     Skills and bio
                                 </div>
@@ -481,7 +596,7 @@ export default function CandidateOnboarding() {
                                 <div className="grid gap-4">
                                     <div className="grid gap-2">
                                         <Label htmlFor="skills">Skills</Label>
-                                        <div className="rounded-xl border border-slate-200 bg-slate-50/60 p-3">
+                                        <div className="rounded-xl border border-border bg-muted/30 p-3">
                                             <div className="flex flex-wrap gap-2">
                                                 {skillTags.map((tag) => (
                                                     <button
@@ -496,8 +611,8 @@ export default function CandidateOnboarding() {
                                                         }
                                                         className={`rounded-full border px-2.5 py-1 text-xs ${
                                                             tag.valid
-                                                                ? 'border-blue-200 bg-blue-50 text-blue-700'
-                                                                : 'border-amber-200 bg-amber-50 text-amber-700'
+                                                                ? 'border-sky-300/40 bg-sky-500/10 text-sky-700 dark:text-sky-300'
+                                                                : 'border-amber-300/50 bg-amber-500/10 text-amber-700 dark:text-amber-300'
                                                         }`}
                                                     >
                                                         {tag.value} ×
@@ -515,7 +630,7 @@ export default function CandidateOnboarding() {
                                                     }
                                                 }}
                                                 placeholder="Type skill and press Enter (e.g. Java)"
-                                                className="mt-3 border-slate-300 bg-white"
+                                                className="mt-3 border-border bg-background"
                                             />
                                             {filteredSkillSuggestions.length > 0 && (
                                                 <div className="mt-2 flex flex-wrap gap-1.5">
@@ -524,7 +639,7 @@ export default function CandidateOnboarding() {
                                                             key={skill}
                                                             type="button"
                                                             onClick={() => addSkillTag(skill)}
-                                                            className="rounded-full border border-slate-300 bg-white px-2.5 py-1 text-xs text-slate-700 hover:bg-slate-100"
+                                                            className="rounded-full border border-border bg-background px-2.5 py-1 text-xs text-foreground hover:bg-accent/60"
                                                         >
                                                             {skill}
                                                         </button>
@@ -556,7 +671,54 @@ export default function CandidateOnboarding() {
                                 </div>
                             </section>
 
-                            <section className="space-y-4 rounded-xl border border-border/60 bg-card p-5 shadow-xs">
+                            <section className="space-y-4 rounded-xl border border-border/60 bg-gradient-to-br from-card to-sky-500/5 p-5 shadow-xs dark:to-sky-400/10">
+                                <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                                    Additional experience
+                                    <span className="rounded-full border border-border/70 bg-muted/30 px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
+                                        Optional
+                                    </span>
+                                </div>
+                                <div className="grid gap-4">
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="achievements">Achievements (Optional)</Label>
+                                        <textarea
+                                            id="achievements"
+                                            name="achievements"
+                                            rows={3}
+                                            defaultValue={profile?.achievements ?? ''}
+                                            className="border-input placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground min-h-[90px] w-full rounded-md border bg-transparent px-3 py-2 text-base shadow-xs outline-none transition-[color,box-shadow] focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 md:text-sm"
+                                            placeholder="Awards, certifications, rankings, or notable accomplishments"
+                                        />
+                                        <InputError message={errors.achievements} />
+                                    </div>
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="hackathons_experience">Hackathons experience (Optional)</Label>
+                                        <textarea
+                                            id="hackathons_experience"
+                                            name="hackathons_experience"
+                                            rows={3}
+                                            defaultValue={profile?.hackathons_experience ?? ''}
+                                            className="border-input placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground min-h-[90px] w-full rounded-md border bg-transparent px-3 py-2 text-base shadow-xs outline-none transition-[color,box-shadow] focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 md:text-sm"
+                                            placeholder="Events participated in, problems solved, team roles, or results"
+                                        />
+                                        <InputError message={errors.hackathons_experience} />
+                                    </div>
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="projects_description">Projects description (Optional)</Label>
+                                        <textarea
+                                            id="projects_description"
+                                            name="projects_description"
+                                            rows={4}
+                                            defaultValue={profile?.projects_description ?? ''}
+                                            className="border-input placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground min-h-[110px] w-full rounded-md border bg-transparent px-3 py-2 text-base shadow-xs outline-none transition-[color,box-shadow] focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 md:text-sm"
+                                            placeholder="Summarize key projects, stack used, and impact"
+                                        />
+                                        <InputError message={errors.projects_description} />
+                                    </div>
+                                </div>
+                            </section>
+
+                            <section className="space-y-4 rounded-xl border border-border/60 bg-gradient-to-br from-card to-sky-500/5 p-5 shadow-xs dark:to-sky-400/10">
                                 <div className="text-sm font-semibold text-foreground">
                                     Resume upload
                                 </div>
@@ -564,6 +726,7 @@ export default function CandidateOnboarding() {
                                 <div className="grid gap-2">
                                     <Label htmlFor="resume">
                                         Resume file {hasResume ? '(optional)' : ''}
+                                        {!hasResume && <RequiredStar />}
                                     </Label>
                                     <Input
                                         id="resume"

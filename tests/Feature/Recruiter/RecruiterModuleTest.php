@@ -4,6 +4,7 @@ use App\Enums\CandidateStatus;
 use App\Models\CandidateProfile;
 use App\Models\RecruiterCollection;
 use App\Models\User;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Testing\AssertableInertia as Assert;
 
 use function Pest\Laravel\actingAs;
@@ -41,7 +42,7 @@ it('shows paginated candidate listing for admins', function () {
     ]);
 
     $response = actingAs($admin)->get(route('recruiter.candidates.index', [
-        'search' => 'Laravel',
+        'search' => 'laravel',
     ]));
 
     $response->assertSuccessful();
@@ -50,6 +51,39 @@ it('shows paginated candidate listing for admins', function () {
         ->where('candidates.data.0.name', 'Taylor Recruit')
         ->where('candidates.data.0.status', CandidateStatus::InReview->value)
     );
+});
+
+it('shows profile skills in recruiter list when resume extracted skills are empty', function () {
+    $admin = User::factory()->admin()->create();
+    $candidate = User::factory()->candidate()->create([
+        'name' => 'Skill Visible Candidate',
+    ]);
+
+    CandidateProfile::factory()->create([
+        'user_id' => $candidate->id,
+        'profile_completed_at' => now(),
+        'skills' => ['React', 'TypeScript'],
+    ]);
+
+    $candidate->resumes()->create([
+        'file_path' => 'resumes/'.$candidate->id.'/resume.txt',
+        'original_name' => 'resume.txt',
+        'mime_type' => 'text/plain',
+        'file_size' => 120,
+        'is_primary' => true,
+        'extracted_skills' => [],
+        'raw_text' => 'Candidate profile data',
+    ]);
+
+    actingAs($admin)
+        ->get(route('recruiter.candidates.index'))
+        ->assertSuccessful()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('recruiter/candidates/index')
+            ->where('candidates.data.0.name', 'Skill Visible Candidate')
+            ->where('candidates.data.0.skills.0', 'React')
+            ->where('candidates.data.0.skills.1', 'TypeScript')
+        );
 });
 
 it('allows recruiter workflow actions', function () {
@@ -255,4 +289,113 @@ it('shows child collection with inherited parent candidates and supports search'
             ->where('collection.parent_name', 'Backend Roles')
             ->where('candidates.data.0.name', 'Nested Candidate')
         );
+});
+
+it('hides sub-collections from top-level collection listings', function () {
+    $admin = User::factory()->admin()->create();
+
+    $parent = RecruiterCollection::factory()->create([
+        'recruiter_id' => $admin->id,
+        'name' => 'Parent Collection',
+        'parent_id' => null,
+    ]);
+
+    RecruiterCollection::factory()->create([
+        'recruiter_id' => $admin->id,
+        'name' => 'Nested Child Collection',
+        'parent_id' => $parent->id,
+    ]);
+
+    actingAs($admin)
+        ->get(route('recruiter.collections.index'))
+        ->assertSuccessful()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('recruiter/collections/index')
+            ->has('collections.data', 1)
+            ->where('collections.data.0.name', 'Parent Collection')
+        );
+
+    actingAs($admin)
+        ->get(route('recruiter.candidates.index'))
+        ->assertSuccessful()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('recruiter/candidates/index')
+            ->has('collections.data', 1)
+            ->where('collections.data.0.name', 'Parent Collection')
+        );
+});
+
+it('filters only passed out candidates', function () {
+    $admin = User::factory()->admin()->create();
+
+    $activeCandidate = User::factory()->candidate()->create([
+        'name' => 'Active Student',
+    ]);
+
+    CandidateProfile::factory()->create([
+        'user_id' => $activeCandidate->id,
+        'profile_completed_at' => now(),
+        'graduation_year' => now()->addYear()->year,
+        'is_currently_studying' => true,
+        'current_semester' => 3,
+        'total_semesters' => 8,
+        'semester_recorded_at' => now()->toDateString(),
+    ]);
+
+    $passedOutCandidate = User::factory()->candidate()->create([
+        'name' => 'Passed Out Student',
+    ]);
+
+    CandidateProfile::factory()->create([
+        'user_id' => $passedOutCandidate->id,
+        'profile_completed_at' => now(),
+        'graduation_year' => now()->subYear()->year,
+        'is_currently_studying' => false,
+    ]);
+
+    actingAs($admin)
+        ->get(route('recruiter.candidates.index', [
+            'passed_out' => 1,
+        ]))
+        ->assertSuccessful()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('recruiter/candidates/index')
+            ->where('filters.passed_out', true)
+            ->has('candidates.data', 1)
+            ->where('candidates.data.0.name', 'Passed Out Student')
+        );
+});
+
+it('allows recruiters to delete candidates', function () {
+    Storage::fake('local');
+
+    $admin = User::factory()->admin()->create();
+    $candidate = User::factory()->candidate()->create();
+
+    CandidateProfile::factory()->create([
+        'user_id' => $candidate->id,
+        'profile_completed_at' => now(),
+    ]);
+
+    Storage::disk('local')->put("resumes/{$candidate->id}/resume.txt", 'resume content');
+
+    $candidate->resumes()->create([
+        'file_path' => "resumes/{$candidate->id}/resume.txt",
+        'original_name' => 'resume.txt',
+        'mime_type' => 'text/plain',
+        'file_size' => 14,
+        'is_primary' => true,
+        'extracted_skills' => ['Laravel'],
+        'raw_text' => 'resume content',
+    ]);
+
+    actingAs($admin)
+        ->delete(route('recruiter.candidates.destroy', $candidate))
+        ->assertRedirect(route('recruiter.candidates.index'));
+
+    $this->assertDatabaseMissing('users', [
+        'id' => $candidate->id,
+    ]);
+
+    Storage::disk('local')->assertMissing("resumes/{$candidate->id}/resume.txt");
 });

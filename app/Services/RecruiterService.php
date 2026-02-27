@@ -12,6 +12,7 @@ use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 
 class RecruiterService
 {
@@ -26,13 +27,18 @@ class RecruiterService
             ->when(
                 filled($filters['search'] ?? null),
                 function (Builder $builder) use ($filters): void {
-                    $search = (string) $filters['search'];
+                    $search = trim((string) $filters['search']);
+                    $normalizedSearch = mb_strtolower($search);
 
-                    $builder->where(function (Builder $where) use ($search): void {
+                    $builder->where(function (Builder $where) use ($search, $normalizedSearch): void {
                         $where->where('name', 'like', "%{$search}%")
                             ->orWhere('email', 'like', "%{$search}%")
-                            ->orWhereHas('resumes', function (Builder $resumeQuery) use ($search): void {
-                                $resumeQuery->whereJsonContains('extracted_skills', $search);
+                            ->orWhereHas('resumes', function (Builder $resumeQuery) use ($normalizedSearch): void {
+                                $this->whereJsonArrayContainsInsensitive($resumeQuery, 'extracted_skills', $normalizedSearch)
+                                    ->orWhereRaw('LOWER(COALESCE(raw_text, \'\')) LIKE ?', ["%{$normalizedSearch}%"]);
+                            })
+                            ->orWhereHas('candidateProfile', function (Builder $profileQuery) use ($normalizedSearch): void {
+                                $this->whereJsonArrayContainsInsensitive($profileQuery, 'skills', $normalizedSearch);
                             });
                     });
                 },
@@ -40,6 +46,10 @@ class RecruiterService
             ->when(
                 isset($filters['starred']) && (bool) $filters['starred'] === true,
                 fn (Builder $builder): Builder => $builder->whereHas('starredByRecruiters', fn (Builder $starredQuery): Builder => $starredQuery->where('recruiter_id', $recruiter->id)),
+            )
+            ->when(
+                isset($filters['passed_out']) && (bool) $filters['passed_out'] === true,
+                fn (Builder $builder): Builder => $builder->whereHas('candidateProfile', fn (Builder $profileQuery): Builder => $this->whereCandidatePassedOut($profileQuery)),
             )
             ->when(
                 filled($filters['status'] ?? null),
@@ -142,6 +152,24 @@ class RecruiterService
             'candidate_user_id' => $candidate->id,
             'body' => $body,
         ]);
+    }
+
+    public function deleteCandidate(User $recruiter, User $candidate): void
+    {
+        $this->assertCandidateIsVisible($recruiter, $candidate);
+
+        DB::transaction(function () use ($candidate): void {
+            $resumePaths = $candidate->resumes()
+                ->pluck('file_path')
+                ->filter()
+                ->values();
+
+            $candidate->delete();
+
+            if ($resumePaths->isNotEmpty()) {
+                Storage::disk('local')->delete($resumePaths->all());
+            }
+        });
     }
 
     public function createCollection(User $recruiter, string $name, ?string $description = null, ?int $parentId = null): RecruiterCollection
@@ -360,7 +388,7 @@ class RecruiterService
                 'starredByRecruiters as is_starred' => fn (Builder $query): Builder => $query->where('recruiter_id', $recruiter->id),
             ])
             ->with([
-                'candidateProfile:id,user_id,skills,location,graduation_year,candidate_status,profile_completed_at,university,degree,major,is_currently_studying,current_semester,total_semesters,semester_recorded_at',
+                'candidateProfile:id,user_id,skills,location,graduation_year,candidate_status,profile_completed_at,university,degree,major,is_currently_studying,current_semester,total_semesters,semester_recorded_at,achievements,hackathons_experience,projects_description',
                 'resumes' => fn ($query) => $query
                     ->select('id', 'user_id', 'original_name', 'file_size', 'extracted_skills', 'is_primary', 'created_at')
                     ->where('is_primary', true)
@@ -383,5 +411,50 @@ class RecruiterService
                 ! $recruiter->isSuperAdmin(),
                 fn (Builder $query): Builder => $query->whereHas('candidateProfile', fn (Builder $profileQuery): Builder => $profileQuery->whereNotNull('profile_completed_at')),
             );
+    }
+
+    protected function whereJsonArrayContainsInsensitive(Builder $query, string $column, string $normalizedNeedle): Builder
+    {
+        $driver = $query->getModel()->getConnection()->getDriverName();
+
+        return match ($driver) {
+            'mysql', 'mariadb' => $query->whereRaw(
+                "JSON_SEARCH(LOWER(CAST(COALESCE({$column}, JSON_ARRAY()) AS CHAR)), 'one', ?) IS NOT NULL",
+                [$normalizedNeedle],
+            ),
+            'pgsql' => $query->whereRaw(
+                "LOWER(COALESCE({$column}::text, '[]')) LIKE ?",
+                ['%"'.$normalizedNeedle.'"%'],
+            ),
+            default => $query->whereRaw(
+                "LOWER(COALESCE({$column}, '[]')) LIKE ?",
+                ['%"'.$normalizedNeedle.'"%'],
+            ),
+        };
+    }
+
+    protected function whereCandidatePassedOut(Builder $query): Builder
+    {
+        $year = (int) now()->year;
+
+        return $query->where(function (Builder $completedQuery) use ($year): void {
+            $completedQuery->where('graduation_year', '<=', $year)
+                ->orWhere(function (Builder $semesterQuery): void {
+                    $semesterQuery->where('is_currently_studying', true)
+                        ->whereNotNull('current_semester')
+                        ->whereNotNull('total_semesters')
+                        ->whereNotNull('semester_recorded_at')
+                        ->whereRaw($this->projectedSemesterSql().' >= total_semesters');
+                });
+        });
+    }
+
+    protected function projectedSemesterSql(): string
+    {
+        return match (DB::connection()->getDriverName()) {
+            'mysql', 'mariadb' => 'current_semester + FLOOR(GREATEST(TIMESTAMPDIFF(MONTH, semester_recorded_at, CURRENT_DATE), 0) / 6)',
+            'pgsql' => 'current_semester + FLOOR(GREATEST((EXTRACT(YEAR FROM AGE(CURRENT_DATE, semester_recorded_at)) * 12 + EXTRACT(MONTH FROM AGE(CURRENT_DATE, semester_recorded_at))), 0) / 6)',
+            default => "current_semester + CAST((MAX((((CAST(strftime('%Y', 'now') AS INTEGER) - CAST(strftime('%Y', semester_recorded_at) AS INTEGER)) * 12) + (CAST(strftime('%m', 'now') AS INTEGER) - CAST(strftime('%m', semester_recorded_at) AS INTEGER))), 0)) / 6 AS INTEGER)",
+        };
     }
 }

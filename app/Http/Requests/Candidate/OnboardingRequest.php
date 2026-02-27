@@ -6,6 +6,7 @@ use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\File;
+use Illuminate\Validation\Validator;
 
 class OnboardingRequest extends FormRequest
 {
@@ -54,12 +55,16 @@ class OnboardingRequest extends FormRequest
             'address_line_2' => ['nullable', 'string', 'max:255'],
             'city' => ['required', 'string', 'max:255'],
             'state' => ['required', 'string', 'max:255'],
-            'country' => ['required', 'string', 'max:255'],
-            'postal_code' => ['required', 'string', 'max:30'],
+            'district' => ['required', 'string', 'max:255'],
+            'country' => ['required', 'string', Rule::in([$this->countryName()])],
+            'postal_code' => ['required', 'string', 'size:6', 'regex:/^\d{6}$/'],
             'linkedin_url' => ['nullable', 'url', 'max:255'],
             'github_url' => ['nullable', 'url', 'max:255'],
             'portfolio_url' => ['nullable', 'url', 'max:255'],
             'bio' => ['nullable', 'string', 'max:2000'],
+            'achievements' => ['nullable', 'string', 'max:3000'],
+            'hackathons_experience' => ['nullable', 'string', 'max:3000'],
+            'projects_description' => ['nullable', 'string', 'max:4000'],
             'skills' => ['nullable', 'array', 'max:100'],
             'skills.*' => ['nullable', 'string', 'max:120'],
             'resume' => [
@@ -87,11 +92,18 @@ class OnboardingRequest extends FormRequest
             'address_line_1.required' => 'Please enter your address line 1.',
             'city.required' => 'Please enter your city.',
             'state.required' => 'Please enter your state.',
+            'district.required' => 'Please enter your district.',
             'country.required' => 'Please enter your country.',
+            'country.in' => 'Please select a valid country.',
             'postal_code.required' => 'Please enter your postal code.',
+            'postal_code.size' => 'Postal code must be exactly 6 digits.',
+            'postal_code.regex' => 'Postal code must contain only digits.',
             'linkedin_url.url' => 'LinkedIn URL must be a valid full URL (for example: https://linkedin.com/in/username).',
             'github_url.url' => 'GitHub URL must be a valid full URL (for example: https://github.com/username).',
             'portfolio_url.url' => 'Portfolio URL must be a valid full URL (for example: https://your-site.com).',
+            'achievements.max' => 'Achievements must not exceed 3000 characters.',
+            'hackathons_experience.max' => 'Hackathons experience must not exceed 3000 characters.',
+            'projects_description.max' => 'Projects description must not exceed 4000 characters.',
             'resume.required' => 'Please upload your resume to complete your profile.',
             'resume.max' => 'Resume file size must not exceed 5MB.',
             'resume.mimes' => 'Resume must be a PDF, DOC, DOCX, or TXT file.',
@@ -108,10 +120,13 @@ class OnboardingRequest extends FormRequest
             'graduation_year' => 'graduation year',
             'address_line_1' => 'address line 1',
             'address_line_2' => 'address line 2',
+            'district' => 'district',
             'postal_code' => 'postal code',
             'linkedin_url' => 'LinkedIn URL',
             'github_url' => 'GitHub URL',
             'portfolio_url' => 'portfolio URL',
+            'hackathons_experience' => 'hackathons experience',
+            'projects_description' => 'projects description',
         ];
     }
 
@@ -132,5 +147,99 @@ class OnboardingRequest extends FormRequest
                     ->all(),
             ]);
         }
+    }
+
+    /**
+     * @return array<int, callable(Validator): void>
+     */
+    public function after(): array
+    {
+        return [
+            function (Validator $validator): void {
+                $country = (string) $this->input('country');
+                $state = (string) $this->input('state');
+                $district = (string) $this->input('district');
+                $city = (string) $this->input('city');
+                $postalCode = (string) $this->input('postal_code');
+                $states = $this->availableStates();
+
+                if ($country !== $this->countryName()) {
+                    $validator->errors()->add('country', 'Please select a valid country.');
+                }
+
+                if (! in_array($state, $states, true)) {
+                    $validator->errors()->add('state', 'Please select a valid state for the selected country.');
+
+                    return;
+                }
+
+                $districts = $this->districtsForState($state);
+
+                if (! in_array($district, $districts, true)) {
+                    $validator->errors()->add('district', 'Please select a valid district for the selected state.');
+
+                    return;
+                }
+
+                $cities = $this->citiesForState($state);
+
+                if (! in_array($city, $cities, true)) {
+                    $validator->errors()->add('city', 'Please select a valid city for the selected state.');
+
+                    return;
+                }
+
+                $postalCodePattern = $this->postalCodePattern($state, $city);
+
+                if ($postalCodePattern !== null && ! preg_match($postalCodePattern, $postalCode)) {
+                    $validator->errors()->add('postal_code', 'Please enter a valid postal code for the selected city.');
+                }
+            },
+        ];
+    }
+
+    /**
+     * @return array<string, array{districts: list<string>, cities: list<string>, city_postal_patterns?: array<string, string>}>
+     */
+    protected function locationStates(): array
+    {
+        /** @var array<string, array{districts: list<string>, cities: list<string>, city_postal_patterns?: array<string, string>}> $states */
+        $states = config('location.states', []);
+
+        return $states;
+    }
+
+    protected function countryName(): string
+    {
+        return (string) config('location.country', 'India');
+    }
+
+    /**
+     * @return list<string>
+     */
+    protected function availableStates(): array
+    {
+        return array_keys($this->locationStates());
+    }
+
+    /**
+     * @return list<string>
+     */
+    protected function districtsForState(string $state): array
+    {
+        return $this->locationStates()[$state]['districts'] ?? [];
+    }
+
+    /**
+     * @return list<string>
+     */
+    protected function citiesForState(string $state): array
+    {
+        return $this->locationStates()[$state]['cities'] ?? [];
+    }
+
+    protected function postalCodePattern(string $state, string $city): ?string
+    {
+        return $this->locationStates()[$state]['city_postal_patterns'][$city] ?? null;
     }
 }

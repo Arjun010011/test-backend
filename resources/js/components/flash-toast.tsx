@@ -17,6 +17,7 @@ const STATUS_MESSAGES: FlashStatusMap = {
     'candidate-comment-added': 'Private comment added.',
     'candidate-comment-updated': 'Private comment updated.',
     'candidate-comment-deleted': 'Private comment deleted.',
+    'candidate-deleted': 'Candidate deleted.',
     'candidate-added-to-collection': 'Candidate added to collection.',
     'candidate-removed-from-collection': 'Candidate removed from collection.',
     'collection-created': 'Collection created.',

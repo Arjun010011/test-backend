@@ -1,7 +1,8 @@
 import { Head, router } from '@inertiajs/react';
 import { Filter, Search } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
-import { CandidateTable, type RecruiterCandidate } from '@/components/recruiter/candidate-table';
+import { CandidateTable } from '@/components/recruiter/candidate-table';
+import type { RecruiterCandidate } from '@/components/recruiter/candidate-table';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
@@ -38,6 +39,7 @@ type Props = {
         search?: string | null;
         status?: string | null;
         starred?: boolean | null;
+        passed_out?: boolean | null;
         sort?: string | null;
         collection?: number | null;
     };
@@ -49,6 +51,7 @@ export default function RecruiterCandidatesIndex({ candidates, filters, statuses
     const [search, setSearch] = useState(filters.search ?? '');
     const [status, setStatus] = useState(filters.status ?? '');
     const [starred, setStarred] = useState(filters.starred ?? false);
+    const [passedOut, setPassedOut] = useState(filters.passed_out ?? false);
     const [sort, setSort] = useState(filters.sort ?? 'latest');
     const [collection, setCollection] = useState<string>(
         filters.collection ? String(filters.collection) : '',
@@ -61,10 +64,11 @@ export default function RecruiterCandidatesIndex({ candidates, filters, statuses
             search: search.trim() === '' ? null : search,
             status: status === '' ? null : status,
             starred: starred ? 1 : null,
+            passed_out: passedOut ? 1 : null,
             sort,
             collection: collection === '' ? null : Number(collection),
         }),
-        [search, status, starred, sort, collection],
+        [search, status, starred, passedOut, sort, collection],
     );
 
     useEffect(() => {
@@ -90,28 +94,38 @@ export default function RecruiterCandidatesIndex({ candidates, filters, statuses
             <Head title="Candidates" />
 
             <div className="space-y-4">
-                <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200/70 bg-white p-3 shadow-sm">
-                    <div className="flex items-center gap-2 text-sm text-slate-600">
+                <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border/70 bg-card/80 p-3 shadow-sm">
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
                         <Search className="size-4" />
                         <span>{candidates.meta.total} candidates found</span>
                     </div>
-                    <Button
-                        variant="outline"
-                        className="rounded-xl"
-                        onClick={() => setShowFilters(true)}
-                    >
-                        <Filter className="size-4" />
-                        Filters
-                    </Button>
+                    <div className="flex items-center gap-2">
+                        <Button
+                            variant={passedOut ? 'default' : 'outline'}
+                            className="rounded-xl"
+                            onClick={() => setPassedOut((current) => !current)}
+                        >
+                            Passed Out
+                        </Button>
+                        <Button
+                            variant="outline"
+                            className="rounded-xl"
+                            onClick={() => setShowFilters(true)}
+                        >
+                            <Filter className="size-4" />
+                            Filters
+                        </Button>
+                    </div>
                 </div>
 
                 <CandidateTable
                     candidates={candidates.data}
                     loading={loading}
                     onToggleStar={toggleStar}
+                    skillSearchTerm={filters.search ?? search}
                 />
 
-                <div className="flex items-center justify-between rounded-2xl border border-slate-200/70 bg-white px-4 py-3 text-sm shadow-sm">
+                <div className="flex items-center justify-between rounded-2xl border border-border/70 bg-card/80 px-4 py-3 text-sm shadow-sm">
                     <div>
                         Page {candidates.meta.current_page} of {candidates.meta.last_page}
                     </div>
@@ -208,6 +222,16 @@ export default function RecruiterCandidatesIndex({ candidates, filters, statuses
                                 className="size-4"
                             />
                             Show only starred candidates
+                        </label>
+
+                        <label className="flex items-center gap-3 rounded-lg border border-border/60 p-3 text-sm">
+                            <input
+                                type="checkbox"
+                                checked={passedOut}
+                                onChange={(event) => setPassedOut(event.target.checked)}
+                                className="size-4"
+                            />
+                            Show only passed out candidates
                         </label>
 
                         <Input

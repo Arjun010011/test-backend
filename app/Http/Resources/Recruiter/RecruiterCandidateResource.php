@@ -16,7 +16,14 @@ class RecruiterCandidateResource extends JsonResource
         $profile = $this->candidateProfile;
         $primaryResume = $this->resumes->first();
         $status = $profile?->candidate_status ?? CandidateStatus::New;
-        $skills = $primaryResume?->extracted_skills ?? $profile?->skills ?? [];
+        $profileSkills = is_array($profile?->skills) ? $profile->skills : [];
+        $resumeSkills = is_array($primaryResume?->extracted_skills) ? $primaryResume->extracted_skills : [];
+        $skills = collect([...$profileSkills, ...$resumeSkills])
+            ->map(fn (mixed $skill): string => trim((string) $skill))
+            ->filter(fn (string $skill): bool => $skill !== '')
+            ->unique(fn (string $skill): string => mb_strtolower($skill))
+            ->values()
+            ->all();
         $education = $profile?->educationStatus();
 
         return [
@@ -28,8 +35,11 @@ class RecruiterCandidateResource extends JsonResource
             'university' => $profile?->university,
             'degree' => $profile?->degree,
             'major' => $profile?->major,
+            'achievements' => $profile?->achievements,
+            'hackathons_experience' => $profile?->hackathons_experience,
+            'projects_description' => $profile?->projects_description,
             'education' => $education,
-            'skills' => is_array($skills) ? $skills : [],
+            'skills' => $skills,
             'status' => $status->value,
             'status_label' => $status->label(),
             'is_starred' => (bool) ($this->is_starred ?? false),

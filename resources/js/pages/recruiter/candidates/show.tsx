@@ -1,5 +1,5 @@
-import { Head, router } from '@inertiajs/react';
-import { Download, Plus, Star } from 'lucide-react';
+import { Head, router, useForm } from '@inertiajs/react';
+import { Download, Plus, Star, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { StatusBadge } from '@/components/recruiter/status-badge';
 import { Button } from '@/components/ui/button';
@@ -12,8 +12,7 @@ import {
     DialogTitle,
 } from '@/components/ui/dialog';
 import RecruiterLayout from '@/layouts/recruiter-layout';
-import { useForm } from '@inertiajs/react';
-import { update } from '@/routes/recruiter/candidates';
+import { destroy as destroyCandidate, update } from '@/routes/recruiter/candidates';
 import { toggle } from '@/routes/recruiter/candidates/star';
 
 type Candidate = {
@@ -29,6 +28,9 @@ type Candidate = {
     university?: string;
     degree?: string;
     major?: string;
+    achievements?: string | null;
+    hackathons_experience?: string | null;
+    projects_description?: string | null;
     education?: {
         is_currently_studying: boolean;
         current_semester: number | null;
@@ -129,13 +131,21 @@ export default function RecruiterCandidateShow({ candidate, comments, collection
         });
     };
 
+    const deleteCandidateProfile = () => {
+        if (!window.confirm('Delete this candidate? This action cannot be undone.')) {
+            return;
+        }
+
+        router.delete(destroyCandidate(candidate.id).url);
+    };
+
     return (
         <RecruiterLayout title="Candidate Details">
             <Head title={candidate.name} />
 
             <div className="grid gap-4 lg:grid-cols-5">
                 <div className="space-y-4 lg:col-span-2">
-                    <div className="rounded-2xl border border-slate-200/70 bg-white p-5 shadow-sm">
+                    <div className="rounded-2xl border border-border/70 bg-card/80 p-5 shadow-sm backdrop-blur">
                         <div className="flex items-start justify-between gap-3">
                             <div>
                                 <h2 className="text-xl font-semibold">{candidate.name}</h2>
@@ -144,7 +154,7 @@ export default function RecruiterCandidateShow({ candidate, comments, collection
                             <button
                                 type="button"
                                 onClick={onToggleStar}
-                                className="rounded-full p-2 transition-colors hover:bg-amber-100"
+                                className="rounded-full p-2 transition-colors hover:bg-amber-200/40 dark:hover:bg-amber-300/20"
                             >
                                 <Star
                                     className={`size-4 ${candidate.is_starred
@@ -202,6 +212,29 @@ export default function RecruiterCandidateShow({ candidate, comments, collection
                             </div>
                         )}
 
+                        {(candidate.achievements || candidate.hackathons_experience || candidate.projects_description) && (
+                            <div className="mt-5 space-y-3 rounded-xl border border-border/50 bg-muted/10 p-4">
+                                {candidate.achievements && (
+                                    <div>
+                                        <div className="text-xs font-medium text-muted-foreground">Achievements</div>
+                                        <p className="mt-1 text-sm whitespace-pre-wrap">{candidate.achievements}</p>
+                                    </div>
+                                )}
+                                {candidate.hackathons_experience && (
+                                    <div>
+                                        <div className="text-xs font-medium text-muted-foreground">Hackathons experience</div>
+                                        <p className="mt-1 text-sm whitespace-pre-wrap">{candidate.hackathons_experience}</p>
+                                    </div>
+                                )}
+                                {candidate.projects_description && (
+                                    <div>
+                                        <div className="text-xs font-medium text-muted-foreground">Projects description</div>
+                                        <p className="mt-1 text-sm whitespace-pre-wrap">{candidate.projects_description}</p>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
                         <div className="mt-4 flex flex-wrap gap-2">
                             {(candidate.skills || []).map((skill) => (
                                 <span
@@ -226,7 +259,7 @@ export default function RecruiterCandidateShow({ candidate, comments, collection
                         )}
                     </div>
 
-                    <div className="rounded-2xl border border-slate-200/70 bg-white p-5 shadow-sm">
+                    <div className="rounded-2xl border border-border/70 bg-card/80 p-5 shadow-sm backdrop-blur">
                         <div className="text-sm font-semibold">Update status</div>
                         <div className="mt-3 flex flex-col gap-3">
                             <select
@@ -243,7 +276,7 @@ export default function RecruiterCandidateShow({ candidate, comments, collection
                         </div>
                     </div>
 
-                    <div className="rounded-2xl border border-slate-200/70 bg-white p-5 shadow-sm">
+                    <div className="rounded-2xl border border-border/70 bg-card/80 p-5 shadow-sm backdrop-blur">
                         <div className="text-sm font-semibold">Collections</div>
                         <select
                             value=""
@@ -273,7 +306,7 @@ export default function RecruiterCandidateShow({ candidate, comments, collection
                     </div>
                 </div>
 
-                <div className="rounded-2xl border border-slate-200/70 bg-white p-5 shadow-sm lg:col-span-3">
+                <div className="rounded-2xl border border-border/70 bg-card/80 p-5 shadow-sm backdrop-blur lg:col-span-3">
                     <div className="mb-4 flex flex-col justify-between sm:flex-row sm:items-center">
                         <div className="text-sm font-semibold">Private comments</div>
                         <div className="mt-3 sm:mt-0 space-x-2">
@@ -289,6 +322,16 @@ export default function RecruiterCandidateShow({ candidate, comments, collection
                                 disabled={!isDirty || processing}
                             >
                                 {processing ? 'Saving...' : 'Save Global Changes'}
+                            </Button>
+
+                            <Button
+                                size="sm"
+                                variant="destructive"
+                                className="rounded-xl"
+                                onClick={deleteCandidateProfile}
+                            >
+                                <Trash2 className="size-4" />
+                                Delete candidate
                             </Button>
                         </div>
                     </div>
@@ -308,7 +351,7 @@ export default function RecruiterCandidateShow({ candidate, comments, collection
                                             <button
                                                 type="button"
                                                 onClick={() => startCommentEdit(comment)}
-                                                className="font-medium text-slate-700 hover:text-slate-900"
+                                                className="font-medium text-foreground/80 hover:text-foreground"
                                             >
                                                 Edit
                                             </button>

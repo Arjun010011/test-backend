@@ -42,6 +42,7 @@ class RecruiterCandidateController extends Controller
             'search' => $request->validated('search'),
             'status' => $request->validated('status'),
             'starred' => $request->validated('starred'),
+            'passed_out' => $request->validated('passed_out'),
             'collection' => $request->validated('collection'),
             'sort' => $request->validated('sort', 'latest'),
             'per_page' => $request->validated('per_page', 10),
@@ -51,6 +52,7 @@ class RecruiterCandidateController extends Controller
 
         $collections = RecruiterCollection::query()
             ->when(! $user->isSuperAdmin(), fn (Builder $query): Builder => $query->where('recruiter_id', $user->id))
+            ->whereNull('parent_id')
             ->with('parent:id,name')
             ->withCount('candidates')
             ->latest()
@@ -78,7 +80,7 @@ class RecruiterCandidateController extends Controller
         $recruiterService->assertCandidateIsVisible($user, $candidate);
 
         $candidate->load([
-            'candidateProfile:id,user_id,skills,location,graduation_year,candidate_status,profile_completed_at,university,degree,major,is_currently_studying,current_semester,total_semesters,semester_recorded_at',
+            'candidateProfile:id,user_id,skills,location,graduation_year,candidate_status,profile_completed_at,university,degree,major,is_currently_studying,current_semester,total_semesters,semester_recorded_at,achievements,hackathons_experience,projects_description',
             'resumes' => fn ($query) => $query
                 ->select('id', 'user_id', 'original_name', 'file_size', 'extracted_skills', 'is_primary', 'created_at')
                 ->where('is_primary', true)
@@ -103,6 +105,7 @@ class RecruiterCandidateController extends Controller
 
         $collections = RecruiterCollection::query()
             ->when(! $user->isSuperAdmin(), fn (Builder $query): Builder => $query->where('recruiter_id', $user->id))
+            ->whereNull('parent_id')
             ->withCount('candidates')
             ->latest()
             ->get();
@@ -162,6 +165,17 @@ class RecruiterCandidateController extends Controller
         );
 
         return back()->with('status', 'candidate-updated');
+    }
+
+    public function destroy(Request $request, User $candidate, RecruiterService $recruiterService): RedirectResponse
+    {
+        $user = $request->user();
+
+        abort_unless($user !== null, 403);
+
+        $recruiterService->deleteCandidate($user, $candidate);
+
+        return to_route('recruiter.candidates.index')->with('status', 'candidate-deleted');
     }
 
     public function storeComment(StoreRecruiterCommentRequest $request, User $candidate, RecruiterService $recruiterService): RedirectResponse

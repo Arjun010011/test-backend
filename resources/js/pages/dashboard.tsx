@@ -41,6 +41,9 @@ type CandidateProfile = {
     location: string | null;
     skills: string[];
     skill_categories: Record<string, string[]>;
+    achievements: string | null;
+    hackathons_experience: string | null;
+    projects_description: string | null;
 };
 
 type PageProps = {
@@ -67,7 +70,7 @@ export default function Dashboard() {
                 )}
 
                 <div className="grid gap-6 lg:grid-cols-3">
-                    <div className="rounded-xl border border-border/70 bg-card p-5 shadow-xs lg:col-span-2">
+                    <div className="rounded-xl border border-border/70 bg-gradient-to-br from-card to-sky-500/5 p-5 shadow-xs dark:to-sky-400/10 lg:col-span-2">
                         <div className="flex items-center justify-between gap-4">
                             <div>
                                 <div className="text-sm font-semibold text-foreground">
@@ -146,7 +149,7 @@ export default function Dashboard() {
                         )}
                     </div>
 
-                    <div className="rounded-xl border border-border/70 bg-card p-5 shadow-xs">
+                    <div className="rounded-xl border border-border/70 bg-gradient-to-br from-card to-indigo-500/5 p-5 shadow-xs dark:to-indigo-400/10">
                         <div className="flex items-center justify-between gap-4">
                             <div className="text-sm font-semibold text-foreground">
                                 Profile snapshot
@@ -248,6 +251,36 @@ export default function Dashboard() {
                                                         </div>
                                                     </div>
                                                 ),
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {(candidateProfile.achievements ||
+                                    candidateProfile.hackathons_experience ||
+                                    candidateProfile.projects_description) && (
+                                    <div>
+                                        <div className="text-xs uppercase text-muted-foreground">
+                                            Additional experience
+                                        </div>
+                                        <div className="mt-2 space-y-2 text-sm">
+                                            {candidateProfile.achievements && (
+                                                <p>
+                                                    <span className="font-medium">Achievements:</span>{' '}
+                                                    {candidateProfile.achievements}
+                                                </p>
+                                            )}
+                                            {candidateProfile.hackathons_experience && (
+                                                <p>
+                                                    <span className="font-medium">Hackathons:</span>{' '}
+                                                    {candidateProfile.hackathons_experience}
+                                                </p>
+                                            )}
+                                            {candidateProfile.projects_description && (
+                                                <p>
+                                                    <span className="font-medium">Projects:</span>{' '}
+                                                    {candidateProfile.projects_description}
+                                                </p>
                                             )}
                                         </div>
                                     </div>
