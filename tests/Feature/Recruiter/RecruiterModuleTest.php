@@ -2,6 +2,9 @@
 
 use App\Enums\CandidateStatus;
 use App\Models\CandidateProfile;
+use App\Models\CandidateWorkflowStatus;
+use App\Models\Company;
+use App\Models\CompanyApplication;
 use App\Models\RecruiterCollection;
 use App\Models\User;
 use Illuminate\Support\Facades\Storage;
@@ -15,6 +18,73 @@ it('blocks non-admin users from recruiter routes', function () {
     actingAs($candidate)
         ->get(route('recruiter.dashboard'))
         ->assertForbidden();
+});
+
+it('shows recruiter analytics page', function () {
+    $admin = User::factory()->admin()->create();
+    $candidate = User::factory()->candidate()->create();
+
+    CandidateProfile::factory()->create([
+        'user_id' => $candidate->id,
+        'profile_completed_at' => now(),
+    ]);
+
+    $company = Company::factory()->create([
+        'is_active' => true,
+        'created_by_user_id' => $admin->id,
+    ]);
+
+    CompanyApplication::factory()->create([
+        'company_id' => $company->id,
+        'candidate_user_id' => $candidate->id,
+        'status' => 'submitted',
+    ]);
+
+    actingAs($admin)
+        ->get(route('recruiter.analytics'))
+        ->assertSuccessful()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('recruiter/analytics')
+            ->where('summary.companies', 1)
+            ->where('summary.applications', 1)
+            ->where('breakdown.applications_by_status.0.status', 'submitted')
+        );
+});
+
+it('allows recruiters to create global custom candidate statuses', function () {
+    $adminA = User::factory()->admin()->create();
+    $adminB = User::factory()->admin()->create();
+    $candidate = User::factory()->candidate()->create();
+
+    CandidateProfile::factory()->create([
+        'user_id' => $candidate->id,
+        'profile_completed_at' => now(),
+    ]);
+
+    actingAs($adminA)
+        ->post(route('recruiter.statuses.store'), [
+            'label' => 'Technical Round',
+            'color' => 'cyan',
+        ])
+        ->assertRedirect();
+
+    $this->assertDatabaseHas('candidate_workflow_statuses', [
+        'key' => 'technical_round',
+        'label' => 'Technical Round',
+    ]);
+
+    $response = actingAs($adminB)
+        ->get(route('recruiter.candidates.index'))
+        ->assertSuccessful()
+        ->assertInertia(fn (Assert $page) => $page->component('recruiter/candidates/index'));
+
+    expect(collect($response->inertiaProps('statuses'))->pluck('value')->all())
+        ->toContain(
+            CandidateWorkflowStatus::query()
+                ->where('label', 'Technical Round')
+                ->firstOrFail()
+                ->key
+        );
 });
 
 it('shows paginated candidate listing for admins', function () {

@@ -2,9 +2,7 @@
 
 namespace App\Http\Requests\Recruiter;
 
-use App\Enums\CandidateStatus;
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Rule;
 
 class GlobalUpdateCandidateRequest extends FormRequest
 {
@@ -24,7 +22,7 @@ class GlobalUpdateCandidateRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'status' => ['required', Rule::enum(CandidateStatus::class)],
+            'status' => ['required', 'string', 'exists:candidate_workflow_statuses,key'],
             'comment' => ['nullable', 'string', 'max:5000'],
             'collections' => ['nullable', 'array'],
             'collections.*' => ['integer', 'exists:recruiter_collections,id'],

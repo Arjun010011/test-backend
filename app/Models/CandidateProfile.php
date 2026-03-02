@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-use App\Enums\CandidateStatus;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -50,7 +49,7 @@ class CandidateProfile extends Model
         return [
             'skills' => 'array',
             'skill_categories' => 'array',
-            'candidate_status' => CandidateStatus::class,
+            'candidate_status' => 'string',
             'is_currently_studying' => 'boolean',
             'current_semester' => 'integer',
             'total_semesters' => 'integer',

@@ -2,7 +2,6 @@
 
 namespace App\Services;
 
-use App\Enums\CandidateStatus;
 use App\Enums\Role;
 use App\Models\CandidateProfile;
 use App\Models\CandidateStatusHistory;
@@ -117,14 +116,14 @@ class RecruiterService
         return true;
     }
 
-    public function updateCandidateStatus(User $recruiter, User $candidate, CandidateStatus $status, ?string $note = null): void
+    public function updateCandidateStatus(User $recruiter, User $candidate, string $status, ?string $note = null): void
     {
         $this->assertCandidateIsVisible($recruiter, $candidate);
 
         DB::transaction(function () use ($recruiter, $candidate, $status, $note): void {
             $profile = CandidateProfile::query()->firstOrCreate(
                 ['user_id' => $candidate->id],
-                ['candidate_status' => CandidateStatus::New->value],
+                ['candidate_status' => 'new'],
             );
 
             $fromStatus = $profile->candidate_status;
@@ -239,7 +238,7 @@ class RecruiterService
     /**
      * @param  array<int>  $collectionIds
      */
-    public function globalCandidateUpdate(User $recruiter, User $candidate, CandidateStatus $status, ?string $comment, array $collectionIds): void
+    public function globalCandidateUpdate(User $recruiter, User $candidate, string $status, ?string $comment, array $collectionIds): void
     {
         $this->assertCandidateIsVisible($recruiter, $candidate);
 
@@ -247,7 +246,7 @@ class RecruiterService
             // Update Candidate Status if changed
             $profile = CandidateProfile::query()->firstOrCreate(
                 ['user_id' => $candidate->id],
-                ['candidate_status' => CandidateStatus::New->value],
+                ['candidate_status' => 'new'],
             );
 
             if ($profile->candidate_status !== $status) {

@@ -18,8 +18,8 @@ class CandidateStatusHistoryFactory extends Factory
         return [
             'candidate_user_id' => \App\Models\User::factory()->candidate(),
             'recruiter_id' => \App\Models\User::factory()->admin(),
-            'from_status' => CandidateStatus::New,
-            'to_status' => fake()->randomElement(CandidateStatus::cases()),
+            'from_status' => CandidateStatus::New->value,
+            'to_status' => fake()->randomElement(CandidateStatus::cases())->value,
             'note' => fake()->sentence(),
         ];
     }

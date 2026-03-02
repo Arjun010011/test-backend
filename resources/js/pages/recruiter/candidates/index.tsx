@@ -1,4 +1,4 @@
-import { Head, router } from '@inertiajs/react';
+import { Head, router, useForm } from '@inertiajs/react';
 import { Filter, Search } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { CandidateTable } from '@/components/recruiter/candidate-table';
@@ -9,6 +9,7 @@ import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '
 import RecruiterLayout from '@/layouts/recruiter-layout';
 import { index } from '@/routes/recruiter/candidates';
 import { toggle } from '@/routes/recruiter/candidates/star';
+import { store as storeStatus } from '@/routes/recruiter/statuses';
 
 type StatusOption = {
     value: string;
@@ -58,6 +59,10 @@ export default function RecruiterCandidatesIndex({ candidates, filters, statuses
     );
     const [showFilters, setShowFilters] = useState(false);
     const [loading, setLoading] = useState(false);
+    const statusForm = useForm({
+        label: '',
+        color: 'gray',
+    });
 
     const query = useMemo(
         () => ({
@@ -116,6 +121,45 @@ export default function RecruiterCandidatesIndex({ candidates, filters, statuses
                             Filters
                         </Button>
                     </div>
+                </div>
+
+                <div className="rounded-2xl border border-border/70 bg-card/80 p-3 shadow-sm">
+                    <form
+                        className="flex flex-wrap items-center gap-2"
+                        onSubmit={(event) => {
+                            event.preventDefault();
+                            statusForm.post(storeStatus().url, {
+                                preserveScroll: true,
+                                onSuccess: () => statusForm.reset('label'),
+                            });
+                        }}
+                    >
+                        <Input
+                            value={statusForm.data.label}
+                            onChange={(event) => statusForm.setData('label', event.target.value)}
+                            placeholder="Create global custom status"
+                            className="max-w-sm"
+                        />
+                        <select
+                            value={statusForm.data.color}
+                            onChange={(event) => statusForm.setData('color', event.target.value)}
+                            className="h-10 rounded-lg border border-input bg-background px-3 text-sm"
+                        >
+                            <option value="gray">Gray</option>
+                            <option value="blue">Blue</option>
+                            <option value="green">Green</option>
+                            <option value="red">Red</option>
+                            <option value="purple">Purple</option>
+                            <option value="amber">Amber</option>
+                            <option value="cyan">Cyan</option>
+                        </select>
+                        <Button type="submit" disabled={statusForm.processing}>
+                            {statusForm.processing ? 'Saving...' : 'Add Status'}
+                        </Button>
+                    </form>
+                    {statusForm.errors.label && (
+                        <p className="mt-2 text-sm text-red-600">{statusForm.errors.label}</p>
+                    )}
                 </div>
 
                 <CandidateTable

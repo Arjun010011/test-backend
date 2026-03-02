@@ -108,6 +108,21 @@ class User extends Authenticatable
         return $this->hasMany(CandidateStatusHistory::class, 'recruiter_id');
     }
 
+    public function createdCompanies(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(Company::class, 'created_by_user_id');
+    }
+
+    public function ownedCompanies(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(Company::class, 'owner_user_id');
+    }
+
+    public function companyApplications(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(CompanyApplication::class, 'candidate_user_id');
+    }
+
     public function isCandidate(): bool
     {
         return $this->role === Role::Candidate;
@@ -116,6 +131,11 @@ class User extends Authenticatable
     public function isAdmin(): bool
     {
         return $this->role === Role::Admin;
+    }
+
+    public function isCompany(): bool
+    {
+        return $this->role === Role::Company;
     }
 
     public function isSuperAdmin(): bool

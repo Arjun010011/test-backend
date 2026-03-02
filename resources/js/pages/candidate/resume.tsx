@@ -34,7 +34,7 @@ export default function CandidateResume() {
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Resume" />
 
-            <div className="mx-auto flex w-full max-w-2xl flex-col gap-6">
+            <div className="mx-auto flex w-[95vw] max-w-[95vw] flex-col gap-6">
                 <Heading
                     title="Upload your resume"
                     description="We will scan your resume to extract skills for matching."

@@ -2,7 +2,7 @@
 
 namespace App\Http\Resources\Recruiter;
 
-use App\Enums\CandidateStatus;
+use App\Support\CandidateStatusCatalog;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -15,7 +15,7 @@ class RecruiterCandidateResource extends JsonResource
     {
         $profile = $this->candidateProfile;
         $primaryResume = $this->resumes->first();
-        $status = $profile?->candidate_status ?? CandidateStatus::New;
+        $status = app(CandidateStatusCatalog::class)->optionFor($profile?->candidate_status ?? 'new');
         $profileSkills = is_array($profile?->skills) ? $profile->skills : [];
         $resumeSkills = is_array($primaryResume?->extracted_skills) ? $primaryResume->extracted_skills : [];
         $skills = collect([...$profileSkills, ...$resumeSkills])
@@ -40,8 +40,8 @@ class RecruiterCandidateResource extends JsonResource
             'projects_description' => $profile?->projects_description,
             'education' => $education,
             'skills' => $skills,
-            'status' => $status->value,
-            'status_label' => $status->label(),
+            'status' => $status['value'],
+            'status_label' => $status['label'],
             'is_starred' => (bool) ($this->is_starred ?? false),
             'stars_count' => (int) ($this->stars_count ?? 0),
             'comments_count' => (int) ($this->comments_count ?? 0),

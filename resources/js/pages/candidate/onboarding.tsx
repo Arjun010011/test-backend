@@ -202,7 +202,7 @@ export default function CandidateOnboarding() {
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Profile setup" />
 
-            <div className="mx-auto flex w-full max-w-3xl flex-col gap-6">
+            <div className="mx-auto flex w-[95vw] max-w-[95vw] flex-col gap-6">
                 <Heading title={headingTitle} description={headingDescription} />
                 <section className="rounded-xl border border-sky-300/40 bg-gradient-to-r from-sky-500/15 via-cyan-500/10 to-indigo-500/15 px-4 py-3 text-sm text-foreground dark:border-sky-400/20 dark:from-sky-500/20 dark:via-cyan-500/10 dark:to-indigo-500/20">
                     A complete profile with clear skills and resume improves recruiter visibility.

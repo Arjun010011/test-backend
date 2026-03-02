@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-use App\Enums\CandidateStatus;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
@@ -25,8 +24,8 @@ class CandidateStatusHistory extends Model
     protected function casts(): array
     {
         return [
-            'from_status' => CandidateStatus::class,
-            'to_status' => CandidateStatus::class,
+            'from_status' => 'string',
+            'to_status' => 'string',
         ];
     }
 

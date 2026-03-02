@@ -33,6 +33,10 @@ class EnsureUserHasRole
             return $next($request);
         }
 
+        if ($user->isCompany() && in_array('company', $allowedRoles, true)) {
+            return $next($request);
+        }
+
         abort(403);
     }
 }

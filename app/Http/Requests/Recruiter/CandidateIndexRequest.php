@@ -2,7 +2,6 @@
 
 namespace App\Http\Requests\Recruiter;
 
-use App\Enums\CandidateStatus;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -22,7 +21,7 @@ class CandidateIndexRequest extends FormRequest
     {
         return [
             'search' => ['nullable', 'string', 'max:120'],
-            'status' => ['nullable', 'string', Rule::in(CandidateStatus::values())],
+            'status' => ['nullable', 'string', 'exists:candidate_workflow_statuses,key'],
             'starred' => ['nullable', 'boolean'],
             'passed_out' => ['nullable', 'boolean'],
             'collection' => ['nullable', 'integer', 'exists:recruiter_collections,id'],

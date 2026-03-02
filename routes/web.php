@@ -1,11 +1,15 @@
 <?php
 
+use App\Http\Controllers\Candidate\CandidateCompanyController;
 use App\Http\Controllers\Candidate\OnboardingController;
 use App\Http\Controllers\Candidate\ResumeController;
+use App\Http\Controllers\Company\CompanyRecruitmentController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\Recruiter\RecruiterCandidateController;
 use App\Http\Controllers\Recruiter\RecruiterCollectionController;
+use App\Http\Controllers\Recruiter\RecruiterCompanyController;
 use App\Http\Controllers\Recruiter\RecruiterDashboardController;
+use App\Http\Controllers\Recruiter\RecruiterStatusController;
 use Illuminate\Support\Facades\Route;
 use Laravel\Fortify\Features;
 
@@ -27,10 +31,16 @@ Route::middleware(['auth', 'verified', 'candidate.onboarding'])->group(function 
         ->name('candidate.resume.store');
     Route::get('candidate/resume/{resume}', [ResumeController::class, 'show'])
         ->name('candidate.resume.show');
+
+    Route::get('candidate/companies', [CandidateCompanyController::class, 'index'])
+        ->name('candidate.companies.index');
+    Route::post('candidate/companies/{company}/apply', [CandidateCompanyController::class, 'apply'])
+        ->name('candidate.companies.apply');
 });
 
 Route::middleware(['auth', 'role:admin'])->prefix('recruiter')->name('recruiter.')->group(function (): void {
     Route::get('dashboard', [RecruiterDashboardController::class, 'index'])->name('dashboard');
+    Route::get('analytics', [RecruiterDashboardController::class, 'analytics'])->name('analytics');
 
     Route::get('candidates', [RecruiterCandidateController::class, 'index'])->name('candidates.index');
     Route::get('candidates/{candidate}', [RecruiterCandidateController::class, 'show'])->name('candidates.show');
@@ -50,6 +60,30 @@ Route::middleware(['auth', 'role:admin'])->prefix('recruiter')->name('recruiter.
     Route::put('collections/{collection}', [RecruiterCollectionController::class, 'update'])->name('collections.update');
     Route::delete('collections/{collection}', [RecruiterCollectionController::class, 'destroy'])->name('collections.destroy');
     Route::get('collections/{collection}', [RecruiterCollectionController::class, 'show'])->name('collections.show');
+
+    Route::get('companies', [RecruiterCompanyController::class, 'index'])->name('companies.index');
+    Route::post('companies', [RecruiterCompanyController::class, 'store'])->name('companies.store');
+    Route::patch('companies/{company}/approve', [RecruiterCompanyController::class, 'approve'])->name('companies.approve');
+    Route::patch('companies/{company}/visibility', [RecruiterCompanyController::class, 'updateVisibility'])->name('companies.visibility.update');
+    Route::delete('companies/{company}', [RecruiterCompanyController::class, 'destroy'])->name('companies.destroy');
+    Route::get('companies/{company}', [RecruiterCompanyController::class, 'show'])->name('companies.show');
+    Route::get('companies/{company}/applications/{application}', [RecruiterCompanyController::class, 'showApplication'])->name('companies.applications.show');
+    Route::patch('companies/{company}/applications/{application}', [RecruiterCompanyController::class, 'updateApplication'])->name('companies.applications.update');
+
+    Route::post('statuses', [RecruiterStatusController::class, 'store'])->name('statuses.store');
+    Route::delete('statuses/{status}', [RecruiterStatusController::class, 'destroy'])->name('statuses.destroy');
+});
+
+Route::middleware(['auth', 'verified', 'role:company'])->prefix('company')->name('company.')->group(function (): void {
+    Route::get('dashboard', [CompanyRecruitmentController::class, 'index'])->name('dashboard');
+    Route::post('recruitments', [CompanyRecruitmentController::class, 'store'])->name('recruitments.store');
+    Route::get('recruitments/{company}', [CompanyRecruitmentController::class, 'show'])->name('recruitments.show');
+    Route::patch('recruitments/{company}', [CompanyRecruitmentController::class, 'update'])->name('recruitments.update');
+    Route::patch('recruitments/{company}/visibility', [CompanyRecruitmentController::class, 'updateVisibility'])->name('recruitments.visibility.update');
+    Route::delete('recruitments/{company}', [CompanyRecruitmentController::class, 'destroy'])->name('recruitments.destroy');
+    Route::get('recruitments/{company}/applications/{application}', [CompanyRecruitmentController::class, 'showApplication'])->name('recruitments.applications.show');
+    Route::delete('recruitments/{company}/applications/{application}', [CompanyRecruitmentController::class, 'destroyApplication'])->name('recruitments.applications.destroy');
+    Route::patch('recruitments/{company}/applications/{application}', [CompanyRecruitmentController::class, 'updateApplication'])->name('recruitments.applications.update');
 });
 
 require __DIR__.'/settings.php';

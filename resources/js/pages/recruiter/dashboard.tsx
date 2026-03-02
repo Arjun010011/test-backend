@@ -2,6 +2,7 @@ import { Head, Link } from '@inertiajs/react';
 import { FolderKanban, Star, UserPlus, Users } from 'lucide-react';
 import RecruiterLayout from '@/layouts/recruiter-layout';
 import { index as candidatesIndex } from '@/routes/recruiter/candidates';
+import { index as companiesIndex } from '@/routes/recruiter/companies';
 import { index as collectionsIndex } from '@/routes/recruiter/collections';
 
 type Props = {
@@ -84,12 +85,21 @@ export default function RecruiterDashboard({ stats }: Props) {
                     </p>
                 </Link>
                 <Link
+                    href={companiesIndex().url}
+                    className="rounded-2xl border border-border/70 bg-card/80 p-5 shadow-sm transition-colors hover:bg-accent/40"
+                >
+                    <div className="text-sm font-semibold">Enroll companies</div>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                        Add companies so candidates can discover openings and apply.
+                    </p>
+                </Link>
+                <Link
                     href={candidatesIndex.url({
                         query: {
                             passed_out: 1,
                         },
                     })}
-                    className="rounded-2xl border border-border/70 bg-card/80 p-5 shadow-sm transition-colors hover:bg-accent/40 lg:col-span-2"
+                    className="rounded-2xl border border-border/70 bg-card/80 p-5 shadow-sm transition-colors hover:bg-accent/40"
                 >
                     <div className="text-sm font-semibold">Passed out candidates</div>
                     <p className="mt-1 text-sm text-muted-foreground">

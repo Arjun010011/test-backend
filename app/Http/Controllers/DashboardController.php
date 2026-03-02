@@ -20,6 +20,10 @@ class DashboardController extends Controller
             return redirect()->route('recruiter.dashboard');
         }
 
+        if ($user?->role === \App\Enums\Role::Company) {
+            return redirect()->route('company.dashboard');
+        }
+
         $user?->load([
             'candidateProfile',
             'resumes' => fn ($query) => $query->latest()->limit(1),

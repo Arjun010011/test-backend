@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers\Recruiter;
 
-use App\Enums\CandidateStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Recruiter\AttachCandidateToCollectionRequest;
 use App\Http\Requests\Recruiter\CandidateIndexRequest;
@@ -18,6 +17,7 @@ use App\Models\RecruiterCollection;
 use App\Models\RecruiterComment;
 use App\Models\User;
 use App\Services\RecruiterService;
+use App\Support\CandidateStatusCatalog;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -30,7 +30,7 @@ use Symfony\Component\HttpFoundation\ResponseHeaderBag;
 
 class RecruiterCandidateController extends Controller
 {
-    public function index(CandidateIndexRequest $request, RecruiterService $recruiterService): Response
+    public function index(CandidateIndexRequest $request, RecruiterService $recruiterService, CandidateStatusCatalog $statusCatalog): Response
     {
         Gate::authorize('viewAny', CandidateProfile::class);
 
@@ -62,16 +62,12 @@ class RecruiterCandidateController extends Controller
             'candidates' => RecruiterCandidateResource::collection($candidates),
             'filters' => $filters,
             'collections' => RecruiterCollectionResource::collection($collections),
-            'statuses' => collect(CandidateStatus::cases())->map(fn (CandidateStatus $status): array => [
-                'value' => $status->value,
-                'label' => $status->label(),
-                'color' => $status->color(),
-            ])->values(),
+            'statuses' => $statusCatalog->options()->values(),
             'status' => $request->session()->get('status'),
         ]);
     }
 
-    public function show(Request $request, User $candidate, RecruiterService $recruiterService): Response
+    public function show(Request $request, User $candidate, RecruiterService $recruiterService, CandidateStatusCatalog $statusCatalog): Response
     {
         $user = $request->user();
 
@@ -114,11 +110,7 @@ class RecruiterCandidateController extends Controller
             'candidate' => RecruiterCandidateResource::make($candidate)->resolve($request),
             'comments' => RecruiterCommentResource::collection($comments),
             'collections' => RecruiterCollectionResource::collection($collections),
-            'statuses' => collect(CandidateStatus::cases())->map(fn (CandidateStatus $status): array => [
-                'value' => $status->value,
-                'label' => $status->label(),
-                'color' => $status->color(),
-            ])->values(),
+            'statuses' => $statusCatalog->options()->values(),
             'status' => $request->session()->get('status'),
         ]);
     }
@@ -143,7 +135,7 @@ class RecruiterCandidateController extends Controller
         $recruiterService->updateCandidateStatus(
             $user,
             $candidate,
-            CandidateStatus::from($request->validated('status')),
+            $request->validated('status'),
             $request->validated('note'),
         );
 
@@ -159,7 +151,7 @@ class RecruiterCandidateController extends Controller
         $recruiterService->globalCandidateUpdate(
             $user,
             $candidate,
-            CandidateStatus::from($request->validated('status')),
+            $request->validated('status'),
             $request->validated('comment'),
             $request->validated('collections') ?? [],
         );
