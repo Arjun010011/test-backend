@@ -9,11 +9,14 @@ import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '
 import RecruiterLayout from '@/layouts/recruiter-layout';
 import { index } from '@/routes/recruiter/candidates';
 import { toggle } from '@/routes/recruiter/candidates/star';
-import { store as storeStatus } from '@/routes/recruiter/statuses';
+import { destroy as destroyStatus, store as storeStatus, update as updateStatus } from '@/routes/recruiter/statuses';
 
 type StatusOption = {
+    id: number;
     value: string;
     label: string;
+    color: string;
+    is_default: boolean;
 };
 
 type CollectionOption = {
@@ -59,7 +62,12 @@ export default function RecruiterCandidatesIndex({ candidates, filters, statuses
     );
     const [showFilters, setShowFilters] = useState(false);
     const [loading, setLoading] = useState(false);
+    const [editingStatusId, setEditingStatusId] = useState<number | null>(null);
     const statusForm = useForm({
+        label: '',
+        color: 'gray',
+    });
+    const statusEditForm = useForm({
         label: '',
         color: 'gray',
     });
@@ -92,6 +100,41 @@ export default function RecruiterCandidatesIndex({ candidates, filters, statuses
 
     const toggleStar = (candidateId: number) => {
         router.post(toggle(candidateId).url, {}, { preserveScroll: true, preserveState: true });
+    };
+
+    const customStatuses = statuses.filter((statusOption) => !statusOption.is_default);
+
+    const startEditingStatus = (statusOption: StatusOption) => {
+        setEditingStatusId(statusOption.id);
+        statusEditForm.setData({
+            label: statusOption.label,
+            color: statusOption.color,
+        });
+        statusEditForm.clearErrors();
+    };
+
+    const cancelEditingStatus = () => {
+        setEditingStatusId(null);
+        statusEditForm.clearErrors();
+    };
+
+    const saveStatusChanges = () => {
+        if (editingStatusId === null) {
+            return;
+        }
+
+        statusEditForm.patch(updateStatus(editingStatusId).url, {
+            preserveScroll: true,
+            onSuccess: () => {
+                setEditingStatusId(null);
+            },
+        });
+    };
+
+    const deleteStatus = (statusId: number) => {
+        router.delete(destroyStatus(statusId).url, {
+            preserveScroll: true,
+        });
     };
 
     return (
@@ -160,6 +203,84 @@ export default function RecruiterCandidatesIndex({ candidates, filters, statuses
                     {statusForm.errors.label && (
                         <p className="mt-2 text-sm text-red-600">{statusForm.errors.label}</p>
                     )}
+                </div>
+
+                <div className="space-y-3 rounded-2xl border border-border/70 bg-card/80 p-3 shadow-sm">
+                    <h2 className="text-sm font-semibold text-foreground">Manage custom statuses</h2>
+                    {customStatuses.length === 0 && (
+                        <p className="text-sm text-muted-foreground">No custom statuses yet.</p>
+                    )}
+                    {customStatuses.map((statusOption) => {
+                        const isEditing = editingStatusId === statusOption.id;
+
+                        if (isEditing) {
+                            return (
+                                <form
+                                    key={statusOption.id}
+                                    className="flex flex-wrap items-center gap-2 rounded-xl border border-border/60 bg-background/60 p-2"
+                                    onSubmit={(event) => {
+                                        event.preventDefault();
+                                        saveStatusChanges();
+                                    }}
+                                >
+                                    <Input
+                                        value={statusEditForm.data.label}
+                                        onChange={(event) => statusEditForm.setData('label', event.target.value)}
+                                        className="max-w-sm"
+                                    />
+                                    <select
+                                        value={statusEditForm.data.color}
+                                        onChange={(event) => statusEditForm.setData('color', event.target.value)}
+                                        className="h-10 rounded-lg border border-input bg-background px-3 text-sm"
+                                    >
+                                        <option value="gray">Gray</option>
+                                        <option value="blue">Blue</option>
+                                        <option value="green">Green</option>
+                                        <option value="red">Red</option>
+                                        <option value="purple">Purple</option>
+                                        <option value="amber">Amber</option>
+                                        <option value="cyan">Cyan</option>
+                                    </select>
+                                    <Button type="submit" size="sm" disabled={statusEditForm.processing}>
+                                        Save
+                                    </Button>
+                                    <Button type="button" variant="outline" size="sm" onClick={cancelEditingStatus}>
+                                        Cancel
+                                    </Button>
+                                    {statusEditForm.errors.label && (
+                                        <p className="w-full text-sm text-red-600">{statusEditForm.errors.label}</p>
+                                    )}
+                                </form>
+                            );
+                        }
+
+                        return (
+                            <div
+                                key={statusOption.id}
+                                className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border/60 bg-background/60 p-2"
+                            >
+                                <div className="flex items-center gap-2">
+                                    <span className="text-sm font-medium">{statusOption.label}</span>
+                                    <span className="rounded-full border border-border/60 px-2 py-0.5 text-xs text-muted-foreground">
+                                        {statusOption.color}
+                                    </span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <Button type="button" variant="outline" size="sm" onClick={() => startEditingStatus(statusOption)}>
+                                        Edit
+                                    </Button>
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => deleteStatus(statusOption.id)}
+                                    >
+                                        Delete
+                                    </Button>
+                                </div>
+                            </div>
+                        );
+                    })}
                 </div>
 
                 <CandidateTable

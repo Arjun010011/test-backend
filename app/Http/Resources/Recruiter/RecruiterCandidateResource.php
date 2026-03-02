@@ -42,6 +42,7 @@ class RecruiterCandidateResource extends JsonResource
             'skills' => $skills,
             'status' => $status['value'],
             'status_label' => $status['label'],
+            'status_color' => $status['color'],
             'is_starred' => (bool) ($this->is_starred ?? false),
             'stars_count' => (int) ($this->stars_count ?? 0),
             'comments_count' => (int) ($this->comments_count ?? 0),

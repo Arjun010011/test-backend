@@ -22,6 +22,7 @@ type Candidate = {
     skills: string[];
     status: string;
     status_label: string;
+    status_color: string;
     is_starred: boolean;
     location?: string;
     graduation_year?: string;
@@ -166,7 +167,7 @@ export default function RecruiterCandidateShow({ candidate, comments, collection
                         </div>
 
                         <div className="mt-4">
-                            <StatusBadge status={candidate.status} label={candidate.status_label} />
+                            <StatusBadge status={candidate.status} label={candidate.status_label} color={candidate.status_color} />
                         </div>
 
                         {(candidate.location ||

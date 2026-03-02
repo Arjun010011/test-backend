@@ -87,6 +87,162 @@ it('allows recruiters to create global custom candidate statuses', function () {
         );
 });
 
+it('allows recruiters to edit global custom candidate statuses', function () {
+    $admin = User::factory()->admin()->create();
+    $candidate = User::factory()->candidate()->create();
+    $status = CandidateWorkflowStatus::query()->create([
+        'key' => 'screening_round',
+        'label' => 'Screening Round',
+        'color' => 'gray',
+        'is_default' => false,
+        'created_by_user_id' => $admin->id,
+    ]);
+
+    CandidateProfile::factory()->create([
+        'user_id' => $candidate->id,
+        'profile_completed_at' => now(),
+        'candidate_status' => $status->key,
+    ]);
+
+    actingAs($admin)
+        ->patch(route('recruiter.statuses.update', $status), [
+            'label' => 'Final Interview',
+            'color' => 'blue',
+        ])
+        ->assertRedirect();
+
+    $this->assertDatabaseHas('candidate_workflow_statuses', [
+        'id' => $status->id,
+        'key' => 'final_interview',
+        'label' => 'Final Interview',
+        'color' => 'blue',
+    ]);
+
+    $this->assertDatabaseHas('candidate_profiles', [
+        'user_id' => $candidate->id,
+        'candidate_status' => 'final_interview',
+    ]);
+
+    $response = actingAs($admin)
+        ->get(route('recruiter.candidates.index'))
+        ->assertSuccessful();
+
+    $updatedStatus = collect($response->inertiaProps('statuses'))
+        ->firstWhere('value', 'final_interview');
+
+    expect($updatedStatus)->not->toBeNull()
+        ->and($updatedStatus['color'])->toBe('blue');
+});
+
+it('allows recruiters to delete global custom candidate statuses', function () {
+    $admin = User::factory()->admin()->create();
+    $status = CandidateWorkflowStatus::query()->create([
+        'key' => 'to_archive',
+        'label' => 'To Archive',
+        'color' => 'gray',
+        'is_default' => false,
+        'created_by_user_id' => $admin->id,
+    ]);
+
+    actingAs($admin)
+        ->delete(route('recruiter.statuses.destroy', $status))
+        ->assertRedirect();
+
+    $this->assertDatabaseMissing('candidate_workflow_statuses', [
+        'id' => $status->id,
+    ]);
+});
+
+it('allows deleting custom status when only non-candidate profiles use it', function () {
+    $admin = User::factory()->admin()->create();
+    $anotherAdmin = User::factory()->admin()->create();
+    $status = CandidateWorkflowStatus::query()->create([
+        'key' => 'internal_hold',
+        'label' => 'Internal Hold',
+        'color' => 'gray',
+        'is_default' => false,
+        'created_by_user_id' => $admin->id,
+    ]);
+
+    CandidateProfile::factory()->create([
+        'user_id' => $anotherAdmin->id,
+        'candidate_status' => $status->key,
+    ]);
+
+    actingAs($admin)
+        ->delete(route('recruiter.statuses.destroy', $status))
+        ->assertRedirect();
+
+    $this->assertDatabaseMissing('candidate_workflow_statuses', [
+        'id' => $status->id,
+    ]);
+});
+
+it('allows deleting custom status when only incomplete candidate profiles use it', function () {
+    $admin = User::factory()->admin()->create();
+    $candidate = User::factory()->candidate()->create();
+    $status = CandidateWorkflowStatus::query()->create([
+        'key' => 'screening_hold',
+        'label' => 'Screening Hold',
+        'color' => 'gray',
+        'is_default' => false,
+        'created_by_user_id' => $admin->id,
+    ]);
+
+    CandidateProfile::factory()->create([
+        'user_id' => $candidate->id,
+        'profile_completed_at' => null,
+        'candidate_status' => $status->key,
+    ]);
+
+    actingAs($admin)
+        ->delete(route('recruiter.statuses.destroy', $status))
+        ->assertRedirect();
+
+    $this->assertDatabaseMissing('candidate_workflow_statuses', [
+        'id' => $status->id,
+    ]);
+
+    $this->assertDatabaseHas('candidate_profiles', [
+        'user_id' => $candidate->id,
+        'candidate_status' => 'new',
+    ]);
+});
+
+it('deletes custom statuses that are in use and reassigns candidates to new', function () {
+    $admin = User::factory()->admin()->create();
+    $candidate = User::factory()->candidate()->create();
+    $status = CandidateWorkflowStatus::query()->create([
+        'key' => 'offer_pending',
+        'label' => 'Offer Pending',
+        'color' => 'blue',
+        'is_default' => false,
+        'created_by_user_id' => $admin->id,
+    ]);
+
+    CandidateProfile::factory()->create([
+        'user_id' => $candidate->id,
+        'profile_completed_at' => now(),
+        'candidate_status' => $status->key,
+    ]);
+
+    actingAs($admin)
+        ->from(route('recruiter.candidates.index'))
+        ->delete(route('recruiter.statuses.destroy', $status))
+        ->assertRedirect(route('recruiter.candidates.index'))
+        ->assertSessionHas('status', 'candidate-status-deleted')
+        ->assertSessionHas('message', 'Custom status deleted. Reassigned 1 candidate(s) to New.');
+
+    $this->assertDatabaseMissing('candidate_workflow_statuses', [
+        'id' => $status->id,
+    ]);
+
+    $this->assertDatabaseHas('candidate_profiles', [
+        'user_id' => $candidate->id,
+        'candidate_status' => 'new',
+    ]);
+});
+
 it('shows paginated candidate listing for admins', function () {
     $admin = User::factory()->admin()->create();
 

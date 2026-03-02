@@ -1,145 +1,259 @@
 # Project Documentation
 
-## Overview
-This project is a modern recruitment and applicant tracking platform built to handle role-based access, candidate profiles, and robust resume parsing. It provides a seamless experience for both candidates submitting their details and recruiters actively searching for talent.
+Last updated: March 2, 2026
 
-## Technology Stack
-- **Backend**: Laravel 12 (PHP 8.2+)
-- **Frontend**: React 19 with Inertia.js 2.0
-- **Styling & UI**: Tailwind CSS 4.0, Radix UI Primitives, Lucide Icons
-- **Key Libraries**: 
-  - `smalot/pdfparser` for extracting text and skills from PDF resumes.
-  - `laravel/wayfinder` for tight frontend-backend routing integration.
+## 1. Product Summary
+This project is a role-based recruitment platform where:
+- Candidates complete onboarding, upload resumes, and apply to published company opportunities.
+- Recruiters manage candidate pipelines, comments, stars, collections, workflow statuses, and company approvals.
+- Company users create and manage their own recruitment postings and review applications.
 
-## Recently Implemented Features
+The app is server-driven Laravel with Inertia + React pages for the frontend.
 
-## Work Completed Today (February 27, 2026)
+## 2. Stack and Runtime
+- Backend: Laravel 12.53.0
+- PHP: 8.4.1
+- Frontend: React 19.2 + Inertia.js 2 (`@inertiajs/react`, `inertiajs/inertia-laravel`)
+- Styling: Tailwind CSS 4
+- Authentication: Laravel Fortify
+- Routing integration in frontend: Laravel Wayfinder
+- Tests: Pest 4 + PHPUnit 12
+- Database engine in this environment: SQLite
 
-### 1. Recruiter Collections + Dashboard Module
-- Added complete recruiter workflows:
-  - Recruiter dashboard with candidate pipeline metrics.
-  - Candidate listing/detail pages with status updates and starring.
-  - Collection management (create, update, nested collections, attach candidates).
-  - Recruiter comments and audit history tracking for status changes.
-- Introduced backend foundations:
-  - New recruiter controllers, requests, resources, policies, middleware, and `RecruiterService`.
-  - New models: `RecruiterCollection`, `RecruiterComment`, `CandidateStatusHistory`, `Skill`.
-  - New enum: `CandidateStatus`.
-- Extended schema:
-  - Added recruiter collections/comment/star/history tables.
-  - Added `candidate_status`, education progress fields, and collection hierarchy support.
-- Added/updated feature tests for login redirection, recruiter module flows, onboarding, and resume paths.
+## 3. High-Level Architecture
+The application follows a domain-oriented structure:
+- HTTP controllers orchestrate requests and return Inertia pages.
+- Form Request classes encapsulate validation.
+- Policies and role middleware enforce authorization.
+- Service layer (`RecruiterService`) handles heavier recruiter workflows and query logic.
+- Eloquent models define relationships and persistence.
 
-### 2. Candidate Story + Location Data Enhancements
-- Extended `candidate_profiles` with storytelling and locality fields:
-  - Added candidate story fields for richer profile context.
-  - Added district support and location config (`config/location.php`).
-- Updated candidate onboarding validation and save logic.
-- Updated recruiter filtering/index requests and recruiter resources/service to expose and use new fields.
-- Refreshed relevant recruiter and candidate UI pages/components to surface the new data.
+Core domain areas:
+- Candidate domain
+- Recruiter domain
+- Company domain
+- Shared auth/settings domain
 
-### 3. Welcome Page UX Improvements
-- Redesigned `resources/js/pages/welcome.tsx` with an improved layout and explicit workflow stages.
-- Updated feature coverage in `tests/Feature/ExampleTest.php` for the welcome experience.
+## 4. Role Model and Access Control
+Roles are defined in `App\Enums\Role`:
+- `candidate`
+- `company`
+- `admin` (recruiter)
+- `super_admin`
 
-### 1. Role-Based Access Control
-- **`Role` Enum**: Introduced a strict type-safe enum (`app/Enums/Role.php`) defining the core capabilities of users across the platform:
-  - `Candidate`
-  - `Admin` (Recruiters)
-  - `SuperAdmin`
+Access is enforced by:
+- `role:*` middleware alias (`EnsureUserHasRole`)
+- `candidate.onboarding` middleware alias (`EnsureCandidateOnboardingComplete`)
+- Policy classes for candidate profiles, recruiter collections, and recruiter comments
 
-### 2. Resume Management System
-- **`Resume` Model**: Built a comprehensive model (`app/Models/Resume.php`) to handle uploaded resumes.
-- **Migration**: Added database schema (`2026_02_26_061251_create_resumes_table.php`) to store vital document metadata:
-  - File properties: `original_name`, `file_path`, `mime_type`, `file_size`.
-  - Content analysis: `raw_text` (the extracted text from the PDF) and `extracted_skills` (a parsed JSON array of detected skills for searchable indexing).
-  - State management: `is_primary` flag to indicate the candidate's currently active resume.
+Important behavior:
+- `super_admin` bypasses role checks in middleware and has cross-recruiter visibility in recruiter features.
+- Non-super-admin recruiters only access completed candidate profiles.
 
-### 3. Frontend Type Definitions
-- **Auth Types (`auth.ts`)**: Structured the TypeScript definitions for the authenticated user object, including proper typing for standard attributes and Two-Factor Authentication (`TwoFactorSetupData`, `TwoFactorSecretKey`) to ensure type safety across the React frontend.
+## 5. Route and Module Breakdown
 
-### 4. Database Seeding Implementation
-- **E2E Test Data**: Updated `DatabaseSeeder.php` to provide a ready-to-use local environment. It automatically spins up:
-  - A test Candidate user.
-  - A Candidate Profile populated with initial skills (React, Laravel, Tailwind CSS).
-  - A comprehensive Resume record to simulate document uploads and test the skill extraction schema.
+### Public
+- `GET /` -> welcome page
 
-### 5. Recruiter (Admin) Module
+### Candidate Routes (`auth`, `verified`, `candidate.onboarding`)
+- `GET/POST candidate/onboarding`
+- `GET/POST candidate/resume`
+- `GET candidate/resume/{resume}`
+- `GET candidate/companies`
+- `POST candidate/companies/{company}/apply`
+- `GET dashboard`
 
-The Recruiter Module has been fully implemented with a SaaS-grade UI and robust backend architecture, fulfilling all requirements.
+### Recruiter Routes (`auth`, `role:admin`, `/recruiter` prefix)
+- Dashboard and analytics
+- Candidate list/show/update/delete
+- Candidate status updates
+- Candidate comments CRUD
+- Candidate star toggling
+- Candidate collection attach/remove
+- Candidate primary resume download
+- Collection CRUD and detail
+- Company moderation and application review
+- Workflow status create/delete
 
-#### 1. Database Migrations
-We created pivot tables and entities for the recruiter feature set:
-- `recruiter_candidate_stars`: Tracks starred candidates per recruiter.
-- `recruiter_collections` & `recruiter_collection_candidate`: Allows assigning candidates to custom collections.
-- `recruiter_comments`: Private recruiter notes on candidates.
-- `candidate_status_histories`: Audit log for candidate status changes.
-- `candidate_status`: Enum column added to candidate profiles.
+### Company Routes (`auth`, `verified`, `role:company`, `/company` prefix)
+- Company dashboard
+- Recruitment CRUD
+- Recruitment visibility update
+- Recruitment application detail/update/delete
 
-#### 2. Model Relationships
-- **User**: Added `recruiterCollections`, `recruiterComments`, `starredByRecruiters`.
-- **CandidateProfile**: Casts `candidate_status` to the `CandidateStatus` enum.
-- **RecruiterCollection** / **RecruiterComment**: Belongs to `User` (Recruiter) and `User` (Candidate).
+## 6. Data Model Overview
 
-#### 3. Controller Skeletons
-The backend is powered by localized singular controllers:
-- `RecruiterDashboardController`: High-level recruitment metrics.
-- `RecruiterCandidateController`: Core candidate listing, viewing, starring, and status updates.
-- `RecruiterCollectionController`: Collection management.
-- `RecruiterCandidateCommentController`: Private comment handling.
+### User-Centric Tables
+- `users`: role-aware identity and authentication
+- `candidate_profiles`: onboarding profile + education progress + candidate status + location and story fields
+- `resumes`: uploaded resume metadata, extracted skills, raw parsed text
 
-#### 4. Policies
-Authorization is handled via Laravel Policies to ensure data isolation:
-- `CandidateProfilePolicy`, `RecruiterCollectionPolicy`, `RecruiterCommentPolicy`.
-- SuperAdmins bypass restrictions (`Gate::before`), while regular Recruiters (`Admin`) only view/modify their own collections and comments.
+### Recruiter Workflow Tables
+- `recruiter_candidate_stars`
+- `recruiter_collections`
+- `recruiter_collection_candidate`
+- `recruiter_comments`
+- `candidate_status_histories`
+- `candidate_workflow_statuses`
 
-#### 5. Route Definitions
-Routes are protected by `['auth', 'role:admin']` and prefixed with `/recruiter`:
-- `GET /recruiter/dashboard`
-- `GET /recruiter/candidates`, `GET /recruiter/candidates/{candidate}`
-- `POST /recruiter/candidates/{candidate}/star`
-- `PATCH /recruiter/candidates/{candidate}/status`
-- `POST /recruiter/collections`
+### Company Workflow Tables
+- `companies`
+- `company_applications`
 
-#### 6. Service Class Example
-The `RecruiterService` encapsulates complex business logic to keep controllers clean. It handles candidate querying with efficient eager loading to prevent N+1 issues:
-```php
-public function queryCandidates(User $user, array $filters): LengthAwarePaginator
-{
-    return User::query()
-        ->candidatesWithSkills($filters['search'] ? [$filters['search']] : [])
-        // Filtering, sorting, and eager loading logic...
-        ->paginate($filters['per_page']);
-}
-```
+## 7. Key Workflows
 
-#### 7. React Layout Component
-`RecruiterLayout.tsx` provides a responsive left-sidebar navigation with a clean content area, sticky header, global search, and a user dropdown, mirroring modern SaaS applications.
+### Candidate Onboarding and Resume Flow
+1. Candidate visits onboarding form.
+2. Candidate submits profile and optionally resume.
+3. Resume is scanned and parsed (`ScanResume`) for extracted skills and raw text.
+4. Candidate profile is updated with merged/normalized skills and categorized skill buckets.
+5. `profile_completed_at` is set, enabling full candidate visibility to recruiters.
 
-#### 8. Candidate Table Component
-`candidate-table.tsx` features a modern data table mapping candidates to columns: Avatar, Name/Email, Skills (rendered as tag chips), Status Badge, and inline Star toggle actions.
+Notes:
+- Skills are constrained against active skill catalog (`skills` table) when available.
+- Semester progression fields are tracked for pass-out projections.
 
-#### 9. Example Filter Logic
-In `index.tsx`, filtering relies on React state synchronized with Inertia routing completely debounced:
-```tsx
-const query = useMemo(() => ({
-    search: search.trim() === '' ? null : search,
-    status: status === '' ? null : status,
-    starred: starred ? 1 : null,
-}), [search, status, starred]);
+### Candidate Resume Upload Flow
+- Upload creates a new `resumes` row.
+- Uploaded resume is marked `is_primary = true`.
+- Older resumes for the same user are demoted to `is_primary = false`.
+- Recruiters can fetch candidate primary resume inline view through recruiter route.
 
-useEffect(() => {
-    router.get(index.url({ query }), {}, { preserveState: true, replace: true });
-}, [query]);
-```
+### Recruiter Candidate Pipeline Flow
+- Candidate listing supports filtering by:
+  - search text (name/email/resume raw text/skill arrays)
+  - status
+  - starred
+  - passed-out
+  - collection
+- Recruiters can:
+  - toggle star
+  - update status (with history logging)
+  - add/update/delete private comments
+  - attach/remove candidate in collections
+  - apply global update (status + comment + collection sync)
 
-#### 10. UI Styling Examples
-Using TailwindCSS v4 with CSS-first configuration:
-- Soft shadows, rounded-xl cards: `rounded-2xl border border-slate-200/70 bg-white p-5 shadow-sm`
-- Status Badges: Defined dynamically using color maps (e.g., `bg-blue-100 text-blue-700`).
+### Status Management Flow
+- Default workflow statuses are seeded by migration:
+  - `new`, `in_review`, `shortlisted`, `rejected`, `hired`
+- Recruiters can create custom statuses (`recruiter/statuses`) with generated keys and color.
+- Default statuses cannot be deleted.
+- A status currently used by any `candidate_profiles.candidate_status` cannot be deleted.
 
-#### 11. Architectural Decisions
-- **Inertia.js + Wayfinder**: We use `laravel/wayfinder` for strongly typed frontend routing, eliminating hardcoded URLs.
-- **Service Repository Pattern**: `RecruiterService` isolates database queries from controllers.
-- **Resource Classes**: `RecruiterCandidateResource` strictly shapes JSON responses, ensuring no sensitive data leaks.
-- **Action-Driven Endpoints**: Features like starring and commenting use specific RESTful endpoints rather than massive generic update controllers.
+### Company Posting and Application Flow
+Company user:
+- Creates recruitment posting (`source = company`, `approval_status = pending`, `visibility = private`, `is_active = false`).
+- Can update posting details and visibility.
+- Can review and update application status + review note.
+
+Recruiter user:
+- Views all company postings with filters.
+- Can create recruiter-origin postings (`source = recruiter`, auto-approved).
+- Can approve pending postings and manage visibility.
+- Can review company applications similarly.
+
+Candidate user:
+- Can only see companies where `is_active = true`, `approval_status = approved`, and `visibility = public`.
+- Applies once per company via `firstOrCreate` behavior.
+
+## 8. Service-Layer Details (`RecruiterService`)
+`RecruiterService` centralizes recruiter business logic:
+- Candidate listing query composition and pagination
+- Recruiter dashboard metrics
+- Candidate visibility checks
+- Status updates with transaction + history row
+- Comment creation
+- Candidate deletion with resume file cleanup
+- Collection creation/update/delete and hierarchy safety
+- Collection membership sync logic
+- Cross-database JSON-like skill search handling (SQLite/MySQL/Postgres branches)
+- Passed-out computation query logic based on graduation year or projected semester
+
+This service is the primary place to extend recruiter business rules.
+
+## 9. Middleware, Policy, and Safety Notes
+- `EnsureCandidateOnboardingComplete`: candidates without completed onboarding are redirected to onboarding routes.
+- `EnsureUserHasRole`: role gate with super admin bypass.
+- Policies limit recruiter-owned comments/collections to owner recruiters unless super admin.
+
+Operational safety defaults in `AppServiceProvider`:
+- Production destructive DB commands are prohibited.
+- Production password defaults are stricter.
+- Carbon immutable dates are used globally.
+
+## 10. Frontend Structure (Inertia Pages)
+Pages live under `resources/js/pages` and are grouped by domain:
+- `auth/*`
+- `candidate/*`
+- `recruiter/*`
+- `company/*`
+- `settings/*`
+- `dashboard.tsx`, `welcome.tsx`
+
+This keeps backend route groups and frontend page groups aligned.
+
+## 11. Validation Layer
+Validation is handled through Form Request classes, including:
+- Candidate requests for onboarding/resume/apply
+- Recruiter requests for candidate filters, status updates, comment/collection actions, and company actions
+- Company requests for recruitment CRUD and application review
+- Settings requests for profile/password/2FA updates
+
+When adding endpoints, follow the same pattern: create a dedicated Form Request instead of inline controller validation.
+
+## 12. Seed Data and Catalogs
+`DatabaseSeeder` currently seeds:
+- Skill catalog entries from `config('resume.skill_catalog')`
+- A demo verified candidate user
+- A candidate profile with sample skills
+- A sample primary resume record
+
+Useful for local bootstrapping and quick UI verification.
+
+## 13. Testing Coverage Snapshot
+Current tests include:
+- Auth and verification flows
+- Candidate onboarding and resume features
+- Recruiter module behavior
+- Company enrollment and company portal workflow
+- Dashboard and login redirection behavior
+- Settings pages (profile/password/2FA)
+
+Representative suites:
+- `tests/Feature/Recruiter/RecruiterModuleTest.php`
+- `tests/Feature/CompanyPortalWorkflowTest.php`
+- `tests/Feature/CandidateOnboardingTest.php`
+- `tests/Feature/CandidateResumeTest.php`
+
+## 14. Local Development
+Install and run:
+- `composer install`
+- `npm install`
+- `php artisan migrate --seed`
+- `composer run dev`
+
+Run tests:
+- `php artisan test --compact`
+
+If frontend assets are stale or missing:
+- `npm run dev` for watch mode
+- `npm run build` for production build
+
+## 15. Extension Guidance for Next Developers
+When adding features, prefer existing patterns:
+- Add new business logic in service classes if controller actions become complex.
+- Add dedicated Form Requests for each write operation.
+- Reuse role middleware and policies for access constraints.
+- Keep domain alignment across:
+  - routes in `routes/web.php`
+  - controllers in `app/Http/Controllers/<Domain>`
+  - Inertia pages in `resources/js/pages/<domain>`
+- Add/update Pest feature tests for every behavior change.
+
+Recommended order for larger feature work:
+1. Migration + model relationship updates.
+2. Form Request validation.
+3. Service-layer logic.
+4. Controller endpoints.
+5. Inertia page updates.
+6. Feature tests.

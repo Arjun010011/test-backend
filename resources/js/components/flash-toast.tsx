@@ -1,19 +1,24 @@
-import { useEffect, useMemo, useState } from 'react';
 import { usePage } from '@inertiajs/react';
 import { CheckCircle2, CircleAlert, Info } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
 
 type FlashStatusMap = Record<string, string>;
 
 type SharedProps = {
     flash?: {
         status?: string | null;
+        message?: string | null;
     };
 };
 
 const STATUS_MESSAGES: FlashStatusMap = {
     'candidate-starred': 'Candidate starred.',
     'candidate-unstarred': 'Candidate unstarred.',
-    'candidate-status-updated': 'Candidate status updated.',
+    'candidate-status-created': 'Custom status created.',
+    'candidate-status-updated': 'Custom status updated.',
+    'candidate-status-deleted': 'Custom status deleted.',
+    'candidate-status-delete-error-default': 'Default statuses cannot be deleted.',
+    'candidate-status-delete-error-in-use': 'Cannot delete a status currently in use.',
     'candidate-comment-added': 'Private comment added.',
     'candidate-comment-updated': 'Private comment updated.',
     'candidate-comment-deleted': 'Private comment deleted.',
@@ -25,31 +30,16 @@ const STATUS_MESSAGES: FlashStatusMap = {
     'collection-deleted': 'Collection deleted.',
 };
 
-export function FlashToast() {
-    const { flash } = usePage<SharedProps>().props;
-    const status = flash?.status ?? null;
-    const [visible, setVisible] = useState(false);
-
-    const message = useMemo(() => {
-        if (status === null) {
-            return null;
-        }
-
-        return STATUS_MESSAGES[status] ?? status;
-    }, [status]);
+function FlashToastItem({ status, message }: { status: string; message: string }) {
+    const [visible, setVisible] = useState(true);
 
     useEffect(() => {
-        if (message === null) {
-            return;
-        }
-
-        setVisible(true);
         const timeout = window.setTimeout(() => setVisible(false), 2500);
 
         return () => window.clearTimeout(timeout);
-    }, [message]);
+    }, []);
 
-    if (!visible || message === null) {
+    if (!visible) {
         return null;
     }
 
@@ -75,4 +65,28 @@ export function FlashToast() {
             </div>
         </div>
     );
+}
+
+export function FlashToast() {
+    const { flash } = usePage<SharedProps>().props;
+    const status = flash?.status ?? null;
+    const customMessage = flash?.message ?? null;
+
+    const message = useMemo(() => {
+        if (customMessage !== null) {
+            return customMessage;
+        }
+
+        if (status === null) {
+            return null;
+        }
+
+        return STATUS_MESSAGES[status] ?? status;
+    }, [customMessage, status]);
+
+    if (status === null || message === null) {
+        return null;
+    }
+
+    return <FlashToastItem key={status} status={status} message={message} />;
 }

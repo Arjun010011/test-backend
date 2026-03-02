@@ -71,6 +71,7 @@ Route::middleware(['auth', 'role:admin'])->prefix('recruiter')->name('recruiter.
     Route::patch('companies/{company}/applications/{application}', [RecruiterCompanyController::class, 'updateApplication'])->name('companies.applications.update');
 
     Route::post('statuses', [RecruiterStatusController::class, 'store'])->name('statuses.store');
+    Route::patch('statuses/{status}', [RecruiterStatusController::class, 'update'])->name('statuses.update');
     Route::delete('statuses/{status}', [RecruiterStatusController::class, 'destroy'])->name('statuses.destroy');
 });
 

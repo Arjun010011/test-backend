@@ -2,8 +2,8 @@ import { Head, Link } from '@inertiajs/react';
 import { FolderKanban, Star, UserPlus, Users } from 'lucide-react';
 import RecruiterLayout from '@/layouts/recruiter-layout';
 import { index as candidatesIndex } from '@/routes/recruiter/candidates';
-import { index as companiesIndex } from '@/routes/recruiter/companies';
 import { index as collectionsIndex } from '@/routes/recruiter/collections';
+import { index as companiesIndex } from '@/routes/recruiter/companies';
 
 type Props = {
     stats: {

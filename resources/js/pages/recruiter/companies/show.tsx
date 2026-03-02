@@ -3,8 +3,8 @@ import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
 import RecruiterLayout from '@/layouts/recruiter-layout';
 import { companyApplicationStatuses } from '@/lib/company-application-statuses';
-import { show as showApplication, update as updateApplication } from '@/routes/recruiter/companies/applications';
 import { index as companiesIndex } from '@/routes/recruiter/companies';
+import { show as showApplication, update as updateApplication } from '@/routes/recruiter/companies/applications';
 
 type Company = {
     id: number;

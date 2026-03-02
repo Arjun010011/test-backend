@@ -8,11 +8,14 @@ use App\Models\CompanyApplication;
 use App\Services\RecruiterService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class RecruiterDashboardController extends Controller
 {
+    private const PROJECT_ANALYTICS_START = '2026-02-01';
+
     public function index(Request $request, RecruiterService $recruiterService): Response|RedirectResponse
     {
         $user = $request->user();
@@ -40,8 +43,10 @@ class RecruiterDashboardController extends Controller
         }
 
         $stats = $recruiterService->dashboardStats($user);
+        $projectStart = Carbon::parse(self::PROJECT_ANALYTICS_START)->startOfDay();
 
         $applicationsByStatus = CompanyApplication::query()
+            ->where('applied_at', '>=', $projectStart)
             ->selectRaw('status, COUNT(*) as total')
             ->groupBy('status')
             ->orderByDesc('total')
@@ -53,6 +58,7 @@ class RecruiterDashboardController extends Controller
             ->values();
 
         $topCompanies = Company::query()
+            ->where('created_at', '>=', $projectStart)
             ->withCount('applications')
             ->orderByDesc('applications_count')
             ->orderBy('name')
@@ -66,13 +72,19 @@ class RecruiterDashboardController extends Controller
             ->values();
 
         $rangeStart = now()->startOfMonth()->subMonths(5);
+        if ($rangeStart->lt($projectStart->copy()->startOfMonth())) {
+            $rangeStart = $projectStart->copy()->startOfMonth();
+        }
+
+        $monthsInRange = max(1, $rangeStart->diffInMonths(now()->startOfMonth()) + 1);
+
         $monthlyCounts = CompanyApplication::query()
             ->where('applied_at', '>=', $rangeStart)
             ->get(['applied_at'])
             ->groupBy(fn (CompanyApplication $application): ?string => $application->applied_at?->format('Y-m'))
             ->map(fn ($applications): int => $applications->count());
 
-        $applicationTrend = collect(range(0, 5))
+        $applicationTrend = collect(range(0, $monthsInRange - 1))
             ->map(function (int $index) use ($rangeStart, $monthlyCounts): array {
                 $month = (clone $rangeStart)->addMonths($index);
                 $monthKey = $month->format('Y-m');
@@ -89,9 +101,12 @@ class RecruiterDashboardController extends Controller
                 'total_candidates' => $stats['total_candidates'],
                 'starred_candidates' => $stats['starred_candidates'],
                 'active_collections' => $stats['active_collections'],
-                'companies' => Company::query()->count(),
-                'active_companies' => Company::query()->where('is_active', true)->count(),
-                'applications' => CompanyApplication::query()->count(),
+                'companies' => Company::query()->where('created_at', '>=', $projectStart)->count(),
+                'active_companies' => Company::query()
+                    ->where('created_at', '>=', $projectStart)
+                    ->where('is_active', true)
+                    ->count(),
+                'applications' => CompanyApplication::query()->where('applied_at', '>=', $projectStart)->count(),
             ],
             'breakdown' => [
                 'applications_by_status' => $applicationsByStatus,

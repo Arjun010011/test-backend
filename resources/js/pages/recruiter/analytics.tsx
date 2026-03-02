@@ -66,7 +66,7 @@ export default function RecruiterAnalytics({ summary, breakdown }: Props) {
 
             <section className="mt-6 grid gap-4 xl:grid-cols-3">
                 <article className="rounded-2xl border border-border/70 bg-card/80 p-5 shadow-sm xl:col-span-2">
-                    <h2 className="text-base font-semibold">Applications Trend (6 months)</h2>
+                    <h2 className="text-base font-semibold">Applications Trend</h2>
                     <div className="mt-4 space-y-3">
                         {breakdown.application_trend.map((item) => (
                             <div key={item.month}>

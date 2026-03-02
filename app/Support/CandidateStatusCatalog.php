@@ -8,7 +8,7 @@ use Illuminate\Support\Str;
 class CandidateStatusCatalog
 {
     /**
-     * @return \Illuminate\Support\Collection<int, array{value: string, label: string, color: string}>
+     * @return \Illuminate\Support\Collection<int, array{id: int, value: string, label: string, color: string, is_default: bool}>
      */
     public function options()
     {
@@ -17,9 +17,11 @@ class CandidateStatusCatalog
             ->orderBy('label')
             ->get()
             ->map(fn (CandidateWorkflowStatus $status): array => [
+                'id' => $status->id,
                 'value' => $status->key,
                 'label' => $status->label,
                 'color' => $status->color,
+                'is_default' => $status->is_default,
             ]);
     }
 

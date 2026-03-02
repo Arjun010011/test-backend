@@ -21,6 +21,7 @@ export type RecruiterCandidate = {
     skills: string[];
     status: string;
     status_label: string;
+    status_color: string;
     is_starred: boolean;
     latest_resume: {
         download_url: string;
@@ -141,6 +142,7 @@ export function CandidateTable({
                                     <StatusBadge
                                         status={candidate.status}
                                         label={candidate.status_label}
+                                        color={candidate.status_color}
                                     />
                                 </td>
                                 <td className="px-4 py-3">

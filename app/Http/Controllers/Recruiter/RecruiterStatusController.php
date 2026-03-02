@@ -2,11 +2,15 @@
 
 namespace App\Http\Controllers\Recruiter;
 
+use App\Enums\Role;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Recruiter\StoreCandidateWorkflowStatusRequest;
+use App\Http\Requests\Recruiter\UpdateCandidateWorkflowStatusRequest;
+use App\Models\CandidateProfile;
 use App\Models\CandidateWorkflowStatus;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 class RecruiterStatusController extends Controller
@@ -43,16 +47,75 @@ class RecruiterStatusController extends Controller
         $user = $request->user();
 
         abort_unless($user !== null, 403);
-        abort_if($status->is_default, 422, 'Default statuses cannot be deleted.');
 
-        $isUsed = \App\Models\CandidateProfile::query()
+        if ($status->is_default) {
+            return to_route('recruiter.candidates.index')->with('status', 'candidate-status-delete-error-default');
+        }
+
+        $candidateUsageCount = CandidateProfile::query()
             ->where('candidate_status', $status->key)
-            ->exists();
+            ->whereHas('user', fn ($query) => $query->where('role', Role::Candidate->value))
+            ->count();
 
-        abort_if($isUsed, 422, 'Cannot delete a status currently in use.');
+        DB::transaction(function () use ($status): void {
+            CandidateProfile::query()
+                ->where('candidate_status', $status->key)
+                ->whereHas('user', fn ($query) => $query->where('role', Role::Candidate->value))
+                ->update(['candidate_status' => 'new']);
 
-        $status->delete();
+            $status->delete();
+        });
 
-        return back()->with('status', 'candidate-status-deleted');
+        if ($candidateUsageCount > 0) {
+            return to_route('recruiter.candidates.index')->with([
+                'status' => 'candidate-status-deleted',
+                'message' => "Custom status deleted. Reassigned {$candidateUsageCount} candidate(s) to New.",
+            ]);
+        }
+
+        return to_route('recruiter.candidates.index')->with('status', 'candidate-status-deleted');
+    }
+
+    public function update(UpdateCandidateWorkflowStatusRequest $request, CandidateWorkflowStatus $status): RedirectResponse
+    {
+        $user = $request->user();
+
+        abort_unless($user !== null, 403);
+        abort_if($status->is_default, 422, 'Default statuses cannot be edited.');
+
+        $label = $request->validated('label');
+        $newKey = Str::of($label)
+            ->lower()
+            ->replaceMatches('/[^a-z0-9]+/', '_')
+            ->trim('_')
+            ->value();
+
+        abort_if($newKey === '', 422, 'Invalid status label.');
+        abort_if(
+            CandidateWorkflowStatus::query()
+                ->where('key', $newKey)
+                ->whereKeyNot($status->id)
+                ->exists(),
+            422,
+            'Status already exists.'
+        );
+
+        $oldKey = $status->key;
+
+        DB::transaction(function () use ($status, $request, $label, $newKey, $oldKey): void {
+            $status->forceFill([
+                'key' => $newKey,
+                'label' => $label,
+                'color' => $request->validated('color', 'gray'),
+            ])->save();
+
+            if ($oldKey !== $newKey) {
+                CandidateProfile::query()
+                    ->where('candidate_status', $oldKey)
+                    ->update(['candidate_status' => $newKey]);
+            }
+        });
+
+        return back()->with('status', 'candidate-status-updated');
     }
 }
