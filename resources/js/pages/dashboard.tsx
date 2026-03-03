@@ -9,7 +9,6 @@ import {
 import AppLayout from '@/layouts/app-layout';
 import { dashboard } from '@/routes';
 import { edit as editOnboarding } from '@/routes/candidate/onboarding';
-import { show as showResume } from '@/routes/candidate/resume';
 import type { BreadcrumbItem } from '@/types';
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -24,6 +23,7 @@ type CandidateResume = {
     original_name: string;
     file_size: number;
     extracted_skills: string[];
+    view_url: string;
     raw_text_preview: string | null;
     created_at: string | null;
 };
@@ -109,7 +109,7 @@ export default function Dashboard() {
                             </Link>
                             {candidateResume && (
                                 <a
-                                    href={showResume(candidateResume.id).url}
+                                    href={candidateResume.view_url}
                                     className="text-primary-dark rounded-md border border-primary px-3 py-2 text-sm font-semibold hover:bg-secondary"
                                     target="_blank"
                                     rel="noreferrer"
@@ -183,9 +183,7 @@ export default function Dashboard() {
                             <div className="flex items-center gap-3">
                                 {candidateResume && (
                                     <a
-                                        href={
-                                            showResume(candidateResume.id).url
-                                        }
+                                        href={candidateResume.view_url}
                                         className="text-sm font-medium text-primary hover:text-primary/80"
                                         target="_blank"
                                         rel="noreferrer"

@@ -166,7 +166,12 @@ class RecruiterService
             $candidate->delete();
 
             if ($resumePaths->isNotEmpty()) {
-                Storage::disk('local')->delete($resumePaths->all());
+                $disk = config('resume.storage_disk', config('filesystems.default', 'local'));
+                Storage::disk($disk)->delete($resumePaths->all());
+
+                if ($disk !== 'local') {
+                    Storage::disk('local')->delete($resumePaths->all());
+                }
             }
         });
     }

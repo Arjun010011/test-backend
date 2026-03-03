@@ -13,8 +13,8 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
+use Symfony\Component\HttpFoundation\Response as SymfonyResponse;
 use Symfony\Component\HttpFoundation\ResponseHeaderBag;
-use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ResumeController extends Controller
 {
@@ -79,7 +79,7 @@ class ResumeController extends Controller
     /**
      * View a candidate resume.
      */
-    public function show(Request $request, Resume $resume): StreamedResponse
+    public function show(Request $request, Resume $resume): SymfonyResponse|RedirectResponse
     {
         $user = $request->user();
 
@@ -88,7 +88,31 @@ class ResumeController extends Controller
         $disk = config('resume.storage_disk', config('filesystems.default', 'local'));
         $storage = Storage::disk($disk);
 
+        if (! $storage->exists($resume->file_path) && $disk !== 'local') {
+            $localStorage = Storage::disk('local');
+
+            if ($localStorage->exists($resume->file_path)) {
+                $disk = 'local';
+                $storage = $localStorage;
+            }
+        }
+
+        $driver = config("filesystems.disks.{$disk}.driver");
+
         abort_unless($storage->exists($resume->file_path), 404);
+
+        if ($driver === 's3') {
+            return redirect()->away(
+                $storage->temporaryUrl(
+                    $resume->file_path,
+                    now()->addMinutes(5),
+                    [
+                        'ResponseContentType' => $resume->mime_type,
+                        'ResponseContentDisposition' => sprintf('inline; filename="%s"', $resume->original_name),
+                    ],
+                ),
+            );
+        }
 
         return $storage->response(
             $resume->file_path,

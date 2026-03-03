@@ -8,6 +8,11 @@ use Illuminate\Support\Facades\Storage;
 
 use function Pest\Laravel\actingAs;
 
+function onboardingStorageDisk(): string
+{
+    return (string) config('resume.storage_disk', config('filesystems.default', 'local'));
+}
+
 it('redirects candidates without completed profiles to onboarding', function () {
     $user = User::factory()->candidate()->create();
 
@@ -29,7 +34,7 @@ it('allows candidates with completed profiles to access the dashboard', function
 });
 
 it('stores onboarding details, resume, and merged skills', function () {
-    Storage::fake();
+    Storage::fake(onboardingStorageDisk());
 
     $user = User::factory()->candidate()->create();
     $file = UploadedFile::fake()->createWithContent('resume.txt', 'Experienced in PHP and Laravel.');
@@ -66,7 +71,7 @@ it('stores onboarding details, resume, and merged skills', function () {
     $profile = CandidateProfile::query()->where('user_id', $user->id)->firstOrFail();
     $resume = Resume::query()->where('user_id', $user->id)->firstOrFail();
 
-    Storage::assertExists($resume->file_path);
+    Storage::disk(onboardingStorageDisk())->assertExists($resume->file_path);
     expect($profile->profile_completed_at)->not->toBeNull();
     expect($profile->skills)->toContain('PHP', 'Laravel', 'React', 'AWS');
     expect($profile->skill_categories['Frameworks'] ?? [])->toContain('Laravel', 'React');
@@ -87,7 +92,7 @@ it('shows friendly validation errors when required fields are missing', function
 });
 
 it('accepts onboarding without optional links', function () {
-    Storage::fake();
+    Storage::fake(onboardingStorageDisk());
 
     $user = User::factory()->candidate()->create();
     $file = UploadedFile::fake()->createWithContent('resume.txt', 'Experienced in PHP and Laravel.');
@@ -166,7 +171,7 @@ it('updates profile details without requiring a new resume upload', function () 
 });
 
 it('stores current semester details for candidates who are still studying', function () {
-    Storage::fake();
+    Storage::fake(onboardingStorageDisk());
 
     $user = User::factory()->candidate()->create();
     $file = UploadedFile::fake()->createWithContent('resume.txt', 'Experienced in PHP and Laravel.');
@@ -203,7 +208,7 @@ it('stores current semester details for candidates who are still studying', func
 });
 
 it('stores only predefined manual skills and ignores invalid skill tags', function () {
-    Storage::fake();
+    Storage::fake(onboardingStorageDisk());
 
     $user = User::factory()->candidate()->create();
     $file = UploadedFile::fake()->createWithContent('resume.txt', 'Experienced in Laravel and PHP.');
@@ -234,7 +239,7 @@ it('stores only predefined manual skills and ignores invalid skill tags', functi
 });
 
 it('rejects invalid state and city for the selected country', function () {
-    Storage::fake();
+    Storage::fake(onboardingStorageDisk());
 
     $user = User::factory()->candidate()->create();
     $file = UploadedFile::fake()->createWithContent('resume.txt', 'Experienced in Laravel and PHP.');
@@ -262,7 +267,7 @@ it('rejects invalid state and city for the selected country', function () {
 });
 
 it('rejects invalid postal code for selected city', function () {
-    Storage::fake();
+    Storage::fake(onboardingStorageDisk());
 
     $user = User::factory()->candidate()->create();
     $file = UploadedFile::fake()->createWithContent('resume.txt', 'Experienced in Laravel and PHP.');

@@ -143,7 +143,9 @@ class OnboardingController extends Controller
             $semesterRecordedAt,
         ): void {
             if ($file !== null && $scan !== null) {
-                $path = $file->store('resumes/'.$user->id);
+                $disk = config('resume.storage_disk', config('filesystems.default', 'local'));
+                $directory = trim((string) config('resume.storage_directory', 'resumes'), '/');
+                $path = $file->store($directory.'/'.$user->id, $disk);
 
                 $resume = $user->resumes()->create([
                     'file_path' => $path,

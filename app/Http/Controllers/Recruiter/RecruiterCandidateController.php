@@ -25,7 +25,7 @@ use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
-use Symfony\Component\HttpFoundation\BinaryFileResponse;
+use Symfony\Component\HttpFoundation\Response as SymfonyResponse;
 use Symfony\Component\HttpFoundation\ResponseHeaderBag;
 
 class RecruiterCandidateController extends Controller
@@ -247,7 +247,7 @@ class RecruiterCandidateController extends Controller
         return back()->with('status', 'candidate-removed-from-collection');
     }
 
-    public function downloadResume(Request $request, User $candidate, RecruiterService $recruiterService): BinaryFileResponse
+    public function downloadResume(Request $request, User $candidate, RecruiterService $recruiterService): SymfonyResponse|RedirectResponse
     {
         $user = $request->user();
 
@@ -256,12 +256,42 @@ class RecruiterCandidateController extends Controller
         $recruiterService->assertCandidateIsVisible($user, $candidate);
 
         $resume = $candidate->resumes()->where('is_primary', true)->latest()->firstOrFail();
-        $path = Storage::disk('local')->path($resume->file_path);
+        $disk = config('resume.storage_disk', config('filesystems.default', 'local'));
+        $storage = Storage::disk($disk);
 
-        abort_unless(is_file($path), 404);
+        if (! $storage->exists($resume->file_path) && $disk !== 'local') {
+            $localStorage = Storage::disk('local');
 
-        return response()
-            ->file($path, ['Content-Type' => $resume->mime_type])
-            ->setContentDisposition(ResponseHeaderBag::DISPOSITION_INLINE, $resume->original_name);
+            if ($localStorage->exists($resume->file_path)) {
+                $disk = 'local';
+                $storage = $localStorage;
+            }
+        }
+
+        $driver = config("filesystems.disks.{$disk}.driver");
+
+        abort_unless($storage->exists($resume->file_path), 404);
+
+        if ($driver === 's3') {
+            return redirect()->away(
+                $storage->temporaryUrl(
+                    $resume->file_path,
+                    now()->addMinutes(5),
+                    [
+                        'ResponseContentType' => $resume->mime_type,
+                        'ResponseContentDisposition' => sprintf('inline; filename="%s"', $resume->original_name),
+                    ],
+                ),
+            );
+        }
+
+        return $storage->response(
+            $resume->file_path,
+            $resume->original_name,
+            [
+                'Content-Type' => $resume->mime_type,
+            ],
+            ResponseHeaderBag::DISPOSITION_INLINE,
+        );
     }
 }

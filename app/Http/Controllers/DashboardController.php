@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Resume;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -39,6 +41,7 @@ class DashboardController extends Controller
                 'original_name' => $resume->original_name,
                 'file_size' => $resume->file_size,
                 'extracted_skills' => $resume->extracted_skills ?? [],
+                'view_url' => $this->resolveResumeViewUrl($resume),
                 'raw_text_preview' => $resume->raw_text === null
                     ? null
                     : Str::limit($resume->raw_text, 500),
@@ -63,5 +66,30 @@ class DashboardController extends Controller
             ],
             'status' => $request->session()->get('status'),
         ]);
+    }
+
+    protected function resolveResumeViewUrl(Resume $resume): string
+    {
+        $disk = config('resume.storage_disk', config('filesystems.default', 'local'));
+        $storage = Storage::disk($disk);
+
+        if (! $storage->exists($resume->file_path) && $disk !== 'local') {
+            return route('candidate.resume.show', $resume);
+        }
+
+        $driver = config("filesystems.disks.{$disk}.driver");
+
+        if ($driver === 's3') {
+            return $storage->temporaryUrl(
+                $resume->file_path,
+                now()->addMinutes(5),
+                [
+                    'ResponseContentType' => $resume->mime_type,
+                    'ResponseContentDisposition' => sprintf('inline; filename="%s"', $resume->original_name),
+                ],
+            );
+        }
+
+        return route('candidate.resume.show', $resume);
     }
 }

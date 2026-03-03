@@ -170,6 +170,7 @@ it('filters candidates by extracted skills case-insensitively', function () {
 });
 
 it('allows a candidate to view their resume file', function () {
+    config()->set('resume.storage_disk', 'local');
     Storage::fake(resumeStorageDisk());
 
     $user = User::factory()->candidate()->create();
@@ -179,6 +180,59 @@ it('allows a candidate to view their resume file', function () {
     ]);
     $path = resumeStorageDirectory().'/'.$user->id.'/resume.txt';
     Storage::disk(resumeStorageDisk())->put($path, 'Resume content');
+
+    $resume = Resume::factory()->create([
+        'user_id' => $user->id,
+        'file_path' => $path,
+        'original_name' => 'resume.txt',
+        'mime_type' => 'text/plain',
+    ]);
+
+    actingAs($user)
+        ->get(route('candidate.resume.show', $resume))
+        ->assertOk()
+        ->assertHeaderContains('content-type', 'text/plain');
+});
+
+it('redirects to a temporary s3 url when viewing a resume stored on s3', function () {
+    Storage::fake('s3');
+    config()->set('resume.storage_disk', 's3');
+
+    $user = User::factory()->candidate()->create();
+    CandidateProfile::factory()->create([
+        'user_id' => $user->id,
+        'profile_completed_at' => now(),
+    ]);
+
+    $path = resumeStorageDirectory().'/'.$user->id.'/resume.txt';
+    Storage::disk('s3')->put($path, 'Resume content');
+    Storage::disk('s3')->buildTemporaryUrlsUsing(fn (): string => 'https://s3.example.com/resumes/resume.txt?signature=test');
+
+    $resume = Resume::factory()->create([
+        'user_id' => $user->id,
+        'file_path' => $path,
+        'original_name' => 'resume.txt',
+        'mime_type' => 'text/plain',
+    ]);
+
+    actingAs($user)
+        ->get(route('candidate.resume.show', $resume))
+        ->assertRedirect('https://s3.example.com/resumes/resume.txt?signature=test');
+});
+
+it('falls back to local disk when configured resume disk is s3 but file exists locally', function () {
+    config()->set('resume.storage_disk', 's3');
+    Storage::fake('s3');
+    Storage::fake('local');
+
+    $user = User::factory()->candidate()->create();
+    CandidateProfile::factory()->create([
+        'user_id' => $user->id,
+        'profile_completed_at' => now(),
+    ]);
+
+    $path = resumeStorageDirectory().'/'.$user->id.'/resume.txt';
+    Storage::disk('local')->put($path, 'Resume content');
 
     $resume = Resume::factory()->create([
         'user_id' => $user->id,
