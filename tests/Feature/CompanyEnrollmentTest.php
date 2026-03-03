@@ -65,6 +65,82 @@ it('shows enrolled companies to candidates', function () {
         );
 });
 
+it('supports candidate search by company name and role', function () {
+    $candidate = createOnboardedCandidate();
+
+    Company::factory()->create([
+        'name' => 'Acme Systems',
+        'job_role' => 'Backend Engineer',
+        'is_active' => true,
+        'approval_status' => 'approved',
+        'visibility' => 'public',
+    ]);
+
+    Company::factory()->create([
+        'name' => 'Design Orbit',
+        'job_role' => 'UI Designer',
+        'is_active' => true,
+        'approval_status' => 'approved',
+        'visibility' => 'public',
+    ]);
+
+    actingAs($candidate)
+        ->get(route('candidate.companies.index', ['search' => 'Acme']))
+        ->assertSuccessful()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('candidate/companies/index')
+            ->where('filters.search', 'Acme')
+            ->has('companies.data', 1)
+            ->where('companies.data.0.name', 'Acme Systems')
+        );
+
+    actingAs($candidate)
+        ->get(route('candidate.companies.index', ['search' => 'Backend Engineer']))
+        ->assertSuccessful()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('candidate/companies/index')
+            ->where('filters.search', 'Backend Engineer')
+            ->has('companies.data', 1)
+            ->where('companies.data.0.job_role', 'Backend Engineer')
+        );
+});
+
+it('shows a candidate company details page', function () {
+    $candidate = createOnboardedCandidate();
+
+    $company = Company::factory()->create([
+        'name' => 'Detail Works',
+        'job_role' => 'Platform Engineer',
+        'is_active' => true,
+        'approval_status' => 'approved',
+        'visibility' => 'public',
+    ]);
+
+    actingAs($candidate)
+        ->get(route('candidate.companies.show', $company))
+        ->assertSuccessful()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('candidate/companies/show')
+            ->where('company.id', $company->id)
+            ->where('company.name', 'Detail Works')
+            ->where('company.job_role', 'Platform Engineer')
+        );
+});
+
+it('does not show hidden or non approved companies on candidate details page', function () {
+    $candidate = createOnboardedCandidate();
+
+    $hiddenCompany = Company::factory()->create([
+        'is_active' => false,
+        'approval_status' => 'pending',
+        'visibility' => 'private',
+    ]);
+
+    actingAs($candidate)
+        ->get(route('candidate.companies.show', $hiddenCompany))
+        ->assertNotFound();
+});
+
 it('allows candidate to apply to a company only once', function () {
     $candidate = createOnboardedCandidate();
     $company = Company::factory()->create(['is_active' => true]);

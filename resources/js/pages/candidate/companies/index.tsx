@@ -1,9 +1,19 @@
-import { Head, useForm } from '@inertiajs/react';
+import { Head, router, useForm } from '@inertiajs/react';
+import {
+    ArrowRight,
+    BriefcaseBusiness,
+    CalendarDays,
+    CircleDollarSign,
+    Globe,
+    MapPin,
+    Users2,
+} from 'lucide-react';
 import type { FormEvent } from 'react';
-import InputError from '@/components/input-error';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import AppLayout from '@/layouts/app-layout';
-import { apply, index } from '@/routes/candidate/companies';
+import { index, show } from '@/routes/candidate/companies';
 import type { BreadcrumbItem } from '@/types';
 
 type Company = {
@@ -28,6 +38,9 @@ type Company = {
 
 type Props = {
     companies: { data: Company[] };
+    filters: {
+        search: string;
+    };
     status?: string;
 };
 
@@ -54,7 +67,10 @@ function formatSalary(min: number | null, max: number | null): string | null {
     return `Up to ${max} LPA`;
 }
 
-function formatExperience(min: number | null, max: number | null): string | null {
+function formatExperience(
+    min: number | null,
+    max: number | null,
+): string | null {
     if (min === null && max === null) {
         return null;
     }
@@ -78,22 +94,22 @@ function humanize(value: string | null): string | null {
     return value.replaceAll('_', ' ');
 }
 
-export default function CandidateCompaniesIndex({ companies, status }: Props) {
-    const form = useForm({
-        company_id: null as number | null,
-        cover_letter: '',
+export default function CandidateCompaniesIndex({
+    companies,
+    filters,
+    status,
+}: Props) {
+    const searchForm = useForm({
+        search: filters.search ?? '',
     });
 
-    const submit = (event: FormEvent<HTMLFormElement>, companyId: number) => {
+    const searchCompanies = (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
 
-        form.setData('company_id', companyId);
-        form.post(apply(companyId).url, {
+        searchForm.get(index().url, {
             preserveScroll: true,
-            onSuccess: () => {
-                form.setData('cover_letter', '');
-                form.setData('company_id', null);
-            },
+            preserveState: true,
+            replace: true,
         });
     };
 
@@ -101,10 +117,59 @@ export default function CandidateCompaniesIndex({ companies, status }: Props) {
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Companies" />
 
-            <div className="mx-auto flex w-[95vw] max-w-[95vw] flex-col gap-6 p-4">
+            <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-3 py-4 sm:px-4">
                 <section className="rounded-xl border border-blue-300/40 bg-blue-200/70 px-4 py-3 text-sm text-foreground dark:border-blue-400/20 dark:bg-blue-950/30">
-                    Browse enrolled companies and apply directly from your profile.
+                    Browse enrolled companies and apply directly from your
+                    profile.
                 </section>
+
+                <form
+                    onSubmit={searchCompanies}
+                    className="grid grid-cols-1 gap-3 rounded-xl border border-border/70 bg-card p-4 shadow-xs sm:grid-cols-[minmax(0,1fr)_auto]"
+                >
+                    <div className="min-w-0">
+                        <label
+                            htmlFor="company-search"
+                            className="mb-1 block text-sm font-medium"
+                        >
+                            Search companies or roles
+                        </label>
+                        <Input
+                            id="company-search"
+                            value={searchForm.data.search}
+                            onChange={(event) =>
+                                searchForm.setData('search', event.target.value)
+                            }
+                            placeholder="Try: Acme or Backend Engineer"
+                        />
+                    </div>
+                    <div className="flex w-full gap-2 sm:w-auto sm:self-end">
+                        <Button
+                            type="submit"
+                            disabled={searchForm.processing}
+                            className="w-full sm:w-auto"
+                        >
+                            Search
+                        </Button>
+                        {filters.search && (
+                            <Button
+                                type="button"
+                                variant="outline"
+                                className="w-full sm:w-auto"
+                                onClick={() => {
+                                    searchForm.setData('search', '');
+                                    searchForm.get(index().url, {
+                                        preserveScroll: true,
+                                        preserveState: true,
+                                        replace: true,
+                                    });
+                                }}
+                            >
+                                Clear
+                            </Button>
+                        )}
+                    </div>
+                </form>
 
                 {status === 'company-application-submitted' && (
                     <div className="rounded-lg border border-blue-300/70 bg-blue-200/70 px-4 py-3 text-sm text-blue-950 dark:border-blue-500/40 dark:bg-blue-500/15 dark:text-blue-200">
@@ -119,71 +184,159 @@ export default function CandidateCompaniesIndex({ companies, status }: Props) {
                 )}
 
                 <section className="grid gap-4 md:grid-cols-2">
+                    {companies.data.length === 0 && (
+                        <article className="rounded-xl border border-border/70 bg-card p-5 text-sm text-muted-foreground md:col-span-2">
+                            No companies found for this search.
+                        </article>
+                    )}
+
                     {companies.data.map((company) => (
                         <article
                             key={company.id}
-                            className="rounded-xl border border-border/70 bg-card p-5 shadow-xs"
+                            role="button"
+                            tabIndex={0}
+                            aria-label={`View ${company.name} details`}
+                            onClick={() => router.visit(show(company.id).url)}
+                            onKeyDown={(event) => {
+                                if (
+                                    event.key === 'Enter' ||
+                                    event.key === ' '
+                                ) {
+                                    event.preventDefault();
+                                    router.visit(show(company.id).url);
+                                }
+                            }}
+                            className="group relative cursor-pointer overflow-hidden rounded-2xl border border-primary/25 bg-card p-4 transition-colors duration-200 hover:border-primary/50 sm:p-5"
                         >
-                            <div className="flex items-center justify-between gap-3">
-                                <h2 className="text-base font-semibold">{company.name}</h2>
-                                <span className="rounded-full border border-border/70 px-2 py-1 text-xs text-muted-foreground">
+                            <div className="absolute top-0 left-0 h-full w-1 bg-primary/80" />
+
+                            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
+                                <div className="min-w-0">
+                                    <h2 className="text-heading text-base font-bold break-words">
+                                        {company.name}
+                                    </h2>
+                                    {company.job_role && (
+                                        <p className="mt-1 text-lg font-semibold text-pretty text-card-foreground">
+                                            {company.job_role}
+                                        </p>
+                                    )}
+                                </div>
+                                <span className="text-primary-dark rounded-full border border-primary/25 bg-primary/10 px-2.5 py-1 text-xs font-semibold">
                                     {company.applications_count} applications
                                 </span>
                             </div>
-                            {company.job_role && (
-                                <p className="mt-1 text-sm text-muted-foreground">Role: {company.job_role}</p>
-                            )}
 
                             {company.description && (
-                                <p className="mt-2 text-sm text-muted-foreground">{company.description}</p>
+                                <p className="mt-3 text-sm leading-6 break-words text-muted-foreground">
+                                    {company.description}
+                                </p>
                             )}
 
-                            <div className="mt-3 space-y-1 text-sm text-muted-foreground">
-                                {company.location && <div>Location: {company.location}</div>}
-                                {formatSalary(company.salary_min_lpa, company.salary_max_lpa) && (
-                                    <div>Salary: {formatSalary(company.salary_min_lpa, company.salary_max_lpa)}</div>
-                                )}
-                                {formatExperience(company.experience_min_years, company.experience_max_years) && (
-                                    <div>
-                                        Experience: {formatExperience(company.experience_min_years, company.experience_max_years)}
+                            <div className="mt-4 grid gap-2 text-sm text-muted-foreground sm:grid-cols-2">
+                                {company.location && (
+                                    <div className="flex items-center gap-2 rounded-lg bg-background/75 px-3 py-2">
+                                        <MapPin className="size-4 text-primary" />
+                                        <span>{company.location}</span>
                                     </div>
                                 )}
-                                {humanize(company.employment_type) && <div>Type: {humanize(company.employment_type)}</div>}
-                                {humanize(company.work_mode) && <div>Mode: {humanize(company.work_mode)}</div>}
-                                {company.openings !== null && <div>Openings: {company.openings}</div>}
-                                {company.application_deadline && <div>Apply by: {company.application_deadline}</div>}
-                                {company.skills_required && <div>Skills: {company.skills_required}</div>}
+                                {formatSalary(
+                                    company.salary_min_lpa,
+                                    company.salary_max_lpa,
+                                ) && (
+                                    <div className="flex items-center gap-2 rounded-lg bg-background/75 px-3 py-2">
+                                        <CircleDollarSign className="size-4 text-primary" />
+                                        <span>
+                                            {formatSalary(
+                                                company.salary_min_lpa,
+                                                company.salary_max_lpa,
+                                            )}
+                                        </span>
+                                    </div>
+                                )}
+                                {formatExperience(
+                                    company.experience_min_years,
+                                    company.experience_max_years,
+                                ) && (
+                                    <div className="flex items-center gap-2 rounded-lg bg-background/75 px-3 py-2">
+                                        <BriefcaseBusiness className="size-4 text-primary" />
+                                        <span>
+                                            {formatExperience(
+                                                company.experience_min_years,
+                                                company.experience_max_years,
+                                            )}
+                                        </span>
+                                    </div>
+                                )}
+                                {company.openings !== null && (
+                                    <div className="flex items-center gap-2 rounded-lg bg-background/75 px-3 py-2">
+                                        <Users2 className="size-4 text-primary" />
+                                        <span>{company.openings} openings</span>
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className="mt-3 flex flex-wrap items-center gap-2">
+                                {humanize(company.employment_type) && (
+                                    <Badge
+                                        variant="secondary"
+                                        className="font-semibold text-secondary-foreground"
+                                    >
+                                        {humanize(company.employment_type)}
+                                    </Badge>
+                                )}
+                                {humanize(company.work_mode) && (
+                                    <Badge
+                                        variant="outline"
+                                        className="text-primary-dark border-primary/25 bg-primary/8 font-semibold"
+                                    >
+                                        {humanize(company.work_mode)}
+                                    </Badge>
+                                )}
+                                {company.has_applied && (
+                                    <Badge className="bg-emerald-600 text-white">
+                                        Applied
+                                    </Badge>
+                                )}
+                            </div>
+
+                            <div className="mt-3 space-y-2 text-sm text-muted-foreground">
+                                {company.application_deadline && (
+                                    <div className="flex items-center gap-2">
+                                        <CalendarDays className="size-4 text-primary" />
+                                        <span>
+                                            Apply by{' '}
+                                            {company.application_deadline}
+                                        </span>
+                                    </div>
+                                )}
+                                {company.skills_required && (
+                                    <p>
+                                        <span className="font-semibold text-card-foreground">
+                                            Key skills:
+                                        </span>{' '}
+                                        {company.skills_required}
+                                    </p>
+                                )}
                                 {company.website && (
                                     <a
                                         href={company.website}
                                         target="_blank"
                                         rel="noreferrer"
-                                        className="text-primary hover:text-primary/80"
+                                        onClick={(event) => {
+                                            event.stopPropagation();
+                                        }}
+                                        className="inline-flex items-center gap-1 font-medium break-all text-primary underline-offset-4 hover:underline"
                                     >
+                                        <Globe className="size-4" />
                                         {company.website}
                                     </a>
                                 )}
                             </div>
 
-                            <form onSubmit={(event) => submit(event, company.id)} className="mt-4 space-y-3">
-                                <textarea
-                                    value={form.data.company_id === company.id ? form.data.cover_letter : ''}
-                                    onChange={(event) => {
-                                        form.setData('company_id', company.id);
-                                        form.setData('cover_letter', event.target.value);
-                                    }}
-                                    rows={3}
-                                    className="border-input bg-background focus-visible:border-ring focus-visible:ring-ring/50 w-full rounded-md border px-3 py-2 text-sm shadow-xs outline-none focus-visible:ring-[3px]"
-                                    placeholder="Optional cover letter"
-                                    disabled={company.has_applied}
-                                />
-                                {form.data.company_id === company.id && (
-                                    <InputError message={form.errors.cover_letter} />
-                                )}
-                                <Button type="submit" disabled={company.has_applied || form.processing}>
-                                    {company.has_applied ? 'Applied' : 'Apply now'}
-                                </Button>
-                            </form>
+                            <div className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-primary transition group-hover:translate-x-0.5">
+                                View details and apply
+                                <ArrowRight className="size-4" />
+                            </div>
                         </article>
                     ))}
                 </section>

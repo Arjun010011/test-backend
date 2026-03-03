@@ -1,5 +1,5 @@
 import { Form, Head, usePage } from '@inertiajs/react';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import {
     edit,
     store,
@@ -100,8 +100,7 @@ export default function CandidateOnboarding() {
         defaultCountry,
         locationHierarchy,
         status,
-    } =
-        usePage<PageProps>().props;
+    } = usePage<PageProps>().props;
     const initialState =
         profile?.state !== null &&
         profile?.state !== undefined &&
@@ -125,7 +124,9 @@ export default function CandidateOnboarding() {
     const [isCurrentlyStudying, setIsCurrentlyStudying] = useState(
         profile?.is_currently_studying ?? false,
     );
-    const catalogMap = new Map(skillCatalog.map((skill) => [skill.toLowerCase(), skill]));
+    const catalogMap = new Map(
+        skillCatalog.map((skill) => [skill.toLowerCase(), skill]),
+    );
     const initialSkillTags = (profile?.skills ?? []).map((skill) => {
         const normalized = catalogMap.get(skill.toLowerCase());
 
@@ -134,20 +135,43 @@ export default function CandidateOnboarding() {
             valid: normalized !== undefined,
         };
     });
-    const [skillTags, setSkillTags] = useState<Array<{ value: string; valid: boolean }>>(
-        initialSkillTags,
-    );
+    const [skillTags, setSkillTags] =
+        useState<Array<{ value: string; valid: boolean }>>(initialSkillTags);
     const [skillInput, setSkillInput] = useState('');
     const [selectedState, setSelectedState] = useState(initialState);
     const [selectedDistrict, setSelectedDistrict] = useState(initialDistrict);
     const [selectedCity, setSelectedCity] = useState(initialCity);
+    const stepTitles = [
+        'Contact information',
+        'Education',
+        'Address',
+        'Links',
+        'Skills and bio',
+        'Additional experience',
+        'Resume upload',
+    ];
+    const stepSectionIds = [
+        'profile-step-contact',
+        'profile-step-education',
+        'profile-step-address',
+        'profile-step-links',
+        'profile-step-skills',
+        'profile-step-experience',
+        'profile-step-resume',
+    ];
+    const [activeStepIndex, setActiveStepIndex] = useState(0);
+    const stepNavRef = useRef<HTMLDivElement | null>(null);
     const currentYear = new Date().getFullYear();
-    const defaultGraduationYears = Array.from(
-        { length: 41 },
-        (_, index) => String(currentYear - 20 + index),
+    const defaultGraduationYears = Array.from({ length: 41 }, (_, index) =>
+        String(currentYear - 20 + index),
     );
     const graduationYears = profile?.graduation_year
-        ? Array.from(new Set([String(profile.graduation_year), ...defaultGraduationYears]))
+        ? Array.from(
+              new Set([
+                  String(profile.graduation_year),
+                  ...defaultGraduationYears,
+              ]),
+          )
         : defaultGraduationYears;
     const headingTitle = isCompleted
         ? 'Update your candidate profile'
@@ -159,17 +183,23 @@ export default function CandidateOnboarding() {
         .filter(
             (skill) =>
                 skill.toLowerCase().includes(skillInput.trim().toLowerCase()) &&
-                !skillTags.some((tag) => tag.value.toLowerCase() === skill.toLowerCase()),
+                !skillTags.some(
+                    (tag) => tag.value.toLowerCase() === skill.toLowerCase(),
+                ),
         )
         .slice(0, 8);
-    const validSkillTags = skillTags.filter((tag) => tag.valid).map((tag) => tag.value);
+    const validSkillTags = skillTags
+        .filter((tag) => tag.valid)
+        .map((tag) => tag.value);
     const availableStates = Object.keys(locationHierarchy);
-    const availableDistricts = selectedState === ''
-        ? []
-        : locationHierarchy[selectedState]?.districts ?? [];
-    const availableCities = selectedState === ''
-        ? []
-        : locationHierarchy[selectedState]?.cities ?? [];
+    const availableDistricts =
+        selectedState === ''
+            ? []
+            : (locationHierarchy[selectedState]?.districts ?? []);
+    const availableCities =
+        selectedState === ''
+            ? []
+            : (locationHierarchy[selectedState]?.cities ?? []);
 
     const addSkillTag = (rawValue: string) => {
         const trimmed = rawValue.trim();
@@ -180,7 +210,9 @@ export default function CandidateOnboarding() {
 
         const canonical = catalogMap.get(trimmed.toLowerCase());
         const value = canonical ?? trimmed;
-        const exists = skillTags.some((tag) => tag.value.toLowerCase() === value.toLowerCase());
+        const exists = skillTags.some(
+            (tag) => tag.value.toLowerCase() === value.toLowerCase(),
+        );
 
         if (exists) {
             setSkillInput('');
@@ -198,17 +230,47 @@ export default function CandidateOnboarding() {
         setSkillInput('');
     };
 
+    const goToStep = (index: number) => {
+        const normalizedIndex = Math.max(
+            0,
+            Math.min(stepTitles.length - 1, index),
+        );
+        setActiveStepIndex(normalizedIndex);
+
+        const sectionElement = document.getElementById(
+            stepSectionIds[normalizedIndex],
+        );
+        if (sectionElement) {
+            sectionElement.scrollIntoView({
+                behavior: 'smooth',
+                block: 'start',
+            });
+        }
+
+        if (stepNavRef.current) {
+            stepNavRef.current.scrollIntoView({
+                behavior: 'smooth',
+                block: 'nearest',
+            });
+        }
+    };
+
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Profile setup" />
 
-            <div className="mx-auto flex w-[95vw] max-w-[95vw] flex-col gap-6">
-                <Heading title={headingTitle} description={headingDescription} />
-                <section className="rounded-xl border border-blue-300/40 bg-blue-200/70 px-4 py-3 text-sm text-foreground dark:border-blue-400/20 dark:bg-blue-950/30">
-                    A complete profile with clear skills and resume improves recruiter visibility.
+            <div className="mx-auto flex w-full max-w-none flex-col gap-6 px-3 py-4 sm:px-4">
+                <Heading
+                    title={headingTitle}
+                    description={headingDescription}
+                />
+                <section className="rounded-xl border border-border/70 bg-secondary/55 px-4 py-3 text-sm text-secondary-foreground">
+                    A complete profile with clear skills and resume improves
+                    recruiter visibility.
                 </section>
                 <p className="text-xs text-muted-foreground">
-                    Fields marked with <span className="text-red-500">*</span> are required.
+                    Fields marked with <span className="text-red-500">*</span>{' '}
+                    are required.
                 </p>
 
                 {status === 'onboarding-complete' && (
@@ -220,536 +282,950 @@ export default function CandidateOnboarding() {
                 <Form
                     {...store.form()}
                     encType="multipart/form-data"
-                    className="space-y-8"
+                    className="space-y-6"
                 >
                     {({ processing, errors }) => (
                         <>
                             {Object.keys(errors).length > 0 && (
                                 <section className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 dark:border-red-500/40 dark:bg-red-500/10 dark:text-red-200">
-                                    Please fix the highlighted fields and submit again.
+                                    Please fix the highlighted fields and submit
+                                    again.
                                 </section>
                             )}
 
-                            <section className="space-y-4 rounded-xl border border-border/60 bg-card p-5 shadow-xs">
-                                <div className="text-sm font-semibold text-foreground">
-                                    Contact information
-                                </div>
-
-                                <div className="grid gap-4 sm:grid-cols-2">
-                                    <div className="grid gap-2">
-                                        <Label htmlFor="phone">Phone<RequiredStar /></Label>
-                                        <Input
-                                            id="phone"
-                                            name="phone"
-                                            placeholder="+91 98765 43210"
-                                            defaultValue={profile?.phone ?? ''}
-                                            required
-                                        />
-                                        <InputError message={errors.phone} />
+                            <div className="grid gap-6 lg:grid-cols-[220px_minmax(0,1fr)]">
+                                <aside className="rounded-2xl border border-border/70 bg-card p-4">
+                                    <p className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+                                        Profile Steps
+                                    </p>
+                                    <div
+                                        ref={stepNavRef}
+                                        className="mt-3 space-y-2 text-sm"
+                                    >
+                                        {stepTitles.map((item, index) => (
+                                            <button
+                                                key={item}
+                                                type="button"
+                                                onClick={() => goToStep(index)}
+                                                className={`flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left transition ${
+                                                    activeStepIndex === index
+                                                        ? 'bg-primary/15 text-card-foreground'
+                                                        : 'bg-secondary/45 text-muted-foreground hover:bg-secondary/65'
+                                                }`}
+                                            >
+                                                <span className="text-primary-dark inline-flex h-5 w-5 items-center justify-center rounded-full bg-primary/15 text-xs font-semibold">
+                                                    {index + 1}
+                                                </span>
+                                                <span>{item}</span>
+                                            </button>
+                                        ))}
                                     </div>
+                                </aside>
 
-                                    <div className="grid gap-2">
-                                        <Label htmlFor="location">Location<RequiredStar /></Label>
-                                        <Input
-                                            id="location"
-                                            name="location"
-                                            placeholder="Bengaluru, Karnataka"
-                                            defaultValue={profile?.location ?? ''}
-                                            required
-                                        />
-                                        <InputError message={errors.location} />
-                                    </div>
-                                </div>
-                            </section>
+                                <div className="space-y-6">
+                                    <section
+                                        id={stepSectionIds[0]}
+                                        className={`space-y-4 rounded-2xl border bg-card p-5 ${
+                                            activeStepIndex === 0
+                                                ? 'border-primary/50'
+                                                : 'border-border/70'
+                                        }`}
+                                    >
+                                        <div className="text-sm font-semibold text-foreground">
+                                            Contact information
+                                        </div>
 
-                            <section className="space-y-4 rounded-xl border border-border/60 bg-card p-5 shadow-xs">
-                                <div className="text-sm font-semibold text-foreground">
-                                    Education
-                                </div>
-
-                                <div className="grid gap-4 sm:grid-cols-2">
-                                    <div className="grid gap-2 sm:col-span-2">
-                                        <Label htmlFor="university">College / University<RequiredStar /></Label>
-                                        <Input
-                                            id="university"
-                                            name="university"
-                                            placeholder="IIT Bombay"
-                                            defaultValue={profile?.university ?? ''}
-                                            required
-                                        />
-                                        <InputError message={errors.university} />
-                                    </div>
-
-                                    <div className="grid gap-2">
-                                        <Label htmlFor="degree">Degree<RequiredStar /></Label>
-                                        <select
-                                            id="degree"
-                                            name="degree"
-                                            defaultValue={profile?.degree ?? ''}
-                                            required
-                                            className="border-input bg-background focus-visible:border-ring focus-visible:ring-ring/50 h-10 w-full rounded-md border px-3 py-2 text-sm shadow-xs outline-none focus-visible:ring-[3px]"
-                                        >
-                                            <option value="" disabled>
-                                                Select degree
-                                            </option>
-                                            {degreeOptions.map((degree) => (
-                                                <option key={degree} value={degree}>
-                                                    {degree}
-                                                </option>
-                                            ))}
-                                        </select>
-                                        <InputError message={errors.degree} />
-                                    </div>
-
-                                    <div className="grid gap-2">
-                                        <Label htmlFor="major">Major<RequiredStar /></Label>
-                                        <select
-                                            id="major"
-                                            name="major"
-                                            defaultValue={profile?.major ?? ''}
-                                            required
-                                            className="border-input bg-background focus-visible:border-ring focus-visible:ring-ring/50 h-10 w-full rounded-md border px-3 py-2 text-sm shadow-xs outline-none focus-visible:ring-[3px]"
-                                        >
-                                            <option value="" disabled>
-                                                Select major
-                                            </option>
-                                            {majorOptions.map((major) => (
-                                                <option key={major} value={major}>
-                                                    {major}
-                                                </option>
-                                            ))}
-                                        </select>
-                                        <InputError message={errors.major} />
-                                    </div>
-
-                                    <div className="grid gap-2">
-                                        <Label htmlFor="cgpa">CGPA</Label>
-                                        <Input
-                                            id="cgpa"
-                                            name="cgpa"
-                                            type="number"
-                                            step="0.01"
-                                            placeholder="8.5"
-                                            defaultValue={profile?.cgpa ?? ''}
-                                        />
-                                        <InputError message={errors.cgpa} />
-                                    </div>
-
-                                    <div className="grid gap-2">
-                                        <Label htmlFor="graduation_year">Graduation year<RequiredStar /></Label>
-                                        <select
-                                            id="graduation_year"
-                                            name="graduation_year"
-                                            defaultValue={profile?.graduation_year ?? ''}
-                                            required
-                                            className="border-input bg-background focus-visible:border-ring focus-visible:ring-ring/50 h-10 w-full rounded-md border px-3 py-2 text-sm shadow-xs outline-none focus-visible:ring-[3px]"
-                                        >
-                                            <option value="" disabled>
-                                                Select graduation year
-                                            </option>
-                                            {graduationYears.map((year) => (
-                                                <option key={year} value={year}>
-                                                    {year}
-                                                </option>
-                                            ))}
-                                        </select>
-                                        <InputError message={errors.graduation_year} />
-                                    </div>
-
-                                    <div className="grid gap-2 sm:col-span-2">
-                                        <input type="hidden" name="is_currently_studying" value="0" />
-                                        <label className="flex items-center gap-3 rounded-lg border border-border/60 px-3 py-2 text-sm">
-                                            <input
-                                                id="is_currently_studying"
-                                                name="is_currently_studying"
-                                                type="checkbox"
-                                                value="1"
-                                                defaultChecked={profile?.is_currently_studying ?? false}
-                                                onChange={(event) => setIsCurrentlyStudying(event.target.checked)}
-                                                className="size-4"
-                                            />
-                                            I am currently studying this degree
-                                        </label>
-                                        <InputError message={errors.is_currently_studying} />
-                                    </div>
-
-                                    {isCurrentlyStudying && (
-                                        <>
+                                        <div className="grid gap-4 sm:grid-cols-2">
                                             <div className="grid gap-2">
-                                                <Label htmlFor="current_semester">Current semester</Label>
+                                                <Label htmlFor="phone">
+                                                    Phone
+                                                    <RequiredStar />
+                                                </Label>
                                                 <Input
-                                                    id="current_semester"
-                                                    name="current_semester"
-                                                    type="number"
-                                                    min={1}
-                                                    max={20}
-                                                    defaultValue={profile?.current_semester ?? ''}
-                                                    required={isCurrentlyStudying}
+                                                    id="phone"
+                                                    name="phone"
+                                                    placeholder="+91 98765 43210"
+                                                    defaultValue={
+                                                        profile?.phone ?? ''
+                                                    }
+                                                    required
                                                 />
-                                                <InputError message={errors.current_semester} />
+                                                <InputError
+                                                    message={errors.phone}
+                                                />
                                             </div>
 
                                             <div className="grid gap-2">
-                                                <Label htmlFor="total_semesters">Total semesters</Label>
+                                                <Label htmlFor="location">
+                                                    Location
+                                                    <RequiredStar />
+                                                </Label>
                                                 <Input
-                                                    id="total_semesters"
-                                                    name="total_semesters"
-                                                    type="number"
-                                                    min={1}
-                                                    max={20}
-                                                    defaultValue={profile?.total_semesters ?? ''}
-                                                    required={isCurrentlyStudying}
+                                                    id="location"
+                                                    name="location"
+                                                    placeholder="Bengaluru, Karnataka"
+                                                    defaultValue={
+                                                        profile?.location ?? ''
+                                                    }
+                                                    required
                                                 />
-                                                <InputError message={errors.total_semesters} />
+                                                <InputError
+                                                    message={errors.location}
+                                                />
                                             </div>
-                                        </>
-                                    )}
-                                </div>
-                            </section>
+                                        </div>
+                                    </section>
 
-                            <section className="space-y-4 rounded-xl border border-border/60 bg-card p-5 shadow-xs">
-                                <div className="text-sm font-semibold text-foreground">
-                                    Address
-                                </div>
+                                    <section
+                                        id={stepSectionIds[1]}
+                                        className={`space-y-4 rounded-2xl border bg-card p-5 ${
+                                            activeStepIndex === 1
+                                                ? 'border-primary/50'
+                                                : 'border-border/70'
+                                        }`}
+                                    >
+                                        <div className="text-sm font-semibold text-foreground">
+                                            Education
+                                        </div>
 
-                                <div className="grid gap-4 sm:grid-cols-2">
-                                    <div className="grid gap-2 sm:col-span-2">
-                                        <Label htmlFor="address_line_1">Address line 1<RequiredStar /></Label>
-                                        <Input
-                                            id="address_line_1"
-                                            name="address_line_1"
-                                            placeholder="42 Residency Road"
-                                            defaultValue={profile?.address_line_1 ?? ''}
-                                            required
-                                        />
-                                        <InputError message={errors.address_line_1} />
-                                    </div>
+                                        <div className="grid gap-4 sm:grid-cols-2">
+                                            <div className="grid gap-2 sm:col-span-2">
+                                                <Label htmlFor="university">
+                                                    College / University
+                                                    <RequiredStar />
+                                                </Label>
+                                                <Input
+                                                    id="university"
+                                                    name="university"
+                                                    placeholder="IIT Bombay"
+                                                    defaultValue={
+                                                        profile?.university ??
+                                                        ''
+                                                    }
+                                                    required
+                                                />
+                                                <InputError
+                                                    message={errors.university}
+                                                />
+                                            </div>
 
-                                    <div className="grid gap-2 sm:col-span-2">
-                                        <Label htmlFor="address_line_2">Address line 2</Label>
-                                        <Input
-                                            id="address_line_2"
-                                            name="address_line_2"
-                                            placeholder="Near Brigade Road"
-                                            defaultValue={profile?.address_line_2 ?? ''}
-                                        />
-                                        <InputError message={errors.address_line_2} />
-                                    </div>
+                                            <div className="grid gap-2">
+                                                <Label htmlFor="degree">
+                                                    Degree
+                                                    <RequiredStar />
+                                                </Label>
+                                                <select
+                                                    id="degree"
+                                                    name="degree"
+                                                    defaultValue={
+                                                        profile?.degree ?? ''
+                                                    }
+                                                    required
+                                                    className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
+                                                >
+                                                    <option value="" disabled>
+                                                        Select degree
+                                                    </option>
+                                                    {degreeOptions.map(
+                                                        (degree) => (
+                                                            <option
+                                                                key={degree}
+                                                                value={degree}
+                                                            >
+                                                                {degree}
+                                                            </option>
+                                                        ),
+                                                    )}
+                                                </select>
+                                                <InputError
+                                                    message={errors.degree}
+                                                />
+                                            </div>
 
-                                    <div className="grid gap-2">
-                                        <Label htmlFor="country_display">Country<RequiredStar /></Label>
-                                        <input type="hidden" name="country" value={defaultCountry} />
-                                        <Input
-                                            id="country_display"
-                                            value={defaultCountry}
-                                            disabled
-                                            className="disabled:opacity-100"
-                                        />
-                                        <InputError message={errors.country} />
-                                    </div>
+                                            <div className="grid gap-2">
+                                                <Label htmlFor="major">
+                                                    Major
+                                                    <RequiredStar />
+                                                </Label>
+                                                <select
+                                                    id="major"
+                                                    name="major"
+                                                    defaultValue={
+                                                        profile?.major ?? ''
+                                                    }
+                                                    required
+                                                    className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
+                                                >
+                                                    <option value="" disabled>
+                                                        Select major
+                                                    </option>
+                                                    {majorOptions.map(
+                                                        (major) => (
+                                                            <option
+                                                                key={major}
+                                                                value={major}
+                                                            >
+                                                                {major}
+                                                            </option>
+                                                        ),
+                                                    )}
+                                                </select>
+                                                <InputError
+                                                    message={errors.major}
+                                                />
+                                            </div>
 
-                                    <div className="grid gap-2">
-                                        <Label htmlFor="state">State<RequiredStar /></Label>
-                                        <select
-                                            id="state"
-                                            name="state"
-                                            value={selectedState}
-                                            onChange={(event) => {
-                                                const nextState = event.target.value;
-                                                setSelectedState(nextState);
-                                                setSelectedDistrict('');
-                                                setSelectedCity('');
-                                            }}
-                                            required
-                                            className="border-input bg-background focus-visible:border-ring focus-visible:ring-ring/50 h-10 w-full rounded-md border px-3 py-2 text-sm shadow-xs outline-none focus-visible:ring-[3px] disabled:opacity-60"
-                                        >
-                                            <option value="" disabled>
-                                                Select state
-                                            </option>
-                                            {availableStates.map((stateOption) => (
-                                                <option key={stateOption} value={stateOption}>
-                                                    {stateOption}
-                                                </option>
-                                            ))}
-                                        </select>
-                                        <InputError message={errors.state} />
-                                    </div>
+                                            <div className="grid gap-2">
+                                                <Label htmlFor="cgpa">
+                                                    CGPA
+                                                </Label>
+                                                <Input
+                                                    id="cgpa"
+                                                    name="cgpa"
+                                                    type="number"
+                                                    step="0.01"
+                                                    placeholder="8.5"
+                                                    defaultValue={
+                                                        profile?.cgpa ?? ''
+                                                    }
+                                                />
+                                                <InputError
+                                                    message={errors.cgpa}
+                                                />
+                                            </div>
 
-                                    <div className="grid gap-2">
-                                        <Label htmlFor="district">District<RequiredStar /></Label>
-                                        <select
-                                            id="district"
-                                            name="district"
-                                            value={selectedDistrict}
-                                            onChange={(event) => {
-                                                setSelectedDistrict(event.target.value);
-                                                setSelectedCity('');
-                                            }}
-                                            required
-                                            disabled={selectedState === ''}
-                                            className="border-input bg-background focus-visible:border-ring focus-visible:ring-ring/50 h-10 w-full rounded-md border px-3 py-2 text-sm shadow-xs outline-none focus-visible:ring-[3px] disabled:opacity-60"
-                                        >
-                                            <option value="" disabled>
-                                                Select district
-                                            </option>
-                                            {availableDistricts.map((districtOption) => (
-                                                <option key={districtOption} value={districtOption}>
-                                                    {districtOption}
-                                                </option>
-                                            ))}
-                                        </select>
-                                        <InputError message={errors.district} />
-                                    </div>
+                                            <div className="grid gap-2">
+                                                <Label htmlFor="graduation_year">
+                                                    Graduation year
+                                                    <RequiredStar />
+                                                </Label>
+                                                <select
+                                                    id="graduation_year"
+                                                    name="graduation_year"
+                                                    defaultValue={
+                                                        profile?.graduation_year ??
+                                                        ''
+                                                    }
+                                                    required
+                                                    className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
+                                                >
+                                                    <option value="" disabled>
+                                                        Select graduation year
+                                                    </option>
+                                                    {graduationYears.map(
+                                                        (year) => (
+                                                            <option
+                                                                key={year}
+                                                                value={year}
+                                                            >
+                                                                {year}
+                                                            </option>
+                                                        ),
+                                                    )}
+                                                </select>
+                                                <InputError
+                                                    message={
+                                                        errors.graduation_year
+                                                    }
+                                                />
+                                            </div>
 
-                                    <div className="grid gap-2">
-                                        <Label htmlFor="city">City<RequiredStar /></Label>
-                                        <select
-                                            id="city"
-                                            name="city"
-                                            value={selectedCity}
-                                            onChange={(event) => {
-                                                setSelectedCity(event.target.value);
-                                            }}
-                                            required
-                                            disabled={selectedDistrict === ''}
-                                            className="border-input bg-background focus-visible:border-ring focus-visible:ring-ring/50 h-10 w-full rounded-md border px-3 py-2 text-sm shadow-xs outline-none focus-visible:ring-[3px] disabled:opacity-60"
-                                        >
-                                            <option value="" disabled>
-                                                Select city
-                                            </option>
-                                            {availableCities.map((cityOption) => (
-                                                <option key={cityOption} value={cityOption}>
-                                                    {cityOption}
-                                                </option>
-                                            ))}
-                                        </select>
-                                        <InputError message={errors.city} />
-                                    </div>
-
-                                    <div className="grid gap-2">
-                                        <Label htmlFor="postal_code">Postal code<RequiredStar /></Label>
-                                        <Input
-                                            id="postal_code"
-                                            name="postal_code"
-                                            placeholder="560001"
-                                            defaultValue={profile?.postal_code ?? ''}
-                                            required
-                                        />
-                                        <InputError message={errors.postal_code} />
-                                    </div>
-                                </div>
-                            </section>
-
-                            <section className="space-y-4 rounded-xl border border-border/60 bg-card p-5 shadow-xs">
-                                <div className="text-sm font-semibold text-foreground">
-                                    Links
-                                </div>
-                                <p className="text-xs text-muted-foreground">
-                                    These links are optional, but they help recruiters verify your
-                                    work.
-                                </p>
-
-                                <div className="grid gap-4 sm:grid-cols-2">
-                                    <div className="grid gap-2">
-                                        <Label htmlFor="linkedin_url">LinkedIn</Label>
-                                        <Input
-                                            id="linkedin_url"
-                                            name="linkedin_url"
-                                            type="url"
-                                            placeholder="https://linkedin.com/in/username"
-                                            defaultValue={profile?.linkedin_url ?? ''}
-                                        />
-                                        <InputError message={errors.linkedin_url} />
-                                    </div>
-
-                                    <div className="grid gap-2">
-                                        <Label htmlFor="github_url">GitHub</Label>
-                                        <Input
-                                            id="github_url"
-                                            name="github_url"
-                                            type="url"
-                                            placeholder="https://github.com/username"
-                                            defaultValue={profile?.github_url ?? ''}
-                                        />
-                                        <InputError message={errors.github_url} />
-                                    </div>
-
-                                    <div className="grid gap-2 sm:col-span-2">
-                                        <Label htmlFor="portfolio_url">Portfolio</Label>
-                                        <Input
-                                            id="portfolio_url"
-                                            name="portfolio_url"
-                                            type="url"
-                                            placeholder="https://your-site.com"
-                                            defaultValue={profile?.portfolio_url ?? ''}
-                                        />
-                                        <InputError message={errors.portfolio_url} />
-                                    </div>
-                                </div>
-                            </section>
-
-                            <section className="space-y-4 rounded-xl border border-border/60 bg-card p-5 shadow-xs">
-                                <div className="text-sm font-semibold text-foreground">
-                                    Skills and bio
-                                </div>
-
-                                <div className="grid gap-4">
-                                    <div className="grid gap-2">
-                                        <Label htmlFor="skills">Skills</Label>
-                                        <div className="rounded-xl border border-border bg-muted/30 p-3">
-                                            <div className="flex flex-wrap gap-2">
-                                                {skillTags.map((tag) => (
-                                                    <button
-                                                        key={`${tag.value}-${tag.valid ? 'valid' : 'invalid'}`}
-                                                        type="button"
-                                                        onClick={() =>
-                                                            setSkillTags((previous) =>
-                                                                previous.filter(
-                                                                    (item) => item.value !== tag.value,
-                                                                ),
+                                            <div className="grid gap-2 sm:col-span-2">
+                                                <input
+                                                    type="hidden"
+                                                    name="is_currently_studying"
+                                                    value="0"
+                                                />
+                                                <label className="flex items-center gap-3 rounded-lg border border-border/60 px-3 py-2 text-sm">
+                                                    <input
+                                                        id="is_currently_studying"
+                                                        name="is_currently_studying"
+                                                        type="checkbox"
+                                                        value="1"
+                                                        defaultChecked={
+                                                            profile?.is_currently_studying ??
+                                                            false
+                                                        }
+                                                        onChange={(event) =>
+                                                            setIsCurrentlyStudying(
+                                                                event.target
+                                                                    .checked,
                                                             )
                                                         }
-                                                        className={`rounded-full border px-2.5 py-1 text-xs ${
-                                                            tag.valid
-                                                                ? 'border-sky-300/40 bg-sky-500/10 text-sky-700 dark:text-sky-300'
-                                                                : 'border-amber-300/50 bg-amber-500/10 text-amber-700 dark:text-amber-300'
-                                                        }`}
-                                                    >
-                                                        {tag.value} ×
-                                                    </button>
-                                                ))}
-                                            </div>
-                                            <Input
-                                                id="skills"
-                                                value={skillInput}
-                                                onChange={(event) => setSkillInput(event.target.value)}
-                                                onKeyDown={(event) => {
-                                                    if (event.key === 'Enter' || event.key === ',') {
-                                                        event.preventDefault();
-                                                        addSkillTag(skillInput);
+                                                        className="size-4"
+                                                    />
+                                                    I am currently studying this
+                                                    degree
+                                                </label>
+                                                <InputError
+                                                    message={
+                                                        errors.is_currently_studying
                                                     }
-                                                }}
-                                                placeholder="Type skill and press Enter (e.g. Java)"
-                                                className="mt-3 border-border bg-background"
-                                            />
-                                            {filteredSkillSuggestions.length > 0 && (
-                                                <div className="mt-2 flex flex-wrap gap-1.5">
-                                                    {filteredSkillSuggestions.map((skill) => (
-                                                        <button
-                                                            key={skill}
-                                                            type="button"
-                                                            onClick={() => addSkillTag(skill)}
-                                                            className="rounded-full border border-border bg-background px-2.5 py-1 text-xs text-foreground hover:bg-accent/60"
-                                                        >
-                                                            {skill}
-                                                        </button>
-                                                    ))}
-                                                </div>
+                                                />
+                                            </div>
+
+                                            {isCurrentlyStudying && (
+                                                <>
+                                                    <div className="grid gap-2">
+                                                        <Label htmlFor="current_semester">
+                                                            Current semester
+                                                        </Label>
+                                                        <Input
+                                                            id="current_semester"
+                                                            name="current_semester"
+                                                            type="number"
+                                                            min={1}
+                                                            max={20}
+                                                            defaultValue={
+                                                                profile?.current_semester ??
+                                                                ''
+                                                            }
+                                                            required={
+                                                                isCurrentlyStudying
+                                                            }
+                                                        />
+                                                        <InputError
+                                                            message={
+                                                                errors.current_semester
+                                                            }
+                                                        />
+                                                    </div>
+
+                                                    <div className="grid gap-2">
+                                                        <Label htmlFor="total_semesters">
+                                                            Total semesters
+                                                        </Label>
+                                                        <Input
+                                                            id="total_semesters"
+                                                            name="total_semesters"
+                                                            type="number"
+                                                            min={1}
+                                                            max={20}
+                                                            defaultValue={
+                                                                profile?.total_semesters ??
+                                                                ''
+                                                            }
+                                                            required={
+                                                                isCurrentlyStudying
+                                                            }
+                                                        />
+                                                        <InputError
+                                                            message={
+                                                                errors.total_semesters
+                                                            }
+                                                        />
+                                                    </div>
+                                                </>
                                             )}
-                                            {validSkillTags.map((skill) => (
-                                                <input key={skill} type="hidden" name="skills[]" value={skill} />
-                                            ))}
+                                        </div>
+                                    </section>
+
+                                    <section
+                                        id={stepSectionIds[2]}
+                                        className={`space-y-4 rounded-2xl border bg-card p-5 ${
+                                            activeStepIndex === 2
+                                                ? 'border-primary/50'
+                                                : 'border-border/70'
+                                        }`}
+                                    >
+                                        <div className="text-sm font-semibold text-foreground">
+                                            Address
+                                        </div>
+
+                                        <div className="grid gap-4 sm:grid-cols-2">
+                                            <div className="grid gap-2 sm:col-span-2">
+                                                <Label htmlFor="address_line_1">
+                                                    Address line 1
+                                                    <RequiredStar />
+                                                </Label>
+                                                <Input
+                                                    id="address_line_1"
+                                                    name="address_line_1"
+                                                    placeholder="42 Residency Road"
+                                                    defaultValue={
+                                                        profile?.address_line_1 ??
+                                                        ''
+                                                    }
+                                                    required
+                                                />
+                                                <InputError
+                                                    message={
+                                                        errors.address_line_1
+                                                    }
+                                                />
+                                            </div>
+
+                                            <div className="grid gap-2 sm:col-span-2">
+                                                <Label htmlFor="address_line_2">
+                                                    Address line 2
+                                                </Label>
+                                                <Input
+                                                    id="address_line_2"
+                                                    name="address_line_2"
+                                                    placeholder="Near Brigade Road"
+                                                    defaultValue={
+                                                        profile?.address_line_2 ??
+                                                        ''
+                                                    }
+                                                />
+                                                <InputError
+                                                    message={
+                                                        errors.address_line_2
+                                                    }
+                                                />
+                                            </div>
+
+                                            <div className="grid gap-2">
+                                                <Label htmlFor="country_display">
+                                                    Country
+                                                    <RequiredStar />
+                                                </Label>
+                                                <input
+                                                    type="hidden"
+                                                    name="country"
+                                                    value={defaultCountry}
+                                                />
+                                                <Input
+                                                    id="country_display"
+                                                    value={defaultCountry}
+                                                    disabled
+                                                    className="disabled:opacity-100"
+                                                />
+                                                <InputError
+                                                    message={errors.country}
+                                                />
+                                            </div>
+
+                                            <div className="grid gap-2">
+                                                <Label htmlFor="state">
+                                                    State
+                                                    <RequiredStar />
+                                                </Label>
+                                                <select
+                                                    id="state"
+                                                    name="state"
+                                                    value={selectedState}
+                                                    onChange={(event) => {
+                                                        const nextState =
+                                                            event.target.value;
+                                                        setSelectedState(
+                                                            nextState,
+                                                        );
+                                                        setSelectedDistrict('');
+                                                        setSelectedCity('');
+                                                    }}
+                                                    required
+                                                    className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:opacity-60"
+                                                >
+                                                    <option value="" disabled>
+                                                        Select state
+                                                    </option>
+                                                    {availableStates.map(
+                                                        (stateOption) => (
+                                                            <option
+                                                                key={
+                                                                    stateOption
+                                                                }
+                                                                value={
+                                                                    stateOption
+                                                                }
+                                                            >
+                                                                {stateOption}
+                                                            </option>
+                                                        ),
+                                                    )}
+                                                </select>
+                                                <InputError
+                                                    message={errors.state}
+                                                />
+                                            </div>
+
+                                            <div className="grid gap-2">
+                                                <Label htmlFor="district">
+                                                    District
+                                                    <RequiredStar />
+                                                </Label>
+                                                <select
+                                                    id="district"
+                                                    name="district"
+                                                    value={selectedDistrict}
+                                                    onChange={(event) => {
+                                                        setSelectedDistrict(
+                                                            event.target.value,
+                                                        );
+                                                        setSelectedCity('');
+                                                    }}
+                                                    required
+                                                    disabled={
+                                                        selectedState === ''
+                                                    }
+                                                    className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:opacity-60"
+                                                >
+                                                    <option value="" disabled>
+                                                        Select district
+                                                    </option>
+                                                    {availableDistricts.map(
+                                                        (districtOption) => (
+                                                            <option
+                                                                key={
+                                                                    districtOption
+                                                                }
+                                                                value={
+                                                                    districtOption
+                                                                }
+                                                            >
+                                                                {districtOption}
+                                                            </option>
+                                                        ),
+                                                    )}
+                                                </select>
+                                                <InputError
+                                                    message={errors.district}
+                                                />
+                                            </div>
+
+                                            <div className="grid gap-2">
+                                                <Label htmlFor="city">
+                                                    City
+                                                    <RequiredStar />
+                                                </Label>
+                                                <select
+                                                    id="city"
+                                                    name="city"
+                                                    value={selectedCity}
+                                                    onChange={(event) => {
+                                                        setSelectedCity(
+                                                            event.target.value,
+                                                        );
+                                                    }}
+                                                    required
+                                                    disabled={
+                                                        selectedDistrict === ''
+                                                    }
+                                                    className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:opacity-60"
+                                                >
+                                                    <option value="" disabled>
+                                                        Select city
+                                                    </option>
+                                                    {availableCities.map(
+                                                        (cityOption) => (
+                                                            <option
+                                                                key={cityOption}
+                                                                value={
+                                                                    cityOption
+                                                                }
+                                                            >
+                                                                {cityOption}
+                                                            </option>
+                                                        ),
+                                                    )}
+                                                </select>
+                                                <InputError
+                                                    message={errors.city}
+                                                />
+                                            </div>
+
+                                            <div className="grid gap-2">
+                                                <Label htmlFor="postal_code">
+                                                    Postal code
+                                                    <RequiredStar />
+                                                </Label>
+                                                <Input
+                                                    id="postal_code"
+                                                    name="postal_code"
+                                                    placeholder="560001"
+                                                    defaultValue={
+                                                        profile?.postal_code ??
+                                                        ''
+                                                    }
+                                                    required
+                                                />
+                                                <InputError
+                                                    message={errors.postal_code}
+                                                />
+                                            </div>
+                                        </div>
+                                    </section>
+
+                                    <section
+                                        id={stepSectionIds[3]}
+                                        className={`space-y-4 rounded-2xl border bg-card p-5 ${
+                                            activeStepIndex === 3
+                                                ? 'border-primary/50'
+                                                : 'border-border/70'
+                                        }`}
+                                    >
+                                        <div className="text-sm font-semibold text-foreground">
+                                            Links
                                         </div>
                                         <p className="text-xs text-muted-foreground">
-                                            Skills are validated against predefined tags. Unrecognized tags stay visible but are not saved.
+                                            These links are optional, but they
+                                            help recruiters verify your work.
                                         </p>
-                                        <InputError message={errors.skills} />
-                                    </div>
 
-                                    <div className="grid gap-2">
-                                        <Label htmlFor="bio">Short bio</Label>
-                                        <textarea
-                                            id="bio"
-                                            name="bio"
-                                            rows={4}
-                                            defaultValue={profile?.bio ?? ''}
-                                            className="border-input placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground min-h-[110px] w-full rounded-md border bg-transparent px-3 py-2 text-base shadow-xs outline-none transition-[color,box-shadow] focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 md:text-sm"
-                                            placeholder="Share a quick summary of your experience"
-                                        />
-                                        <InputError message={errors.bio} />
+                                        <div className="grid gap-4 sm:grid-cols-2">
+                                            <div className="grid gap-2">
+                                                <Label htmlFor="linkedin_url">
+                                                    LinkedIn
+                                                </Label>
+                                                <Input
+                                                    id="linkedin_url"
+                                                    name="linkedin_url"
+                                                    type="url"
+                                                    placeholder="https://linkedin.com/in/username"
+                                                    defaultValue={
+                                                        profile?.linkedin_url ??
+                                                        ''
+                                                    }
+                                                />
+                                                <InputError
+                                                    message={
+                                                        errors.linkedin_url
+                                                    }
+                                                />
+                                            </div>
+
+                                            <div className="grid gap-2">
+                                                <Label htmlFor="github_url">
+                                                    GitHub
+                                                </Label>
+                                                <Input
+                                                    id="github_url"
+                                                    name="github_url"
+                                                    type="url"
+                                                    placeholder="https://github.com/username"
+                                                    defaultValue={
+                                                        profile?.github_url ??
+                                                        ''
+                                                    }
+                                                />
+                                                <InputError
+                                                    message={errors.github_url}
+                                                />
+                                            </div>
+
+                                            <div className="grid gap-2 sm:col-span-2">
+                                                <Label htmlFor="portfolio_url">
+                                                    Portfolio
+                                                </Label>
+                                                <Input
+                                                    id="portfolio_url"
+                                                    name="portfolio_url"
+                                                    type="url"
+                                                    placeholder="https://your-site.com"
+                                                    defaultValue={
+                                                        profile?.portfolio_url ??
+                                                        ''
+                                                    }
+                                                />
+                                                <InputError
+                                                    message={
+                                                        errors.portfolio_url
+                                                    }
+                                                />
+                                            </div>
+                                        </div>
+                                    </section>
+
+                                    <section
+                                        id={stepSectionIds[4]}
+                                        className={`space-y-4 rounded-2xl border bg-card p-5 ${
+                                            activeStepIndex === 4
+                                                ? 'border-primary/50'
+                                                : 'border-border/70'
+                                        }`}
+                                    >
+                                        <div className="text-sm font-semibold text-foreground">
+                                            Skills and bio
+                                        </div>
+
+                                        <div className="grid gap-4">
+                                            <div className="grid gap-2">
+                                                <Label htmlFor="skills">
+                                                    Skills
+                                                </Label>
+                                                <div className="rounded-xl border border-border bg-muted/30 p-3">
+                                                    <div className="flex flex-wrap gap-2">
+                                                        {skillTags.map(
+                                                            (tag) => (
+                                                                <button
+                                                                    key={`${tag.value}-${tag.valid ? 'valid' : 'invalid'}`}
+                                                                    type="button"
+                                                                    onClick={() =>
+                                                                        setSkillTags(
+                                                                            (
+                                                                                previous,
+                                                                            ) =>
+                                                                                previous.filter(
+                                                                                    (
+                                                                                        item,
+                                                                                    ) =>
+                                                                                        item.value !==
+                                                                                        tag.value,
+                                                                                ),
+                                                                        )
+                                                                    }
+                                                                    className={`rounded-full border px-2.5 py-1 text-xs ${
+                                                                        tag.valid
+                                                                            ? 'border-sky-300/40 bg-sky-500/10 text-sky-700 dark:text-sky-300'
+                                                                            : 'border-amber-300/50 bg-amber-500/10 text-amber-700 dark:text-amber-300'
+                                                                    }`}
+                                                                >
+                                                                    {tag.value}{' '}
+                                                                    ×
+                                                                </button>
+                                                            ),
+                                                        )}
+                                                    </div>
+                                                    <Input
+                                                        id="skills"
+                                                        value={skillInput}
+                                                        onChange={(event) =>
+                                                            setSkillInput(
+                                                                event.target
+                                                                    .value,
+                                                            )
+                                                        }
+                                                        onKeyDown={(event) => {
+                                                            if (
+                                                                event.key ===
+                                                                    'Enter' ||
+                                                                event.key ===
+                                                                    ','
+                                                            ) {
+                                                                event.preventDefault();
+                                                                addSkillTag(
+                                                                    skillInput,
+                                                                );
+                                                            }
+                                                        }}
+                                                        placeholder="Type skill and press Enter (e.g. Java)"
+                                                        className="mt-3 border-border bg-background"
+                                                    />
+                                                    {filteredSkillSuggestions.length >
+                                                        0 && (
+                                                        <div className="mt-2 flex flex-wrap gap-1.5">
+                                                            {filteredSkillSuggestions.map(
+                                                                (skill) => (
+                                                                    <button
+                                                                        key={
+                                                                            skill
+                                                                        }
+                                                                        type="button"
+                                                                        onClick={() =>
+                                                                            addSkillTag(
+                                                                                skill,
+                                                                            )
+                                                                        }
+                                                                        className="rounded-full border border-border bg-background px-2.5 py-1 text-xs text-foreground hover:bg-accent/60"
+                                                                    >
+                                                                        {skill}
+                                                                    </button>
+                                                                ),
+                                                            )}
+                                                        </div>
+                                                    )}
+                                                    {validSkillTags.map(
+                                                        (skill) => (
+                                                            <input
+                                                                key={skill}
+                                                                type="hidden"
+                                                                name="skills[]"
+                                                                value={skill}
+                                                            />
+                                                        ),
+                                                    )}
+                                                </div>
+                                                <p className="text-xs text-muted-foreground">
+                                                    Skills are validated against
+                                                    predefined tags.
+                                                    Unrecognized tags stay
+                                                    visible but are not saved.
+                                                </p>
+                                                <InputError
+                                                    message={errors.skills}
+                                                />
+                                            </div>
+
+                                            <div className="grid gap-2">
+                                                <Label htmlFor="bio">
+                                                    Short bio
+                                                </Label>
+                                                <textarea
+                                                    id="bio"
+                                                    name="bio"
+                                                    rows={4}
+                                                    defaultValue={
+                                                        profile?.bio ?? ''
+                                                    }
+                                                    className="min-h-[110px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-base shadow-xs transition-[color,box-shadow] outline-none selection:bg-primary selection:text-primary-foreground placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 md:text-sm"
+                                                    placeholder="Share a quick summary of your experience"
+                                                />
+                                                <InputError
+                                                    message={errors.bio}
+                                                />
+                                            </div>
+                                        </div>
+                                    </section>
+
+                                    <section
+                                        id={stepSectionIds[5]}
+                                        className={`space-y-4 rounded-2xl border bg-card p-5 ${
+                                            activeStepIndex === 5
+                                                ? 'border-primary/50'
+                                                : 'border-border/70'
+                                        }`}
+                                    >
+                                        <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                                            Additional experience
+                                            <span className="rounded-full border border-border/70 bg-muted/30 px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
+                                                Optional
+                                            </span>
+                                        </div>
+                                        <div className="grid gap-4">
+                                            <div className="grid gap-2">
+                                                <Label htmlFor="achievements">
+                                                    Achievements (Optional)
+                                                </Label>
+                                                <textarea
+                                                    id="achievements"
+                                                    name="achievements"
+                                                    rows={3}
+                                                    defaultValue={
+                                                        profile?.achievements ??
+                                                        ''
+                                                    }
+                                                    className="min-h-[90px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-base shadow-xs transition-[color,box-shadow] outline-none selection:bg-primary selection:text-primary-foreground placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 md:text-sm"
+                                                    placeholder="Awards, certifications, rankings, or notable accomplishments"
+                                                />
+                                                <InputError
+                                                    message={
+                                                        errors.achievements
+                                                    }
+                                                />
+                                            </div>
+                                            <div className="grid gap-2">
+                                                <Label htmlFor="hackathons_experience">
+                                                    Hackathons experience
+                                                    (Optional)
+                                                </Label>
+                                                <textarea
+                                                    id="hackathons_experience"
+                                                    name="hackathons_experience"
+                                                    rows={3}
+                                                    defaultValue={
+                                                        profile?.hackathons_experience ??
+                                                        ''
+                                                    }
+                                                    className="min-h-[90px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-base shadow-xs transition-[color,box-shadow] outline-none selection:bg-primary selection:text-primary-foreground placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 md:text-sm"
+                                                    placeholder="Events participated in, problems solved, team roles, or results"
+                                                />
+                                                <InputError
+                                                    message={
+                                                        errors.hackathons_experience
+                                                    }
+                                                />
+                                            </div>
+                                            <div className="grid gap-2">
+                                                <Label htmlFor="projects_description">
+                                                    Projects description
+                                                    (Optional)
+                                                </Label>
+                                                <textarea
+                                                    id="projects_description"
+                                                    name="projects_description"
+                                                    rows={4}
+                                                    defaultValue={
+                                                        profile?.projects_description ??
+                                                        ''
+                                                    }
+                                                    className="min-h-[110px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-base shadow-xs transition-[color,box-shadow] outline-none selection:bg-primary selection:text-primary-foreground placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 md:text-sm"
+                                                    placeholder="Summarize key projects, stack used, and impact"
+                                                />
+                                                <InputError
+                                                    message={
+                                                        errors.projects_description
+                                                    }
+                                                />
+                                            </div>
+                                        </div>
+                                    </section>
+
+                                    <section
+                                        id={stepSectionIds[6]}
+                                        className={`space-y-4 rounded-2xl border bg-card p-5 ${
+                                            activeStepIndex === 6
+                                                ? 'border-primary/50'
+                                                : 'border-border/70'
+                                        }`}
+                                    >
+                                        <div className="text-sm font-semibold text-foreground">
+                                            Resume upload
+                                        </div>
+
+                                        <div className="grid gap-2">
+                                            <Label htmlFor="resume">
+                                                Resume file{' '}
+                                                {hasResume ? '(optional)' : ''}
+                                                {!hasResume && <RequiredStar />}
+                                            </Label>
+                                            <Input
+                                                id="resume"
+                                                name="resume"
+                                                type="file"
+                                                required={!hasResume}
+                                            />
+                                            <p className="text-xs text-muted-foreground">
+                                                {hasResume
+                                                    ? 'Upload only if you want to replace your existing resume. Accepted formats: PDF, DOC, DOCX, TXT. Max 5MB.'
+                                                    : 'Accepted formats: PDF, DOC, DOCX, TXT. Max 5MB.'}
+                                            </p>
+                                            <InputError
+                                                message={errors.resume}
+                                            />
+                                        </div>
+                                    </section>
+
+                                    <div className="flex flex-wrap items-center gap-2">
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            onClick={() =>
+                                                goToStep(activeStepIndex - 1)
+                                            }
+                                            disabled={activeStepIndex === 0}
+                                        >
+                                            Back
+                                        </Button>
+
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            onClick={() =>
+                                                goToStep(activeStepIndex + 1)
+                                            }
+                                            disabled={
+                                                activeStepIndex ===
+                                                stepTitles.length - 1
+                                            }
+                                        >
+                                            Next
+                                        </Button>
+
+                                        <Button
+                                            type="submit"
+                                            disabled={processing}
+                                            className="ml-auto"
+                                        >
+                                            {processing
+                                                ? 'Saving...'
+                                                : isCompleted
+                                                  ? 'Update profile'
+                                                  : 'Complete profile'}
+                                        </Button>
                                     </div>
                                 </div>
-                            </section>
-
-                            <section className="space-y-4 rounded-xl border border-border/60 bg-card p-5 shadow-xs">
-                                <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
-                                    Additional experience
-                                    <span className="rounded-full border border-border/70 bg-muted/30 px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
-                                        Optional
-                                    </span>
-                                </div>
-                                <div className="grid gap-4">
-                                    <div className="grid gap-2">
-                                        <Label htmlFor="achievements">Achievements (Optional)</Label>
-                                        <textarea
-                                            id="achievements"
-                                            name="achievements"
-                                            rows={3}
-                                            defaultValue={profile?.achievements ?? ''}
-                                            className="border-input placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground min-h-[90px] w-full rounded-md border bg-transparent px-3 py-2 text-base shadow-xs outline-none transition-[color,box-shadow] focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 md:text-sm"
-                                            placeholder="Awards, certifications, rankings, or notable accomplishments"
-                                        />
-                                        <InputError message={errors.achievements} />
-                                    </div>
-                                    <div className="grid gap-2">
-                                        <Label htmlFor="hackathons_experience">Hackathons experience (Optional)</Label>
-                                        <textarea
-                                            id="hackathons_experience"
-                                            name="hackathons_experience"
-                                            rows={3}
-                                            defaultValue={profile?.hackathons_experience ?? ''}
-                                            className="border-input placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground min-h-[90px] w-full rounded-md border bg-transparent px-3 py-2 text-base shadow-xs outline-none transition-[color,box-shadow] focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 md:text-sm"
-                                            placeholder="Events participated in, problems solved, team roles, or results"
-                                        />
-                                        <InputError message={errors.hackathons_experience} />
-                                    </div>
-                                    <div className="grid gap-2">
-                                        <Label htmlFor="projects_description">Projects description (Optional)</Label>
-                                        <textarea
-                                            id="projects_description"
-                                            name="projects_description"
-                                            rows={4}
-                                            defaultValue={profile?.projects_description ?? ''}
-                                            className="border-input placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground min-h-[110px] w-full rounded-md border bg-transparent px-3 py-2 text-base shadow-xs outline-none transition-[color,box-shadow] focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 md:text-sm"
-                                            placeholder="Summarize key projects, stack used, and impact"
-                                        />
-                                        <InputError message={errors.projects_description} />
-                                    </div>
-                                </div>
-                            </section>
-
-                            <section className="space-y-4 rounded-xl border border-border/60 bg-card p-5 shadow-xs">
-                                <div className="text-sm font-semibold text-foreground">
-                                    Resume upload
-                                </div>
-
-                                <div className="grid gap-2">
-                                    <Label htmlFor="resume">
-                                        Resume file {hasResume ? '(optional)' : ''}
-                                        {!hasResume && <RequiredStar />}
-                                    </Label>
-                                    <Input
-                                        id="resume"
-                                        name="resume"
-                                        type="file"
-                                        required={!hasResume}
-                                    />
-                                    <p className="text-xs text-muted-foreground">
-                                        {hasResume
-                                            ? 'Upload only if you want to replace your existing resume. Accepted formats: PDF, DOC, DOCX, TXT. Max 5MB.'
-                                            : 'Accepted formats: PDF, DOC, DOCX, TXT. Max 5MB.'}
-                                    </p>
-                                    <InputError message={errors.resume} />
-                                </div>
-                            </section>
-
-                            <Button type="submit" disabled={processing}>
-                                {processing
-                                    ? 'Saving...'
-                                    : isCompleted
-                                      ? 'Update profile'
-                                      : 'Complete profile'}
-                            </Button>
+                            </div>
                         </>
                     )}
                 </Form>

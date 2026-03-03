@@ -34,6 +34,8 @@ Route::middleware(['auth', 'verified', 'candidate.onboarding'])->group(function 
 
     Route::get('candidate/companies', [CandidateCompanyController::class, 'index'])
         ->name('candidate.companies.index');
+    Route::get('candidate/companies/{company}', [CandidateCompanyController::class, 'show'])
+        ->name('candidate.companies.show');
     Route::post('candidate/companies/{company}/apply', [CandidateCompanyController::class, 'apply'])
         ->name('candidate.companies.apply');
 });
