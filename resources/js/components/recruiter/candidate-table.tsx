@@ -81,7 +81,7 @@ export function CandidateTable({
     if (candidates.length === 0) {
         return (
             <div className="relative overflow-hidden rounded-2xl border border-dashed border-border/70 bg-card px-6 py-12 text-center shadow-sm">
-                <PlaceholderPattern className="absolute inset-0 size-full stroke-muted/30 [mask-image:radial-gradient(60%_60%_at_50%_40%,black,transparent)]" />
+                <PlaceholderPattern className="absolute inset-0 size-full stroke-muted/30" />
                 <div className="relative mx-auto max-w-md">
                     <h3 className="text-lg font-semibold text-foreground">No candidates found</h3>
                     <p className="mt-2 text-sm text-muted-foreground">
@@ -149,13 +149,13 @@ export function CandidateTable({
                                     <button
                                         type="button"
                                         onClick={() => onToggleStar(candidate.id)}
-                                        className="inline-flex rounded-full p-1 transition-colors hover:bg-amber-100"
+                                        className="inline-flex rounded-full p-1 transition-colors hover:bg-blue-200/80"
                                     >
                                         <Star
                                             className={cn(
                                                 'size-4',
                                                 candidate.is_starred
-                                                    ? 'fill-amber-400 text-amber-500'
+                                                    ? 'fill-blue-400 text-blue-500'
                                                     : 'text-muted-foreground',
                                             )}
                                         />

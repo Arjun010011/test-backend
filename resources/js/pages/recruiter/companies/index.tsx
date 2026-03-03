@@ -15,6 +15,15 @@ type Company = {
     website: string | null;
     location: string | null;
     description: string | null;
+    salary_min_lpa: number | null;
+    salary_max_lpa: number | null;
+    experience_min_years: number | null;
+    experience_max_years: number | null;
+    employment_type: string | null;
+    work_mode: string | null;
+    openings: number | null;
+    skills_required: string | null;
+    application_deadline: string | null;
     is_active: boolean;
     source: string;
     approval_status: string;
@@ -35,6 +44,46 @@ type Props = {
     };
     status?: string;
 };
+
+function formatSalary(min: number | null, max: number | null): string | null {
+    if (min === null && max === null) {
+        return null;
+    }
+
+    if (min !== null && max !== null) {
+        return `${min} - ${max} LPA`;
+    }
+
+    if (min !== null) {
+        return `From ${min} LPA`;
+    }
+
+    return `Up to ${max} LPA`;
+}
+
+function formatExperience(min: number | null, max: number | null): string | null {
+    if (min === null && max === null) {
+        return null;
+    }
+
+    if (min !== null && max !== null) {
+        return `${min} - ${max} years`;
+    }
+
+    if (min !== null) {
+        return `${min}+ years`;
+    }
+
+    return `Up to ${max} years`;
+}
+
+function humanize(value: string | null): string | null {
+    if (value === null) {
+        return null;
+    }
+
+    return value.replaceAll('_', ' ');
+}
 
 export default function RecruiterCompaniesIndex({ companies, filters, status }: Props) {
     const form = useForm({
@@ -105,17 +154,17 @@ export default function RecruiterCompaniesIndex({ companies, filters, status }: 
 
             <div className="space-y-4">
                 {status === 'company-enrolled' && (
-                    <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900 dark:border-emerald-500/40 dark:bg-emerald-500/10 dark:text-emerald-200">
+                    <div className="rounded-lg border border-blue-300/70 bg-blue-200/70 px-4 py-3 text-sm text-blue-950 dark:border-blue-500/40 dark:bg-blue-500/15 dark:text-blue-200">
                         Company enrolled successfully.
                     </div>
                 )}
                 {status === 'company-visibility-updated' && (
-                    <div className="rounded-lg border border-cyan-200 bg-cyan-50 px-4 py-3 text-sm text-cyan-900 dark:border-cyan-500/40 dark:bg-cyan-500/10 dark:text-cyan-200">
+                    <div className="rounded-lg border border-blue-300/70 bg-blue-200/70 px-4 py-3 text-sm text-blue-950 dark:border-blue-500/40 dark:bg-blue-500/15 dark:text-blue-200">
                         Company visibility updated.
                     </div>
                 )}
                 {status === 'company-deleted' && (
-                    <div className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-900 dark:border-rose-500/40 dark:bg-rose-500/10 dark:text-rose-200">
+                    <div className="rounded-lg border border-blue-300/70 bg-blue-200/70 px-4 py-3 text-sm text-blue-950 dark:border-blue-500/40 dark:bg-blue-500/15 dark:text-blue-200">
                         Company deleted successfully.
                     </div>
                 )}
@@ -265,6 +314,19 @@ export default function RecruiterCompaniesIndex({ companies, filters, status }: 
                             <div className="mt-3 space-y-1 text-sm text-muted-foreground">
                                 {company.job_role && <div>Role: {company.job_role}</div>}
                                 {company.location && <div>Location: {company.location}</div>}
+                                {formatSalary(company.salary_min_lpa, company.salary_max_lpa) && (
+                                    <div>Salary: {formatSalary(company.salary_min_lpa, company.salary_max_lpa)}</div>
+                                )}
+                                {formatExperience(company.experience_min_years, company.experience_max_years) && (
+                                    <div>
+                                        Experience: {formatExperience(company.experience_min_years, company.experience_max_years)}
+                                    </div>
+                                )}
+                                {humanize(company.employment_type) && <div>Type: {humanize(company.employment_type)}</div>}
+                                {humanize(company.work_mode) && <div>Mode: {humanize(company.work_mode)}</div>}
+                                {company.openings !== null && <div>Openings: {company.openings}</div>}
+                                {company.application_deadline && <div>Deadline: {company.application_deadline}</div>}
+                                {company.skills_required && <div>Skills: {company.skills_required}</div>}
                                 {company.website && <div>Website: {company.website}</div>}
                                 <div>Source: {company.source}</div>
                                 <div>Approval: {company.approval_status}</div>
@@ -283,7 +345,7 @@ export default function RecruiterCompaniesIndex({ companies, filters, status }: 
                                 {company.approval_status === 'pending' && (
                                     <button
                                         type="button"
-                                        className="rounded-md border border-emerald-400/60 px-2 py-1 text-xs text-emerald-700 hover:bg-emerald-100/60"
+                                        className="rounded-md border border-blue-400/60 px-2 py-1 text-xs text-blue-700 hover:bg-blue-200/60"
                                         onClick={() => router.patch(approve(company.id).url)}
                                     >
                                         Approve

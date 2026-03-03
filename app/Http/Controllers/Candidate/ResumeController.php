@@ -13,8 +13,8 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
-use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Symfony\Component\HttpFoundation\ResponseHeaderBag;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ResumeController extends Controller
 {
@@ -27,8 +27,14 @@ class ResumeController extends Controller
 
         abort_unless($user?->isCandidate(), 403);
 
+        $latestResume = $user->resumes()
+            ->where('is_primary', true)
+            ->latest('id')
+            ->first()
+            ?? $user->resumes()->latest('id')->first();
+
         return Inertia::render('candidate/resume', [
-            'latestResume' => $user->resumes()->latest()->first(),
+            'latestResume' => $latestResume,
             'status' => $request->session()->get('status'),
         ]);
     }
@@ -40,6 +46,8 @@ class ResumeController extends Controller
     {
         $user = $request->user();
         $file = $request->file('resume');
+        $disk = config('resume.storage_disk', config('filesystems.default', 'local'));
+        $directory = trim((string) config('resume.storage_directory', 'resumes'), '/');
 
         if ($user === null || $file === null) {
             abort(403);
@@ -47,8 +55,8 @@ class ResumeController extends Controller
 
         $scan = $scanResume($file);
 
-        DB::transaction(function () use ($user, $file, $scan): void {
-            $path = $file->store('resumes/'.$user->id);
+        DB::transaction(function () use ($user, $file, $scan, $disk, $directory): void {
+            $path = $file->store($directory.'/'.$user->id, $disk);
 
             $resume = $user->resumes()->create([
                 'file_path' => $path,
@@ -71,21 +79,25 @@ class ResumeController extends Controller
     /**
      * View a candidate resume.
      */
-    public function show(Request $request, Resume $resume): BinaryFileResponse
+    public function show(Request $request, Resume $resume): StreamedResponse
     {
         $user = $request->user();
 
         abort_unless($user !== null && $user->id === $resume->user_id, 403);
 
-        $path = Storage::disk('local')->path($resume->file_path);
+        $disk = config('resume.storage_disk', config('filesystems.default', 'local'));
+        $storage = Storage::disk($disk);
 
-        abort_unless(is_file($path), 404);
+        abort_unless($storage->exists($resume->file_path), 404);
 
-        return response()
-            ->file($path, [
+        return $storage->response(
+            $resume->file_path,
+            $resume->original_name,
+            [
                 'Content-Type' => $resume->mime_type,
-            ])
-            ->setContentDisposition(ResponseHeaderBag::DISPOSITION_INLINE, $resume->original_name);
+            ],
+            ResponseHeaderBag::DISPOSITION_INLINE,
+        );
     }
 
     /**

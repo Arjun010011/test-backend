@@ -174,6 +174,15 @@ it('filters registered companies in recruiter listing', function () {
         'source' => 'company',
         'approval_status' => 'approved',
         'visibility' => 'public',
+        'salary_min_lpa' => 8.5,
+        'salary_max_lpa' => 14.0,
+        'experience_min_years' => 1.0,
+        'experience_max_years' => 3.0,
+        'employment_type' => 'full_time',
+        'work_mode' => 'hybrid',
+        'openings' => 4,
+        'skills_required' => 'Laravel, React',
+        'application_deadline' => '2026-04-15',
     ]);
 
     Company::factory()->create([
@@ -195,6 +204,15 @@ it('filters registered companies in recruiter listing', function () {
             ->component('recruiter/companies/index')
             ->has('companies.data', 1)
             ->where('companies.data.0.name', 'Filter Match Labs')
+            ->where('companies.data.0.salary_min_lpa', 8.5)
+            ->where('companies.data.0.salary_max_lpa', 14)
+            ->where('companies.data.0.experience_min_years', 1)
+            ->where('companies.data.0.experience_max_years', 3)
+            ->where('companies.data.0.employment_type', 'full_time')
+            ->where('companies.data.0.work_mode', 'hybrid')
+            ->where('companies.data.0.openings', 4)
+            ->where('companies.data.0.skills_required', 'Laravel, React')
+            ->where('companies.data.0.application_deadline', '2026-04-15')
             ->where('filters.search', 'Filter Match')
             ->where('filters.source', 'company')
             ->where('filters.visibility', 'public')

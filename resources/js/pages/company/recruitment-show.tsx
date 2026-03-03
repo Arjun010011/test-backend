@@ -17,6 +17,15 @@ type Recruitment = {
     website: string | null;
     location: string | null;
     description: string | null;
+    salary_min_lpa: number | null;
+    salary_max_lpa: number | null;
+    experience_min_years: number | null;
+    experience_max_years: number | null;
+    employment_type: string | null;
+    work_mode: string | null;
+    openings: number | null;
+    skills_required: string | null;
+    application_deadline: string | null;
     approval_status: string;
     visibility: string;
     applications_count: number;
@@ -36,6 +45,62 @@ type Props = {
     status?: string;
 };
 
+const employmentTypeOptions = [
+    { value: '', label: 'Select employment type' },
+    { value: 'full_time', label: 'Full Time' },
+    { value: 'part_time', label: 'Part Time' },
+    { value: 'contract', label: 'Contract' },
+    { value: 'internship', label: 'Internship' },
+    { value: 'freelance', label: 'Freelance' },
+];
+
+const workModeOptions = [
+    { value: '', label: 'Select work mode' },
+    { value: 'on_site', label: 'On-site' },
+    { value: 'hybrid', label: 'Hybrid' },
+    { value: 'remote', label: 'Remote' },
+];
+
+function formatSalary(min: number | null, max: number | null): string | null {
+    if (min === null && max === null) {
+        return null;
+    }
+
+    if (min !== null && max !== null) {
+        return `${min} - ${max} LPA`;
+    }
+
+    if (min !== null) {
+        return `From ${min} LPA`;
+    }
+
+    return `Up to ${max} LPA`;
+}
+
+function formatExperience(min: number | null, max: number | null): string | null {
+    if (min === null && max === null) {
+        return null;
+    }
+
+    if (min !== null && max !== null) {
+        return `${min} - ${max} years`;
+    }
+
+    if (min !== null) {
+        return `${min}+ years`;
+    }
+
+    return `Up to ${max} years`;
+}
+
+function humanize(value: string | null): string | null {
+    if (value === null) {
+        return null;
+    }
+
+    return value.replaceAll('_', ' ');
+}
+
 export default function CompanyRecruitmentShow({ recruitment, status }: Props) {
     const [searchQuery, setSearchQuery] = useState('');
     const [statusFilter, setStatusFilter] = useState('all');
@@ -45,6 +110,15 @@ export default function CompanyRecruitmentShow({ recruitment, status }: Props) {
         website: recruitment.website ?? '',
         location: recruitment.location ?? '',
         description: recruitment.description ?? '',
+        salary_min_lpa: recruitment.salary_min_lpa !== null ? String(recruitment.salary_min_lpa) : '',
+        salary_max_lpa: recruitment.salary_max_lpa !== null ? String(recruitment.salary_max_lpa) : '',
+        experience_min_years: recruitment.experience_min_years !== null ? String(recruitment.experience_min_years) : '',
+        experience_max_years: recruitment.experience_max_years !== null ? String(recruitment.experience_max_years) : '',
+        employment_type: recruitment.employment_type ?? '',
+        work_mode: recruitment.work_mode ?? '',
+        openings: recruitment.openings !== null ? String(recruitment.openings) : '',
+        skills_required: recruitment.skills_required ?? '',
+        application_deadline: recruitment.application_deadline ?? '',
     });
 
     const filteredApplications = useMemo(() => {
@@ -78,10 +152,27 @@ export default function CompanyRecruitmentShow({ recruitment, status }: Props) {
             </section>
 
             {status && (
-                <section className="mt-3 rounded-lg border border-emerald-300/50 bg-emerald-100/50 px-4 py-3 text-sm text-emerald-900">
+                <section className="mt-3 rounded-lg border border-blue-300/50 bg-blue-200/60 px-4 py-3 text-sm text-blue-950">
                     {status.replaceAll('-', ' ')}
                 </section>
             )}
+
+            <section className="mt-4 rounded-2xl border border-border/70 bg-card/90 p-5 shadow-sm">
+                <h2 className="text-base font-semibold">Recruitment Summary</h2>
+                <div className="mt-3 grid gap-1 text-sm text-muted-foreground md:grid-cols-2">
+                    {formatSalary(recruitment.salary_min_lpa, recruitment.salary_max_lpa) && (
+                        <div>Salary: {formatSalary(recruitment.salary_min_lpa, recruitment.salary_max_lpa)}</div>
+                    )}
+                    {formatExperience(recruitment.experience_min_years, recruitment.experience_max_years) && (
+                        <div>Experience: {formatExperience(recruitment.experience_min_years, recruitment.experience_max_years)}</div>
+                    )}
+                    {humanize(recruitment.employment_type) && <div>Type: {humanize(recruitment.employment_type)}</div>}
+                    {humanize(recruitment.work_mode) && <div>Mode: {humanize(recruitment.work_mode)}</div>}
+                    {recruitment.openings !== null && <div>Openings: {recruitment.openings}</div>}
+                    {recruitment.application_deadline && <div>Deadline: {recruitment.application_deadline}</div>}
+                    {recruitment.skills_required && <div className="md:col-span-2">Skills: {recruitment.skills_required}</div>}
+                </div>
+            </section>
 
             <section className="mt-4 rounded-2xl border border-border/70 bg-card/90 p-5 shadow-sm">
                 <h2 className="text-base font-semibold">Recruitment Actions</h2>
@@ -143,6 +234,108 @@ export default function CompanyRecruitmentShow({ recruitment, status }: Props) {
                             placeholder="Location"
                         />
                         <InputError message={editForm.errors.location} />
+                    </div>
+                    <div>
+                        <Input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            value={editForm.data.salary_min_lpa}
+                            onChange={(event) => editForm.setData('salary_min_lpa', event.target.value)}
+                            placeholder="Min salary (LPA)"
+                        />
+                        <InputError message={editForm.errors.salary_min_lpa} />
+                    </div>
+                    <div>
+                        <Input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            value={editForm.data.salary_max_lpa}
+                            onChange={(event) => editForm.setData('salary_max_lpa', event.target.value)}
+                            placeholder="Max salary (LPA)"
+                        />
+                        <InputError message={editForm.errors.salary_max_lpa} />
+                    </div>
+                    <div>
+                        <Input
+                            type="number"
+                            min="0"
+                            step="0.1"
+                            value={editForm.data.experience_min_years}
+                            onChange={(event) => editForm.setData('experience_min_years', event.target.value)}
+                            placeholder="Min experience (years)"
+                        />
+                        <InputError message={editForm.errors.experience_min_years} />
+                    </div>
+                    <div>
+                        <Input
+                            type="number"
+                            min="0"
+                            step="0.1"
+                            value={editForm.data.experience_max_years}
+                            onChange={(event) => editForm.setData('experience_max_years', event.target.value)}
+                            placeholder="Max experience (years)"
+                        />
+                        <InputError message={editForm.errors.experience_max_years} />
+                    </div>
+                    <div>
+                        <select
+                            value={editForm.data.employment_type}
+                            onChange={(event) => editForm.setData('employment_type', event.target.value)}
+                            className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                        >
+                            {employmentTypeOptions.map((option) => (
+                                <option key={option.value || 'empty'} value={option.value}>
+                                    {option.label}
+                                </option>
+                            ))}
+                        </select>
+                        <InputError message={editForm.errors.employment_type} />
+                    </div>
+                    <div>
+                        <select
+                            value={editForm.data.work_mode}
+                            onChange={(event) => editForm.setData('work_mode', event.target.value)}
+                            className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                        >
+                            {workModeOptions.map((option) => (
+                                <option key={option.value || 'empty'} value={option.value}>
+                                    {option.label}
+                                </option>
+                            ))}
+                        </select>
+                        <InputError message={editForm.errors.work_mode} />
+                    </div>
+                    <div>
+                        <Input
+                            type="number"
+                            min="1"
+                            step="1"
+                            value={editForm.data.openings}
+                            onChange={(event) => editForm.setData('openings', event.target.value)}
+                            placeholder="Openings"
+                        />
+                        <InputError message={editForm.errors.openings} />
+                    </div>
+                    <div>
+                        <Input
+                            type="date"
+                            value={editForm.data.application_deadline}
+                            onChange={(event) => editForm.setData('application_deadline', event.target.value)}
+                            placeholder="Application deadline"
+                        />
+                        <InputError message={editForm.errors.application_deadline} />
+                    </div>
+                    <div className="md:col-span-2">
+                        <textarea
+                            value={editForm.data.skills_required}
+                            onChange={(event) => editForm.setData('skills_required', event.target.value)}
+                            rows={2}
+                            className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                            placeholder="Skills required"
+                        />
+                        <InputError message={editForm.errors.skills_required} />
                     </div>
                     <div className="md:col-span-2">
                         <textarea

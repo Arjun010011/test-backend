@@ -155,11 +155,11 @@ export default function RecruiterCandidateShow({ candidate, comments, collection
                             <button
                                 type="button"
                                 onClick={onToggleStar}
-                                className="rounded-full p-2 transition-colors hover:bg-amber-200/40 dark:hover:bg-amber-300/20"
+                                className="rounded-full p-2 transition-colors hover:bg-blue-200/40 dark:hover:bg-blue-300/20"
                             >
                                 <Star
                                     className={`size-4 ${candidate.is_starred
-                                        ? 'fill-amber-400 text-amber-500'
+                                        ? 'fill-blue-400 text-blue-500'
                                         : 'text-muted-foreground'
                                         }`}
                                 />

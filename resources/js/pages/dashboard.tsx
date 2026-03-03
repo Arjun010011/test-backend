@@ -64,13 +64,13 @@ export default function Dashboard() {
             <Head title="Dashboard" />
             <div className="flex h-full flex-1 flex-col gap-6 overflow-x-auto rounded-xl p-4">
                 {status === 'profile-updated' && (
-                    <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900 dark:border-emerald-500/40 dark:bg-emerald-500/10 dark:text-emerald-200">
+                    <div className="rounded-lg border border-blue-300/70 bg-blue-200/70 px-4 py-3 text-sm text-blue-950 dark:border-blue-500/40 dark:bg-blue-500/15 dark:text-blue-200">
                         Profile updated successfully.
                     </div>
                 )}
 
                 <div className="grid gap-6 lg:grid-cols-3">
-                    <div className="rounded-xl border border-border/70 bg-gradient-to-br from-card to-sky-500/5 p-5 shadow-xs dark:to-sky-400/10 lg:col-span-2">
+                    <div className="rounded-xl border border-border/70 bg-card p-5 shadow-xs lg:col-span-2">
                         <div className="flex items-center justify-between gap-4">
                             <div>
                                 <div className="text-sm font-semibold text-foreground">
@@ -149,7 +149,7 @@ export default function Dashboard() {
                         )}
                     </div>
 
-                    <div className="rounded-xl border border-border/70 bg-gradient-to-br from-card to-indigo-500/5 p-5 shadow-xs dark:to-indigo-400/10">
+                    <div className="rounded-xl border border-border/70 bg-card p-5 shadow-xs">
                         <div className="flex items-center justify-between gap-4">
                             <div className="text-sm font-semibold text-foreground">
                                 Profile snapshot

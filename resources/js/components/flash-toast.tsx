@@ -51,7 +51,7 @@ function FlashToastItem({ status, message }: { status: string; message: string }
                 className={`flex items-center gap-3 rounded-xl border px-4 py-3 text-sm shadow-lg backdrop-blur-sm ${
                     isError
                         ? 'border-red-200 bg-red-50 text-red-900'
-                        : 'border-emerald-200 bg-emerald-50 text-emerald-900'
+                        : 'border-blue-300/70 bg-blue-200/70 text-blue-950'
                 }`}
             >
                 {isError ? (

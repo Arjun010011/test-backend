@@ -8,6 +8,16 @@ use Illuminate\Support\Facades\Storage;
 
 use function Pest\Laravel\actingAs;
 
+function resumeStorageDisk(): string
+{
+    return (string) config('resume.storage_disk', config('filesystems.default', 'local'));
+}
+
+function resumeStorageDirectory(): string
+{
+    return trim((string) config('resume.storage_directory', 'resumes'), '/');
+}
+
 function makeDocxContents(string $text): string
 {
     $tmpPath = tempnam(sys_get_temp_dir(), 'resume-docx-');
@@ -45,7 +55,7 @@ XML;
 }
 
 it('allows a candidate to upload a resume and extracts skills', function () {
-    Storage::fake();
+    Storage::fake(resumeStorageDisk());
 
     $user = User::factory()->candidate()->create();
     CandidateProfile::factory()->create([
@@ -63,7 +73,7 @@ it('allows a candidate to upload a resume and extracts skills', function () {
     $resume = Resume::query()->where('user_id', $user->id)->firstOrFail();
     $profile = CandidateProfile::query()->where('user_id', $user->id)->firstOrFail();
 
-    Storage::assertExists($resume->file_path);
+    Storage::disk(resumeStorageDisk())->assertExists($resume->file_path);
     expect($resume->original_name)->toBe('resume.txt');
     expect($resume->extracted_skills)->toContain('PHP', 'Laravel');
     expect($profile->skill_categories['Languages'] ?? [])->toContain('PHP');
@@ -71,7 +81,7 @@ it('allows a candidate to upload a resume and extracts skills', function () {
 });
 
 it('extracts skills from docx resumes', function () {
-    Storage::fake();
+    Storage::fake(resumeStorageDisk());
 
     $user = User::factory()->candidate()->create();
     CandidateProfile::factory()->create([
@@ -97,7 +107,7 @@ it('extracts skills from docx resumes', function () {
 });
 
 it('replaces candidate profile skills when uploading a new resume', function () {
-    Storage::fake();
+    Storage::fake(resumeStorageDisk());
 
     $user = User::factory()->candidate()->create();
     CandidateProfile::factory()->create([
@@ -160,15 +170,15 @@ it('filters candidates by extracted skills case-insensitively', function () {
 });
 
 it('allows a candidate to view their resume file', function () {
-    Storage::fake('local');
+    Storage::fake(resumeStorageDisk());
 
     $user = User::factory()->candidate()->create();
     CandidateProfile::factory()->create([
         'user_id' => $user->id,
         'profile_completed_at' => now(),
     ]);
-    $path = 'resumes/'.$user->id.'/resume.txt';
-    Storage::disk('local')->put($path, 'Resume content');
+    $path = resumeStorageDirectory().'/'.$user->id.'/resume.txt';
+    Storage::disk(resumeStorageDisk())->put($path, 'Resume content');
 
     $resume = Resume::factory()->create([
         'user_id' => $user->id,
@@ -184,15 +194,15 @@ it('allows a candidate to view their resume file', function () {
 });
 
 it('prevents candidates from viewing other resumes', function () {
-    Storage::fake('local');
+    Storage::fake(resumeStorageDisk());
 
     $owner = User::factory()->candidate()->create();
     CandidateProfile::factory()->create([
         'user_id' => $owner->id,
         'profile_completed_at' => now(),
     ]);
-    $path = 'resumes/'.$owner->id.'/resume.txt';
-    Storage::disk('local')->put($path, 'Resume content');
+    $path = resumeStorageDirectory().'/'.$owner->id.'/resume.txt';
+    Storage::disk(resumeStorageDisk())->put($path, 'Resume content');
 
     $resume = Resume::factory()->create([
         'user_id' => $owner->id,

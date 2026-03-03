@@ -53,3 +53,33 @@ test('dashboard shows candidate resume and profile details', function () {
         ])
     );
 });
+
+test('dashboard prefers primary resume when multiple resumes exist', function () {
+    $user = User::factory()->candidate()->create();
+
+    CandidateProfile::factory()->create([
+        'user_id' => $user->id,
+        'profile_completed_at' => now(),
+    ]);
+
+    Resume::factory()->create([
+        'user_id' => $user->id,
+        'original_name' => 'older-non-primary.pdf',
+        'is_primary' => false,
+    ]);
+
+    $primaryResume = Resume::factory()->create([
+        'user_id' => $user->id,
+        'original_name' => 'primary.pdf',
+        'is_primary' => true,
+    ]);
+
+    $response = $this->actingAs($user)->get(route('dashboard'));
+
+    $response->assertOk();
+    $response->assertInertia(fn (Assert $page) => $page
+        ->component('dashboard')
+        ->where('candidateResume.id', $primaryResume->id)
+        ->where('candidateResume.original_name', 'primary.pdf')
+    );
+});

@@ -22,6 +22,7 @@ function createOnboardedCandidateForCompanyPortal(): User
 
 it('allows company users to create recruitments as pending by default', function () {
     $companyUser = User::factory()->company()->create();
+    $deadline = now()->addDays(21)->toDateString();
 
     actingAs($companyUser)
         ->post(route('company.recruitments.store'), [
@@ -29,6 +30,15 @@ it('allows company users to create recruitments as pending by default', function
             'website' => 'https://acme.example',
             'location' => 'New York, USA',
             'description' => 'Entry level backend hiring',
+            'salary_min_lpa' => 6.5,
+            'salary_max_lpa' => 10.0,
+            'experience_min_years' => 0,
+            'experience_max_years' => 2,
+            'employment_type' => 'full_time',
+            'work_mode' => 'hybrid',
+            'openings' => 4,
+            'skills_required' => 'Laravel, REST APIs, SQL',
+            'application_deadline' => $deadline,
         ])
         ->assertRedirect()
         ->assertSessionHas('status', 'company-recruitment-created');
@@ -40,6 +50,15 @@ it('allows company users to create recruitments as pending by default', function
         'approval_status' => 'pending',
         'visibility' => 'private',
         'is_active' => 0,
+        'salary_min_lpa' => 6.5,
+        'salary_max_lpa' => 10.0,
+        'experience_min_years' => 0,
+        'experience_max_years' => 2,
+        'employment_type' => 'full_time',
+        'work_mode' => 'hybrid',
+        'openings' => 4,
+        'skills_required' => 'Laravel, REST APIs, SQL',
+        'application_deadline' => $deadline.' 00:00:00',
     ]);
 
     $createdCompany = Company::query()
@@ -53,6 +72,7 @@ it('allows company users to create recruitments as pending by default', function
 
 it('allows company owner to edit own recruitment details', function () {
     $companyUser = User::factory()->company()->create();
+    $deadline = now()->addDays(30)->toDateString();
 
     $company = Company::factory()->create([
         'owner_user_id' => $companyUser->id,
@@ -68,6 +88,15 @@ it('allows company owner to edit own recruitment details', function () {
             'website' => 'https://updated.example',
             'location' => 'San Francisco, USA',
             'description' => 'Updated hiring details',
+            'salary_min_lpa' => 12.25,
+            'salary_max_lpa' => 18.5,
+            'experience_min_years' => 1,
+            'experience_max_years' => 4,
+            'employment_type' => 'contract',
+            'work_mode' => 'remote',
+            'openings' => 2,
+            'skills_required' => 'PHP, Laravel, React',
+            'application_deadline' => $deadline,
         ])
         ->assertRedirect()
         ->assertSessionHas('status', 'company-recruitment-updated');
@@ -78,6 +107,15 @@ it('allows company owner to edit own recruitment details', function () {
         'website' => 'https://updated.example',
         'location' => 'San Francisco, USA',
         'description' => 'Updated hiring details',
+        'salary_min_lpa' => 12.25,
+        'salary_max_lpa' => 18.5,
+        'experience_min_years' => 1,
+        'experience_max_years' => 4,
+        'employment_type' => 'contract',
+        'work_mode' => 'remote',
+        'openings' => 2,
+        'skills_required' => 'PHP, Laravel, React',
+        'application_deadline' => $deadline.' 00:00:00',
     ]);
 });
 
@@ -87,6 +125,8 @@ it('shows recruitment detail page for company owner', function () {
         'owner_user_id' => $companyUser->id,
         'source' => 'company',
         'job_role' => 'Backend Engineer Intern',
+        'salary_min_lpa' => 6.5,
+        'experience_max_years' => 1,
     ]);
 
     actingAs($companyUser)
@@ -96,6 +136,8 @@ it('shows recruitment detail page for company owner', function () {
             ->component('company/recruitment-show')
             ->where('recruitment.id', $company->id)
             ->where('recruitment.job_role', 'Backend Engineer Intern')
+            ->where('recruitment.salary_min_lpa', 6.5)
+            ->where('recruitment.experience_max_years', 1)
         );
 });
 

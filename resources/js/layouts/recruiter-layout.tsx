@@ -47,7 +47,7 @@ export default function RecruiterLayout({ title, children, search, onSearchChang
     const { sidebarOpen } = usePage<SharedProps>().props;
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-blue-500/10 via-background to-cyan-400/12 text-foreground">
+        <div className="min-h-screen bg-background text-foreground">
             <SidebarProvider defaultOpen={sidebarOpen}>
                 <Sidebar collapsible="icon" variant="inset">
                     <SidebarHeader>
@@ -71,7 +71,7 @@ export default function RecruiterLayout({ title, children, search, onSearchChang
                     </SidebarFooter>
                 </Sidebar>
 
-                <SidebarInset className="mx-auto my-3 w-[95vw] max-w-[95vw] overflow-x-hidden rounded-2xl border border-blue-300/30 bg-gradient-to-br from-background via-background to-cyan-500/10 shadow-[0_20px_48px_-30px_rgba(2,132,199,0.45)]">
+                <SidebarInset className="mx-auto my-3 w-[95vw] max-w-[95vw] overflow-x-hidden rounded-2xl border border-blue-300/30 bg-background shadow-[0_20px_48px_-30px_rgba(2,132,199,0.45)]">
                     <header className="flex h-16 shrink-0 items-center justify-between gap-3 border-b border-sidebar-border/40 bg-background/80 px-4 backdrop-blur">
                         <div className="flex min-w-0 items-center gap-2">
                             <SidebarTrigger className="-ml-1" />

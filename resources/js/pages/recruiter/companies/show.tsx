@@ -13,6 +13,15 @@ type Company = {
     website: string | null;
     location: string | null;
     description: string | null;
+    salary_min_lpa: number | null;
+    salary_max_lpa: number | null;
+    experience_min_years: number | null;
+    experience_max_years: number | null;
+    employment_type: string | null;
+    work_mode: string | null;
+    openings: number | null;
+    skills_required: string | null;
+    application_deadline: string | null;
     is_active: boolean;
     source: string;
     approval_status: string;
@@ -40,6 +49,46 @@ type Props = {
     applications: { data: Application[] };
 };
 
+function formatSalary(min: number | null, max: number | null): string | null {
+    if (min === null && max === null) {
+        return null;
+    }
+
+    if (min !== null && max !== null) {
+        return `${min} - ${max} LPA`;
+    }
+
+    if (min !== null) {
+        return `From ${min} LPA`;
+    }
+
+    return `Up to ${max} LPA`;
+}
+
+function formatExperience(min: number | null, max: number | null): string | null {
+    if (min === null && max === null) {
+        return null;
+    }
+
+    if (min !== null && max !== null) {
+        return `${min} - ${max} years`;
+    }
+
+    if (min !== null) {
+        return `${min}+ years`;
+    }
+
+    return `Up to ${max} years`;
+}
+
+function humanize(value: string | null): string | null {
+    if (value === null) {
+        return null;
+    }
+
+    return value.replaceAll('_', ' ');
+}
+
 export default function RecruiterCompanyShow({ company, applications }: Props) {
     return (
         <RecruiterLayout title={`${company.name} Applications`}>
@@ -59,8 +108,19 @@ export default function RecruiterCompanyShow({ company, applications }: Props) {
                         </Link>
                     </div>
 
-                        <div className="mt-4 space-y-1 text-sm text-muted-foreground">
+                    <div className="mt-4 space-y-1 text-sm text-muted-foreground">
                         {company.job_role && <div>Role: {company.job_role}</div>}
+                        {formatSalary(company.salary_min_lpa, company.salary_max_lpa) && (
+                            <div>Salary: {formatSalary(company.salary_min_lpa, company.salary_max_lpa)}</div>
+                        )}
+                        {formatExperience(company.experience_min_years, company.experience_max_years) && (
+                            <div>Experience: {formatExperience(company.experience_min_years, company.experience_max_years)}</div>
+                        )}
+                        {humanize(company.employment_type) && <div>Type: {humanize(company.employment_type)}</div>}
+                        {humanize(company.work_mode) && <div>Mode: {humanize(company.work_mode)}</div>}
+                        {company.openings !== null && <div>Openings: {company.openings}</div>}
+                        {company.application_deadline && <div>Deadline: {company.application_deadline}</div>}
+                        {company.skills_required && <div>Skills: {company.skills_required}</div>}
                         {company.location && <div>Location: {company.location}</div>}
                         {company.website && <div>Website: {company.website}</div>}
                         <div>Source: {company.source}</div>

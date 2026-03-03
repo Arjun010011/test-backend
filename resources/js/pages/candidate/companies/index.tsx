@@ -13,6 +13,15 @@ type Company = {
     website: string | null;
     location: string | null;
     description: string | null;
+    salary_min_lpa: number | null;
+    salary_max_lpa: number | null;
+    experience_min_years: number | null;
+    experience_max_years: number | null;
+    employment_type: string | null;
+    work_mode: string | null;
+    openings: number | null;
+    skills_required: string | null;
+    application_deadline: string | null;
     applications_count: number;
     has_applied: boolean;
 };
@@ -28,6 +37,46 @@ const breadcrumbs: BreadcrumbItem[] = [
         href: index().url,
     },
 ];
+
+function formatSalary(min: number | null, max: number | null): string | null {
+    if (min === null && max === null) {
+        return null;
+    }
+
+    if (min !== null && max !== null) {
+        return `${min} - ${max} LPA`;
+    }
+
+    if (min !== null) {
+        return `From ${min} LPA`;
+    }
+
+    return `Up to ${max} LPA`;
+}
+
+function formatExperience(min: number | null, max: number | null): string | null {
+    if (min === null && max === null) {
+        return null;
+    }
+
+    if (min !== null && max !== null) {
+        return `${min} - ${max} years`;
+    }
+
+    if (min !== null) {
+        return `${min}+ years`;
+    }
+
+    return `Up to ${max} years`;
+}
+
+function humanize(value: string | null): string | null {
+    if (value === null) {
+        return null;
+    }
+
+    return value.replaceAll('_', ' ');
+}
 
 export default function CandidateCompaniesIndex({ companies, status }: Props) {
     const form = useForm({
@@ -53,18 +102,18 @@ export default function CandidateCompaniesIndex({ companies, status }: Props) {
             <Head title="Companies" />
 
             <div className="mx-auto flex w-[95vw] max-w-[95vw] flex-col gap-6 p-4">
-                <section className="rounded-xl border border-sky-300/40 bg-gradient-to-r from-sky-500/15 via-cyan-500/10 to-indigo-500/15 px-4 py-3 text-sm text-foreground dark:border-sky-400/20 dark:from-sky-500/20 dark:via-cyan-500/10 dark:to-indigo-500/20">
+                <section className="rounded-xl border border-blue-300/40 bg-blue-200/70 px-4 py-3 text-sm text-foreground dark:border-blue-400/20 dark:bg-blue-950/30">
                     Browse enrolled companies and apply directly from your profile.
                 </section>
 
                 {status === 'company-application-submitted' && (
-                    <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900 dark:border-emerald-500/40 dark:bg-emerald-500/10 dark:text-emerald-200">
+                    <div className="rounded-lg border border-blue-300/70 bg-blue-200/70 px-4 py-3 text-sm text-blue-950 dark:border-blue-500/40 dark:bg-blue-500/15 dark:text-blue-200">
                         Application submitted successfully.
                     </div>
                 )}
 
                 {status === 'company-application-exists' && (
-                    <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-200">
+                    <div className="rounded-lg border border-blue-300/70 bg-blue-200/70 px-4 py-3 text-sm text-blue-950 dark:border-blue-500/40 dark:bg-blue-500/15 dark:text-blue-200">
                         You have already applied to this company.
                     </div>
                 )}
@@ -91,6 +140,19 @@ export default function CandidateCompaniesIndex({ companies, status }: Props) {
 
                             <div className="mt-3 space-y-1 text-sm text-muted-foreground">
                                 {company.location && <div>Location: {company.location}</div>}
+                                {formatSalary(company.salary_min_lpa, company.salary_max_lpa) && (
+                                    <div>Salary: {formatSalary(company.salary_min_lpa, company.salary_max_lpa)}</div>
+                                )}
+                                {formatExperience(company.experience_min_years, company.experience_max_years) && (
+                                    <div>
+                                        Experience: {formatExperience(company.experience_min_years, company.experience_max_years)}
+                                    </div>
+                                )}
+                                {humanize(company.employment_type) && <div>Type: {humanize(company.employment_type)}</div>}
+                                {humanize(company.work_mode) && <div>Mode: {humanize(company.work_mode)}</div>}
+                                {company.openings !== null && <div>Openings: {company.openings}</div>}
+                                {company.application_deadline && <div>Apply by: {company.application_deadline}</div>}
+                                {company.skills_required && <div>Skills: {company.skills_required}</div>}
                                 {company.website && (
                                     <a
                                         href={company.website}

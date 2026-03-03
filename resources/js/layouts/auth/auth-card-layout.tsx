@@ -20,7 +20,7 @@ export default function AuthCardLayout({
 }>) {
     return (
         <div className="relative flex min-h-svh flex-col items-center justify-center gap-6 p-6 md:p-10">
-            <div className="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_top,_rgba(37,99,235,0.12),_transparent_45%)]" />
+            <div className="absolute inset-0 -z-10 bg-blue-200/30 dark:bg-slate-900" />
             <div className="flex w-full max-w-md flex-col gap-6">
                 <Link
                     href={home()}

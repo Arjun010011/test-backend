@@ -13,7 +13,7 @@ export default function AppSidebarLayout({
             <AppSidebar />
             <AppContent
                 variant="sidebar"
-                className="mx-auto my-3 w-[95vw] max-w-[95vw] overflow-x-hidden rounded-2xl border border-cyan-300/30 bg-gradient-to-br from-background via-background to-cyan-500/8 shadow-md"
+                className="mx-auto my-3 w-[95vw] max-w-[95vw] overflow-x-hidden rounded-2xl border border-blue-300/30 bg-background shadow-md"
             >
                 <AppSidebarHeader breadcrumbs={breadcrumbs} />
                 {children}

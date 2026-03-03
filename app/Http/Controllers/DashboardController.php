@@ -24,12 +24,13 @@ class DashboardController extends Controller
             return redirect()->route('company.dashboard');
         }
 
-        $user?->load([
-            'candidateProfile',
-            'resumes' => fn ($query) => $query->latest()->limit(1),
-        ]);
+        $user?->load('candidateProfile');
 
-        $resume = $user?->resumes->first();
+        $resume = $user?->resumes()
+            ->where('is_primary', true)
+            ->latest('id')
+            ->first()
+            ?? $user?->resumes()->latest('id')->first();
         $profile = $user?->candidateProfile;
 
         return Inertia::render('dashboard', [

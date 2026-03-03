@@ -204,7 +204,7 @@ export default function CandidateOnboarding() {
 
             <div className="mx-auto flex w-[95vw] max-w-[95vw] flex-col gap-6">
                 <Heading title={headingTitle} description={headingDescription} />
-                <section className="rounded-xl border border-sky-300/40 bg-gradient-to-r from-sky-500/15 via-cyan-500/10 to-indigo-500/15 px-4 py-3 text-sm text-foreground dark:border-sky-400/20 dark:from-sky-500/20 dark:via-cyan-500/10 dark:to-indigo-500/20">
+                <section className="rounded-xl border border-blue-300/40 bg-blue-200/70 px-4 py-3 text-sm text-foreground dark:border-blue-400/20 dark:bg-blue-950/30">
                     A complete profile with clear skills and resume improves recruiter visibility.
                 </section>
                 <p className="text-xs text-muted-foreground">
@@ -212,7 +212,7 @@ export default function CandidateOnboarding() {
                 </p>
 
                 {status === 'onboarding-complete' && (
-                    <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900 dark:border-emerald-500/40 dark:bg-emerald-500/10 dark:text-emerald-200">
+                    <div className="rounded-lg border border-blue-300/70 bg-blue-200/70 px-4 py-3 text-sm text-blue-950 dark:border-blue-500/40 dark:bg-blue-500/15 dark:text-blue-200">
                         Profile completed successfully.
                     </div>
                 )}
@@ -230,7 +230,7 @@ export default function CandidateOnboarding() {
                                 </section>
                             )}
 
-                            <section className="space-y-4 rounded-xl border border-border/60 bg-gradient-to-br from-card to-sky-500/5 p-5 shadow-xs dark:to-sky-400/10">
+                            <section className="space-y-4 rounded-xl border border-border/60 bg-card p-5 shadow-xs">
                                 <div className="text-sm font-semibold text-foreground">
                                     Contact information
                                 </div>
@@ -262,7 +262,7 @@ export default function CandidateOnboarding() {
                                 </div>
                             </section>
 
-                            <section className="space-y-4 rounded-xl border border-border/60 bg-gradient-to-br from-card to-sky-500/5 p-5 shadow-xs dark:to-sky-400/10">
+                            <section className="space-y-4 rounded-xl border border-border/60 bg-card p-5 shadow-xs">
                                 <div className="text-sm font-semibold text-foreground">
                                     Education
                                 </div>
@@ -407,7 +407,7 @@ export default function CandidateOnboarding() {
                                 </div>
                             </section>
 
-                            <section className="space-y-4 rounded-xl border border-border/60 bg-gradient-to-br from-card to-sky-500/5 p-5 shadow-xs dark:to-sky-400/10">
+                            <section className="space-y-4 rounded-xl border border-border/60 bg-card p-5 shadow-xs">
                                 <div className="text-sm font-semibold text-foreground">
                                     Address
                                 </div>
@@ -540,7 +540,7 @@ export default function CandidateOnboarding() {
                                 </div>
                             </section>
 
-                            <section className="space-y-4 rounded-xl border border-border/60 bg-gradient-to-br from-card to-sky-500/5 p-5 shadow-xs dark:to-sky-400/10">
+                            <section className="space-y-4 rounded-xl border border-border/60 bg-card p-5 shadow-xs">
                                 <div className="text-sm font-semibold text-foreground">
                                     Links
                                 </div>
@@ -588,7 +588,7 @@ export default function CandidateOnboarding() {
                                 </div>
                             </section>
 
-                            <section className="space-y-4 rounded-xl border border-border/60 bg-gradient-to-br from-card to-sky-500/5 p-5 shadow-xs dark:to-sky-400/10">
+                            <section className="space-y-4 rounded-xl border border-border/60 bg-card p-5 shadow-xs">
                                 <div className="text-sm font-semibold text-foreground">
                                     Skills and bio
                                 </div>
@@ -671,7 +671,7 @@ export default function CandidateOnboarding() {
                                 </div>
                             </section>
 
-                            <section className="space-y-4 rounded-xl border border-border/60 bg-gradient-to-br from-card to-sky-500/5 p-5 shadow-xs dark:to-sky-400/10">
+                            <section className="space-y-4 rounded-xl border border-border/60 bg-card p-5 shadow-xs">
                                 <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
                                     Additional experience
                                     <span className="rounded-full border border-border/70 bg-muted/30 px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
@@ -718,7 +718,7 @@ export default function CandidateOnboarding() {
                                 </div>
                             </section>
 
-                            <section className="space-y-4 rounded-xl border border-border/60 bg-gradient-to-br from-card to-sky-500/5 p-5 shadow-xs dark:to-sky-400/10">
+                            <section className="space-y-4 rounded-xl border border-border/60 bg-card p-5 shadow-xs">
                                 <div className="text-sm font-semibold text-foreground">
                                     Resume upload
                                 </div>

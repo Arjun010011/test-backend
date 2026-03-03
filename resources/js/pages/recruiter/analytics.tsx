@@ -29,12 +29,12 @@ type Props = {
 };
 
 const summaryCards = [
-    { key: 'total_candidates', label: 'Candidates', icon: Users, tone: 'from-sky-500/20 to-sky-200/40' },
-    { key: 'starred_candidates', label: 'Starred', icon: Star, tone: 'from-amber-500/20 to-amber-200/40' },
-    { key: 'active_collections', label: 'Collections', icon: FolderKanban, tone: 'from-emerald-500/20 to-emerald-200/40' },
-    { key: 'companies', label: 'Companies', icon: Building2, tone: 'from-indigo-500/20 to-indigo-200/40' },
-    { key: 'active_companies', label: 'Active Companies', icon: BriefcaseBusiness, tone: 'from-cyan-500/20 to-cyan-200/40' },
-    { key: 'applications', label: 'Applications', icon: BarChart3, tone: 'from-fuchsia-500/20 to-fuchsia-200/40' },
+    { key: 'total_candidates', label: 'Candidates', icon: Users, tone: 'bg-blue-200/80 dark:bg-blue-900/30' },
+    { key: 'starred_candidates', label: 'Starred', icon: Star, tone: 'bg-blue-200/80 dark:bg-blue-900/30' },
+    { key: 'active_collections', label: 'Collections', icon: FolderKanban, tone: 'bg-blue-200/80 dark:bg-blue-900/30' },
+    { key: 'companies', label: 'Companies', icon: Building2, tone: 'bg-blue-200/80 dark:bg-blue-900/30' },
+    { key: 'active_companies', label: 'Active Companies', icon: BriefcaseBusiness, tone: 'bg-blue-200/80 dark:bg-blue-900/30' },
+    { key: 'applications', label: 'Applications', icon: BarChart3, tone: 'bg-blue-200/80 dark:bg-blue-900/30' },
 ] as const;
 
 export default function RecruiterAnalytics({ summary, breakdown }: Props) {
@@ -45,7 +45,7 @@ export default function RecruiterAnalytics({ summary, breakdown }: Props) {
         <RecruiterLayout title="Analytics">
             <Head title="Recruiter Analytics" />
 
-            <section className="rounded-2xl border border-sky-300/40 bg-gradient-to-r from-sky-500/15 via-cyan-500/10 to-indigo-500/15 px-4 py-3 text-sm text-foreground">
+            <section className="rounded-2xl border border-blue-300/40 bg-blue-200/70 px-4 py-3 text-sm text-foreground dark:bg-blue-950/30">
                 Basic hiring analytics for candidate activity, company engagement, and application flow.
             </section>
 
@@ -53,7 +53,7 @@ export default function RecruiterAnalytics({ summary, breakdown }: Props) {
                 {summaryCards.map((card) => (
                     <article
                         key={card.key}
-                        className={`rounded-2xl border border-border/70 bg-gradient-to-br p-5 shadow-sm ${card.tone}`}
+                        className={`rounded-2xl border border-border/70 p-5 shadow-sm ${card.tone}`}
                     >
                         <div className="flex items-center justify-between">
                             <p className="text-sm font-medium text-foreground/80">{card.label}</p>
@@ -76,7 +76,7 @@ export default function RecruiterAnalytics({ summary, breakdown }: Props) {
                                 </div>
                                 <div className="h-2 rounded-full bg-muted/60">
                                     <div
-                                        className="h-2 rounded-full bg-gradient-to-r from-sky-500 to-cyan-500"
+                                        className="h-2 rounded-full bg-blue-700"
                                         style={{ width: `${Math.max((item.total / maxTrendCount) * 100, 4)}%` }}
                                     />
                                 </div>
@@ -117,7 +117,7 @@ export default function RecruiterAnalytics({ summary, breakdown }: Props) {
                             </div>
                             <div className="h-2 rounded-full bg-muted/60">
                                 <div
-                                    className="h-2 rounded-full bg-gradient-to-r from-violet-500 to-fuchsia-500"
+                                    className="h-2 rounded-full bg-blue-700"
                                     style={{ width: `${Math.max((entry.total / maxStatusCount) * 100, 4)}%` }}
                                 />
                             </div>

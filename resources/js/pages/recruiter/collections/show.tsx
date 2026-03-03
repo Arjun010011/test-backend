@@ -147,8 +147,7 @@ export default function RecruiterCollectionShow({ collection, children, candidat
         >
             <Head title={collection.name} />
 
-            <section className="relative mb-6 overflow-hidden rounded-3xl border border-sky-200/60 bg-gradient-to-r from-sky-700 via-indigo-600 to-cyan-500 p-6 text-white shadow-xl dark:border-sky-400/20 dark:from-sky-500/70 dark:via-indigo-500/60 dark:to-cyan-500/60">
-                <div className="absolute top-0 right-0 h-24 w-24 -translate-y-6 translate-x-6 rounded-full bg-white/10 blur-2xl" />
+            <section className="mb-6 rounded-3xl border border-blue-300/70 bg-blue-700 p-6 text-white shadow-xl dark:border-blue-400/20 dark:bg-blue-600/70">
                 <div className="grid gap-4 md:grid-cols-3">
                     <div className="md:col-span-2">
                         <div className="text-xs font-semibold uppercase tracking-[0.2em] text-blue-100">Collection</div>

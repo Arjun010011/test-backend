@@ -90,7 +90,7 @@ export default function RecruiterCollectionsIndex({ collections }: Props) {
             <Head title="Collections" />
 
             <div className="space-y-4">
-                <section className="rounded-3xl border border-sky-200/60 bg-gradient-to-r from-sky-700 via-indigo-600 to-cyan-500 p-6 text-white shadow-xl dark:border-sky-400/20 dark:from-sky-500/70 dark:via-indigo-500/60 dark:to-cyan-500/60">
+                <section className="rounded-3xl border border-blue-300/70 bg-blue-700 p-6 text-white shadow-xl dark:border-blue-400/20 dark:bg-blue-600/70">
                     <div className="text-xs font-semibold uppercase tracking-[0.2em] text-blue-100">Recruiter</div>
                     <h1 className="mt-2 text-2xl font-bold">Collection Studio</h1>
                     <p className="mt-1 text-sm text-blue-100">

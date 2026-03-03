@@ -24,6 +24,15 @@ class Company extends Model
         'website',
         'location',
         'description',
+        'salary_min_lpa',
+        'salary_max_lpa',
+        'experience_min_years',
+        'experience_max_years',
+        'employment_type',
+        'work_mode',
+        'openings',
+        'skills_required',
+        'application_deadline',
         'source',
         'approval_status',
         'visibility',
@@ -37,6 +46,11 @@ class Company extends Model
     {
         return [
             'is_active' => 'boolean',
+            'salary_min_lpa' => 'decimal:2',
+            'salary_max_lpa' => 'decimal:2',
+            'experience_min_years' => 'decimal:1',
+            'experience_max_years' => 'decimal:1',
+            'application_deadline' => 'date',
         ];
     }
 
