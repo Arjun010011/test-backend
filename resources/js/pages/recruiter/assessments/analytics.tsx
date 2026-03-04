@@ -1,5 +1,6 @@
-import { Head } from '@inertiajs/react';
+import { Head, Link } from '@inertiajs/react';
 import RecruiterLayout from '@/layouts/recruiter-layout';
+import { show as showCandidateProfile } from '@/routes/recruiter/candidates';
 
 type Props = {
     assessment: {
@@ -128,6 +129,7 @@ export default function RecruiterAssessmentsAnalytics({ assessment, analytics }:
                                             <th className="px-2 py-2">Score</th>
                                             <th className="px-2 py-2">Time</th>
                                             <th className="px-2 py-2">Risk (10)</th>
+                                            <th className="px-2 py-2 text-right">Profile</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -138,6 +140,14 @@ export default function RecruiterAssessmentsAnalytics({ assessment, analytics }:
                                                 <td className="px-2 py-2">{scorer.score}/{scorer.max_score} ({scorer.percentage}%)</td>
                                                 <td className="px-2 py-2">{scorer.time_taken}</td>
                                                 <td className="px-2 py-2">{scorer.risk_score}/10</td>
+                                                <td className="px-2 py-2 text-right">
+                                                    <Link
+                                                        href={showCandidateProfile(scorer.candidate_id).url}
+                                                        className="text-sm font-medium text-primary hover:text-primary/80"
+                                                    >
+                                                        View profile
+                                                    </Link>
+                                                </td>
                                             </tr>
                                         ))}
                                     </tbody>

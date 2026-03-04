@@ -1,6 +1,8 @@
 <?php
 
 use App\Models\Assessment;
+use App\Models\AssessmentAttempt;
+use App\Models\CandidateProfile;
 use App\Models\User;
 use App\Services\QuestionProviderService;
 use Inertia\Testing\AssertableInertia as Assert;
@@ -189,4 +191,56 @@ it('allows recruiter to update assessment status to private', function () {
     expect($assessment->status)->toBe('private')
         ->and($assessment->is_active)->toBeFalse()
         ->and($assessment->published_at)->toBeNull();
+});
+
+it('includes candidate ids in assessment analytics scoreboard data for profile links', function () {
+    $admin = User::factory()->admin()->create();
+    $candidate = User::factory()->candidate()->create([
+        'name' => 'Profile Link Candidate',
+    ]);
+
+    CandidateProfile::factory()->create([
+        'user_id' => $candidate->id,
+        'profile_completed_at' => now(),
+        'university' => 'State College',
+    ]);
+
+    $assessment = Assessment::query()->create([
+        'created_by' => $admin->id,
+        'title' => 'Analytics Link Test',
+        'description' => null,
+        'category' => 'general',
+        'difficulty' => 'easy',
+        'duration_minutes' => 30,
+        'total_questions' => 10,
+        'passing_score' => 60,
+        'randomize_questions' => false,
+        'show_results_immediately' => true,
+        'status' => 'active',
+        'is_active' => true,
+        'published_at' => now(),
+    ]);
+
+    AssessmentAttempt::query()->create([
+        'assessment_id' => $assessment->id,
+        'candidate_id' => $candidate->id,
+        'assignment_id' => null,
+        'attempt_number' => 1,
+        'started_at' => now()->subMinutes(20),
+        'submitted_at' => now()->subMinutes(5),
+        'time_taken_seconds' => 900,
+        'score' => 8,
+        'max_score' => 10,
+        'percentage' => 80,
+        'status' => 'submitted',
+    ]);
+
+    actingAs($admin)
+        ->get(route('recruiter.assessments.analytics', $assessment))
+        ->assertSuccessful()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('recruiter/assessments/analytics')
+            ->where('analytics.top_scorers.0.candidate_id', $candidate->id)
+            ->where('analytics.top_scorers.0.candidate_name', 'Profile Link Candidate')
+        );
 });
