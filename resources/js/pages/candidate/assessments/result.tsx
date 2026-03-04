@@ -24,10 +24,10 @@ export default function CandidateAssessmentsResult({ assessment, attempt, passed
     const timeTakenMinutes = safeTimeTakenSeconds !== null ? (safeTimeTakenSeconds / 60).toFixed(1) : '-';
 
     return (
-        <AppLayout>
+        <AppLayout fullWidth>
             <Head title={`${assessment.title} Result`} />
 
-            <div className="mx-auto max-w-4xl space-y-5 px-3 py-4 sm:px-4">
+            <div className="w-full space-y-5 px-3 py-4 sm:px-4">
                 <section className="rounded-3xl border border-border/70 bg-card p-5 shadow-sm">
                     <h2 className="text-2xl font-semibold tracking-tight">Assessment Result</h2>
                     <p className="text-sm text-muted-foreground">{assessment.title}</p>

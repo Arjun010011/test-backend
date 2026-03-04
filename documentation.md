@@ -1,6 +1,6 @@
 # Project Documentation
 
-Last updated: March 2, 2026
+Last updated: March 4, 2026
 
 ## 1. Product Summary
 This project is a role-based recruitment platform where:
@@ -49,6 +49,7 @@ Access is enforced by:
 Important behavior:
 - `super_admin` bypasses role checks in middleware and has cross-recruiter visibility in recruiter features.
 - Non-super-admin recruiters only access completed candidate profiles.
+- Public signup allows only candidate and company roles; recruiter/admin must be provisioned through trusted admin/terminal flow.
 
 ## 5. Route and Module Breakdown
 
@@ -239,7 +240,31 @@ If frontend assets are stale or missing:
 - `npm run dev` for watch mode
 - `npm run build` for production build
 
-## 15. Extension Guidance for Next Developers
+## 15. Role Provisioning Through Terminal
+Recommended for local/dev bootstrap of privileged roles.
+
+Why:
+- Public registration intentionally allows only `candidate` and `company`.
+- `admin` and `super_admin` are privileged roles and are kept out of self-signup to prevent privilege escalation.
+
+Create users:
+```bash
+# Candidate
+php artisan tinker --execute="use App\Models\User; use App\Enums\Role; use Illuminate\Support\Facades\Hash; User::updateOrCreate(['email' => 'candidate.new@example.com'], ['name' => 'New Candidate', 'password' => Hash::make('password'), 'role' => Role::Candidate, 'email_verified_at' => now()]);"
+
+# Company
+php artisan tinker --execute="use App\Models\User; use App\Enums\Role; use Illuminate\Support\Facades\Hash; User::updateOrCreate(['email' => 'company.new@example.com'], ['name' => 'New Company User', 'password' => Hash::make('password'), 'role' => Role::Company, 'email_verified_at' => now()]);"
+
+# Recruiter (admin)
+php artisan tinker --execute="use App\Models\User; use App\Enums\Role; use Illuminate\Support\Facades\Hash; User::updateOrCreate(['email' => 'recruiter.new@example.com'], ['name' => 'New Recruiter', 'password' => Hash::make('password'), 'role' => Role::Admin, 'email_verified_at' => now()]);"
+```
+
+Login redirects:
+- `admin` / `super_admin` -> `recruiter.dashboard`
+- `company` -> `company.dashboard`
+- `candidate` -> `dashboard`
+
+## 16. Extension Guidance for Next Developers
 When adding features, prefer existing patterns:
 - Add new business logic in service classes if controller actions become complex.
 - Add dedicated Form Requests for each write operation.
