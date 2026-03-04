@@ -5,6 +5,7 @@ use App\Models\Resume;
 use App\Models\User;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Testing\AssertableInertia as Assert;
+use League\Flysystem\UnableToCheckFileExistence;
 
 test('guests are redirected to the login page', function () {
     $response = $this->get(route('dashboard'));
@@ -119,5 +120,44 @@ test('dashboard exposes temporary s3 resume view url when resume disk is s3', fu
         ->component('dashboard')
         ->where('candidateResume.id', $resume->id)
         ->where('candidateResume.view_url', 'https://s3.example.com/resumes/dashboard-resume.pdf?signature=test')
+    );
+});
+
+test('dashboard falls back to resume show route when storage cannot check file existence', function () {
+    config()->set('resume.storage_disk', 's3');
+
+    $user = User::factory()->candidate()->create();
+
+    CandidateProfile::factory()->create([
+        'user_id' => $user->id,
+        'profile_completed_at' => now(),
+    ]);
+
+    $resume = Resume::factory()->create([
+        'user_id' => $user->id,
+        'file_path' => 'resumes/'.$user->id.'/broken-check.pdf',
+        'original_name' => 'broken-check.pdf',
+        'mime_type' => 'application/pdf',
+        'is_primary' => true,
+    ]);
+
+    $mockDisk = Mockery::mock(\Illuminate\Contracts\Filesystem\Filesystem::class);
+    $mockDisk->shouldReceive('exists')
+        ->once()
+        ->with($resume->file_path)
+        ->andThrow(UnableToCheckFileExistence::forLocation($resume->file_path));
+
+    Storage::shouldReceive('disk')
+        ->once()
+        ->with('s3')
+        ->andReturn($mockDisk);
+
+    $response = $this->actingAs($user)->get(route('dashboard'));
+
+    $response->assertOk();
+    $response->assertInertia(fn (Assert $page) => $page
+        ->component('dashboard')
+        ->where('candidateResume.id', $resume->id)
+        ->where('candidateResume.view_url', route('candidate.resume.show', $resume))
     );
 });

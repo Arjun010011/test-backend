@@ -1,6 +1,8 @@
 import { Head, Link } from '@inertiajs/react';
 import { FolderKanban, Star, UserPlus, Users } from 'lucide-react';
 import RecruiterLayout from '@/layouts/recruiter-layout';
+import { analytics as recruiterAnalytics } from '@/routes/recruiter';
+import { index as assessmentsIndex } from '@/routes/recruiter/assessments';
 import { index as candidatesIndex } from '@/routes/recruiter/candidates';
 import { index as collectionsIndex } from '@/routes/recruiter/collections';
 import { index as companiesIndex } from '@/routes/recruiter/companies';
@@ -91,6 +93,24 @@ export default function RecruiterDashboard({ stats }: Props) {
                     <div className="text-sm font-semibold">Enroll companies</div>
                     <p className="mt-1 text-sm text-muted-foreground">
                         Add companies so candidates can discover openings and apply.
+                    </p>
+                </Link>
+                <Link
+                    href={assessmentsIndex().url}
+                    className="rounded-2xl border border-border/70 bg-card/80 p-5 shadow-sm transition-colors hover:bg-accent/40"
+                >
+                    <div className="text-sm font-semibold">Assessments</div>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                        Create tests by topic and difficulty, then assign to candidate colleges.
+                    </p>
+                </Link>
+                <Link
+                    href={recruiterAnalytics().url}
+                    className="rounded-2xl border border-border/70 bg-card/80 p-5 shadow-sm transition-colors hover:bg-accent/40"
+                >
+                    <div className="text-sm font-semibold">Analytics</div>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                        Track recruiter-side performance metrics and pipeline quality trends.
                     </p>
                 </Link>
                 <Link

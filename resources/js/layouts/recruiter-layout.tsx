@@ -1,5 +1,5 @@
 import { Link, usePage } from '@inertiajs/react';
-import { BarChart3, Building2, FolderKanban, LayoutDashboard, Search, Users } from 'lucide-react';
+import { BarChart3, Building2, ClipboardList, FolderKanban, LayoutDashboard, Search, Users } from 'lucide-react';
 import type { PropsWithChildren } from 'react';
 import AppLogo from '@/components/app-logo';
 import { FlashToast } from '@/components/flash-toast';
@@ -19,6 +19,7 @@ import {
     SidebarTrigger,
 } from '@/components/ui/sidebar';
 import { analytics as recruiterAnalytics, dashboard as recruiterDashboard } from '@/routes/recruiter';
+import { index as assessmentsIndex } from '@/routes/recruiter/assessments';
 import { index as candidatesIndex } from '@/routes/recruiter/candidates';
 import { index as collectionsIndex } from '@/routes/recruiter/collections';
 import { index as companiesIndex } from '@/routes/recruiter/companies';
@@ -40,6 +41,7 @@ const sidebarItems: NavItem[] = [
     { title: 'Candidates', href: candidatesIndex().url, icon: Users },
     { title: 'Collections', href: collectionsIndex().url, icon: FolderKanban },
     { title: 'Companies', href: companiesIndex().url, icon: Building2 },
+    { title: 'Assessments', href: assessmentsIndex().url, icon: ClipboardList },
     { title: 'Analytics', href: recruiterAnalytics().url, icon: BarChart3 },
 ];
 

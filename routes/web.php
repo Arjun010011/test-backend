@@ -1,10 +1,13 @@
 <?php
 
+use App\Http\Controllers\Candidate\AssessmentController as CandidateAssessmentController;
 use App\Http\Controllers\Candidate\CandidateCompanyController;
 use App\Http\Controllers\Candidate\OnboardingController;
 use App\Http\Controllers\Candidate\ResumeController;
 use App\Http\Controllers\Company\CompanyRecruitmentController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\Recruiter\AssessmentAnalyticsController;
+use App\Http\Controllers\Recruiter\AssessmentController as RecruiterAssessmentController;
 use App\Http\Controllers\Recruiter\RecruiterCandidateController;
 use App\Http\Controllers\Recruiter\RecruiterCollectionController;
 use App\Http\Controllers\Recruiter\RecruiterCompanyController;
@@ -75,7 +78,32 @@ Route::middleware(['auth', 'role:admin'])->prefix('recruiter')->name('recruiter.
     Route::post('statuses', [RecruiterStatusController::class, 'store'])->name('statuses.store');
     Route::patch('statuses/{status}', [RecruiterStatusController::class, 'update'])->name('statuses.update');
     Route::delete('statuses/{status}', [RecruiterStatusController::class, 'destroy'])->name('statuses.destroy');
+
+    Route::resource('assessments', RecruiterAssessmentController::class)
+        ->only(['index', 'create', 'store', 'show', 'destroy']);
+    Route::post('assessments/{assessment}/toggle-status', [RecruiterAssessmentController::class, 'toggleStatus'])
+        ->name('assessments.toggle-status');
+    Route::get('assessments/{assessment}/assign', [RecruiterAssessmentController::class, 'createAssignment'])
+        ->name('assessments.assign.create');
+    Route::post('assessments/{assessment}/assign', [RecruiterAssessmentController::class, 'storeAssignment'])
+        ->name('assessments.assign.store');
+    Route::get('assessments/{assessment}/analytics', [AssessmentAnalyticsController::class, 'show'])
+        ->name('assessments.analytics');
 });
+
+Route::middleware(['auth', 'verified', 'candidate.onboarding', 'role:candidate'])
+    ->prefix('candidate')
+    ->name('candidate.')
+    ->group(function (): void {
+        Route::get('assessments', [CandidateAssessmentController::class, 'index'])->name('assessments.index');
+        Route::get('assessments/{assessment}', [CandidateAssessmentController::class, 'show'])->name('assessments.show');
+        Route::post('assessments/{assessment}/start', [CandidateAssessmentController::class, 'start'])->name('assessments.start');
+        Route::get('assessments/{assessment}/take', [CandidateAssessmentController::class, 'take'])->name('assessments.take');
+        Route::post('assessments/{assessment}/answer', [CandidateAssessmentController::class, 'saveAnswer'])->name('assessments.answer');
+        Route::post('assessments/{assessment}/proctor-events', [CandidateAssessmentController::class, 'storeProctoringEvent'])->name('assessments.proctor-events.store');
+        Route::post('assessments/{assessment}/submit', [CandidateAssessmentController::class, 'submit'])->name('assessments.submit');
+        Route::get('assessments/{assessment}/result', [CandidateAssessmentController::class, 'result'])->name('assessments.result');
+    });
 
 Route::middleware(['auth', 'verified', 'role:company'])->prefix('company')->name('company.')->group(function (): void {
     Route::get('dashboard', [CompanyRecruitmentController::class, 'index'])->name('dashboard');

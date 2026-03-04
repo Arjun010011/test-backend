@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
+use League\Flysystem\UnableToCheckFileExistence;
 
 class DashboardController extends Controller
 {
@@ -73,8 +74,14 @@ class DashboardController extends Controller
         $disk = config('resume.storage_disk', config('filesystems.default', 'local'));
         $storage = Storage::disk($disk);
 
-        if (! $storage->exists($resume->file_path) && $disk !== 'local') {
-            return route('candidate.resume.show', $resume);
+        if ($disk !== 'local') {
+            try {
+                if (! $storage->exists($resume->file_path)) {
+                    return route('candidate.resume.show', $resume);
+                }
+            } catch (UnableToCheckFileExistence) {
+                return route('candidate.resume.show', $resume);
+            }
         }
 
         $driver = config("filesystems.disks.{$disk}.driver");

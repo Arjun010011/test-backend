@@ -123,6 +123,16 @@ class User extends Authenticatable
         return $this->hasMany(CompanyApplication::class, 'candidate_user_id');
     }
 
+    public function assessmentAttempts(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(AssessmentAttempt::class, 'candidate_id');
+    }
+
+    public function assessmentProctoringEvents(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(AssessmentProctoringEvent::class, 'candidate_id');
+    }
+
     public function isCandidate(): bool
     {
         return $this->role === Role::Candidate;

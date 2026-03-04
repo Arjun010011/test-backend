@@ -1,5 +1,5 @@
 import { Link } from '@inertiajs/react';
-import { Building2, FileText, LayoutGrid } from 'lucide-react';
+import { Building2, ClipboardList, FileText, LayoutGrid } from 'lucide-react';
 import { NavMain } from '@/components/nav-main';
 import { NavUser } from '@/components/nav-user';
 import {
@@ -12,6 +12,7 @@ import {
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
 import { dashboard } from '@/routes';
+import { index as assessmentsIndex } from '@/routes/candidate/assessments';
 import { index as companiesIndex } from '@/routes/candidate/companies';
 import { edit as editOnboarding } from '@/routes/candidate/onboarding';
 import type { NavItem } from '@/types';
@@ -32,6 +33,11 @@ const mainNavItems: NavItem[] = [
         title: 'Companies',
         href: companiesIndex(),
         icon: Building2,
+    },
+    {
+        title: 'Assessments',
+        href: assessmentsIndex(),
+        icon: ClipboardList,
     },
 ];
 
