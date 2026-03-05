@@ -170,6 +170,45 @@ it('updates profile details without requiring a new resume upload', function () 
     expect(Resume::query()->where('user_id', $user->id)->count())->toBe(1);
 });
 
+it('uploads and removes candidate profile photo on the configured storage disk', function () {
+    Storage::fake(onboardingStorageDisk());
+
+    $user = User::factory()->candidate()->create();
+    CandidateProfile::factory()->create([
+        'user_id' => $user->id,
+        'profile_completed_at' => now(),
+    ]);
+
+    $photo = UploadedFile::fake()->image('profile-photo.jpg');
+
+    actingAs($user)
+        ->post(route('candidate.onboarding.photo.update'), [
+            'profile_photo' => $photo,
+            'remove_profile_photo' => '0',
+        ])
+        ->assertRedirect()
+        ->assertSessionHas('status', 'profile-photo-updated');
+
+    $profile = CandidateProfile::query()->where('user_id', $user->id)->firstOrFail();
+
+    expect($profile->profile_photo_path)->not->toBeNull();
+    Storage::disk(onboardingStorageDisk())->assertExists((string) $profile->profile_photo_path);
+
+    $existingPath = (string) $profile->profile_photo_path;
+
+    actingAs($user)
+        ->post(route('candidate.onboarding.photo.update'), [
+            'remove_profile_photo' => '1',
+        ])
+        ->assertRedirect()
+        ->assertSessionHas('status', 'profile-photo-removed');
+
+    $profile->refresh();
+
+    expect($profile->profile_photo_path)->toBeNull();
+    Storage::disk(onboardingStorageDisk())->assertMissing($existingPath);
+});
+
 it('stores current semester details for candidates who are still studying', function () {
     Storage::fake(onboardingStorageDisk());
 

@@ -2,6 +2,7 @@ import { Head, router, useForm } from '@inertiajs/react';
 import { Download, Plus, Star, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { StatusBadge } from '@/components/recruiter/status-badge';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -32,6 +33,7 @@ type Candidate = {
     achievements?: string | null;
     hackathons_experience?: string | null;
     projects_description?: string | null;
+    profile_photo_url?: string | null;
     education?: {
         is_currently_studying: boolean;
         current_semester: number | null;
@@ -84,6 +86,12 @@ export default function RecruiterCandidateShow({ candidate, comments, collection
     const onToggleStar = () => {
         router.post(toggle(candidate.id).url, {}, { preserveScroll: true });
     };
+    const candidateInitials = candidate.name
+        .split(' ')
+        .map((part) => part[0] ?? '')
+        .join('')
+        .slice(0, 2)
+        .toUpperCase();
 
     const toggleCollection = (collectionId: number) => {
         if (data.collections.includes(collectionId)) {
@@ -148,9 +156,20 @@ export default function RecruiterCandidateShow({ candidate, comments, collection
                 <div className="space-y-4 lg:col-span-2">
                     <div className="rounded-2xl border border-border/70 bg-card/80 p-5 shadow-sm backdrop-blur">
                         <div className="flex items-start justify-between gap-3">
-                            <div>
-                                <h2 className="text-xl font-semibold">{candidate.name}</h2>
-                                <p className="text-sm text-muted-foreground">{candidate.email}</p>
+                            <div className="flex items-center gap-3">
+                                <Avatar className="size-14 border border-border/70">
+                                    <AvatarImage
+                                        src={candidate.profile_photo_url ?? undefined}
+                                        alt={candidate.name}
+                                    />
+                                    <AvatarFallback className="text-sm font-semibold">
+                                        {candidateInitials}
+                                    </AvatarFallback>
+                                </Avatar>
+                                <div>
+                                    <h2 className="text-xl font-semibold">{candidate.name}</h2>
+                                    <p className="text-sm text-muted-foreground">{candidate.email}</p>
+                                </div>
                             </div>
                             <button
                                 type="button"

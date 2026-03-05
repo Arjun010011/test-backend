@@ -6,6 +6,8 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Storage;
+use Throwable;
 
 class CandidateProfile extends Model
 {
@@ -41,6 +43,7 @@ class CandidateProfile extends Model
         'linkedin_url',
         'github_url',
         'portfolio_url',
+        'profile_photo_path',
         'profile_completed_at',
     ];
 
@@ -156,5 +159,27 @@ class CandidateProfile extends Model
             3 => 'rd',
             default => 'th',
         };
+    }
+
+    public function profilePhotoUrl(int $expiresInMinutes = 10): ?string
+    {
+        if (! is_string($this->profile_photo_path) || trim($this->profile_photo_path) === '') {
+            return null;
+        }
+
+        $disk = config('resume.storage_disk', config('filesystems.default', 'local'));
+        $path = $this->profile_photo_path;
+        $storage = Storage::disk($disk);
+        $driver = config("filesystems.disks.{$disk}.driver");
+
+        if ($driver === 's3') {
+            try {
+                return $storage->temporaryUrl($path, now()->addMinutes($expiresInMinutes));
+            } catch (Throwable) {
+                return null;
+            }
+        }
+
+        return $storage->url($path);
     }
 }

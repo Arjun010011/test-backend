@@ -6,11 +6,12 @@ import {
 } from '@/actions/App/Http/Controllers/Candidate/OnboardingController';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
+import ProfilePhotoEditor from '@/components/profile-photo-editor';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import AppLayout from '@/layouts/app-layout';
-import type { BreadcrumbItem } from '@/types';
+import type { Auth, BreadcrumbItem } from '@/types';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -40,6 +41,7 @@ type CandidateProfile = {
     linkedin_url: string | null;
     github_url: string | null;
     portfolio_url: string | null;
+    profile_photo_url: string | null;
     bio: string | null;
     achievements: string | null;
     hackathons_experience: string | null;
@@ -48,6 +50,7 @@ type CandidateProfile = {
 };
 
 type PageProps = {
+    auth: Auth;
     profile: CandidateProfile | null;
     hasResume: boolean;
     isCompleted: boolean;
@@ -93,6 +96,7 @@ function RequiredStar() {
 
 export default function CandidateOnboarding() {
     const {
+        auth,
         profile,
         hasResume,
         isCompleted,
@@ -263,6 +267,11 @@ export default function CandidateOnboarding() {
                 <Heading
                     title={headingTitle}
                     description={headingDescription}
+                />
+                <ProfilePhotoEditor
+                    name={auth.user.name}
+                    currentPhotoUrl={profile?.profile_photo_url ?? null}
+                    helpText="This photo will be visible to recruiters."
                 />
                 <section className="rounded-xl border border-border/70 bg-secondary/55 px-4 py-3 text-sm text-secondary-foreground">
                     A complete profile with clear skills and resume improves

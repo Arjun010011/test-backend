@@ -1,4 +1,5 @@
 import { Head, Link, useForm } from '@inertiajs/react';
+import { BriefcaseBusiness, Building2, Calendar, MapPin, UserCircle, Users } from 'lucide-react';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
 import RecruiterLayout from '@/layouts/recruiter-layout';
@@ -95,21 +96,30 @@ export default function RecruiterCompanyShow({ company, applications }: Props) {
             <Head title={`${company.name} Applications`} />
 
             <div className="space-y-4">
-                <section className="rounded-2xl border border-border/70 bg-card/80 p-5 shadow-sm">
+                <section className="rounded-3xl border border-border/70 bg-blue-700 p-6 text-white shadow-lg">
                     <div className="flex flex-wrap items-start justify-between gap-4">
-                        <div>
-                            <h2 className="text-lg font-semibold">{company.name}</h2>
-                            <p className="mt-1 text-sm text-muted-foreground">
+                        <div className="max-w-2xl">
+                            <div className="inline-flex items-center gap-2 rounded-full border border-white/25 bg-white/10 px-3 py-1 text-xs font-medium">
+                                <Building2 className="size-3.5" />
+                                Company profile
+                            </div>
+                            <h2 className="mt-3 text-2xl font-semibold">{company.name}</h2>
+                            <p className="mt-1 text-sm text-blue-100">
                                 {company.is_active ? 'Visible to candidates' : 'Hidden from candidates'}
                             </p>
                         </div>
-                        <Link href={companiesIndex().url} className="text-sm font-medium text-primary hover:text-primary/80">
+                        <Link href={companiesIndex().url} className="rounded-lg border border-white/25 bg-white/10 px-3 py-2 text-sm font-medium text-white hover:bg-white/20">
                             Back to companies
                         </Link>
                     </div>
 
-                    <div className="mt-4 space-y-1 text-sm text-muted-foreground">
-                        {company.job_role && <div>Role: {company.job_role}</div>}
+                    <div className="mt-4 grid gap-3 text-sm text-blue-100 md:grid-cols-2">
+                        {company.job_role && (
+                            <div className="inline-flex items-center gap-2">
+                                <BriefcaseBusiness className="size-4" />
+                                Role: {company.job_role}
+                            </div>
+                        )}
                         {formatSalary(company.salary_min_lpa, company.salary_max_lpa) && (
                             <div>Salary: {formatSalary(company.salary_min_lpa, company.salary_max_lpa)}</div>
                         )}
@@ -119,17 +129,37 @@ export default function RecruiterCompanyShow({ company, applications }: Props) {
                         {humanize(company.employment_type) && <div>Type: {humanize(company.employment_type)}</div>}
                         {humanize(company.work_mode) && <div>Mode: {humanize(company.work_mode)}</div>}
                         {company.openings !== null && <div>Openings: {company.openings}</div>}
-                        {company.application_deadline && <div>Deadline: {company.application_deadline}</div>}
+                        {company.application_deadline && (
+                            <div className="inline-flex items-center gap-2">
+                                <Calendar className="size-4" />
+                                Deadline: {company.application_deadline}
+                            </div>
+                        )}
                         {company.skills_required && <div>Skills: {company.skills_required}</div>}
-                        {company.location && <div>Location: {company.location}</div>}
+                        {company.location && (
+                            <div className="inline-flex items-center gap-2">
+                                <MapPin className="size-4" />
+                                Location: {company.location}
+                            </div>
+                        )}
                         {company.website && <div>Website: {company.website}</div>}
                         <div>Source: {company.source}</div>
                         <div>Approval: {company.approval_status}</div>
                         <div>Visibility: {company.visibility}</div>
-                        {company.created_by_name && <div>Enrolled by: {company.created_by_name}</div>}
-                        {company.owner_name && <div>Company owner: {company.owner_name}</div>}
-                        {company.description && <p className="pt-1">{company.description}</p>}
+                        {company.created_by_name && (
+                            <div className="inline-flex items-center gap-2">
+                                <UserCircle className="size-4" />
+                                Enrolled by: {company.created_by_name}
+                            </div>
+                        )}
+                        {company.owner_name && (
+                            <div className="inline-flex items-center gap-2">
+                                <Users className="size-4" />
+                                Company owner: {company.owner_name}
+                            </div>
+                        )}
                     </div>
+                    {company.description && <p className="mt-3 text-sm text-blue-100">{company.description}</p>}
                 </section>
 
                 <section className="rounded-2xl border border-border/70 bg-card/80 p-5 shadow-sm">
@@ -225,7 +255,7 @@ function ApplicationReviewCard({ companyId, application }: ApplicationReviewCard
                 </Button>
                 <Link
                     href={showApplication({ company: companyId, application: application.id }).url}
-                    className="text-sm font-medium text-primary hover:text-primary/80"
+                    className="rounded-lg border border-border/70 px-3 py-1.5 text-sm font-medium hover:bg-muted/50"
                 >
                     View details
                 </Link>

@@ -27,6 +27,8 @@ Route::middleware(['auth', 'verified', 'candidate.onboarding'])->group(function 
         ->name('candidate.onboarding.edit');
     Route::post('candidate/onboarding', [OnboardingController::class, 'store'])
         ->name('candidate.onboarding.store');
+    Route::post('candidate/onboarding/profile-photo', [OnboardingController::class, 'updateProfilePhoto'])
+        ->name('candidate.onboarding.photo.update');
 
     Route::get('candidate/resume', [ResumeController::class, 'edit'])
         ->name('candidate.resume.edit');

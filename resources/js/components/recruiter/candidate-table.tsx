@@ -1,7 +1,7 @@
 import { Link } from '@inertiajs/react';
 import { MoreVertical, Star } from 'lucide-react';
 import { StatusBadge } from '@/components/recruiter/status-badge';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import {
     DropdownMenu,
@@ -23,6 +23,7 @@ export type RecruiterCandidate = {
     status_label: string;
     status_color: string;
     is_starred: boolean;
+    profile_photo_url?: string | null;
     latest_resume: {
         download_url: string;
     } | null;
@@ -113,7 +114,11 @@ export function CandidateTable({
                             >
                                 <td className="px-4 py-3">
                                     <div className="flex items-center gap-3">
-                                        <Avatar className="size-9 border border-border/70">
+                                        <Avatar className="size-10 border border-border/70">
+                                            <AvatarImage
+                                                src={candidate.profile_photo_url ?? undefined}
+                                                alt={candidate.name}
+                                            />
                                             <AvatarFallback className="text-xs font-semibold">
                                                 {initials(candidate.name)}
                                             </AvatarFallback>

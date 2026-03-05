@@ -162,15 +162,25 @@ class RecruiterService
                 ->pluck('file_path')
                 ->filter()
                 ->values();
+            $profilePhotoPath = CandidateProfile::query()
+                ->where('user_id', $candidate->id)
+                ->value('profile_photo_path');
 
             $candidate->delete();
 
-            if ($resumePaths->isNotEmpty()) {
+            $pathsToDelete = $resumePaths
+                ->when(
+                    is_string($profilePhotoPath) && $profilePhotoPath !== '',
+                    fn ($paths) => $paths->push($profilePhotoPath),
+                )
+                ->values();
+
+            if ($pathsToDelete->isNotEmpty()) {
                 $disk = config('resume.storage_disk', config('filesystems.default', 'local'));
-                Storage::disk($disk)->delete($resumePaths->all());
+                Storage::disk($disk)->delete($pathsToDelete->all());
 
                 if ($disk !== 'local') {
-                    Storage::disk('local')->delete($resumePaths->all());
+                    Storage::disk('local')->delete($pathsToDelete->all());
                 }
             }
         });
@@ -392,7 +402,7 @@ class RecruiterService
                 'starredByRecruiters as is_starred' => fn (Builder $query): Builder => $query->where('recruiter_id', $recruiter->id),
             ])
             ->with([
-                'candidateProfile:id,user_id,skills,location,graduation_year,candidate_status,profile_completed_at,university,degree,major,is_currently_studying,current_semester,total_semesters,semester_recorded_at,achievements,hackathons_experience,projects_description',
+                'candidateProfile:id,user_id,skills,location,graduation_year,candidate_status,profile_completed_at,university,degree,major,is_currently_studying,current_semester,total_semesters,semester_recorded_at,achievements,hackathons_experience,projects_description,profile_photo_path',
                 'resumes' => fn ($query) => $query
                     ->select('id', 'user_id', 'original_name', 'file_size', 'extracted_skills', 'is_primary', 'created_at')
                     ->where('is_primary', true)

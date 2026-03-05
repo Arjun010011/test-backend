@@ -4,6 +4,7 @@ namespace App\Http\Requests\Candidate;
 
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\File;
 
 class ProfilePhotoUpdateRequest extends FormRequest
@@ -24,7 +25,10 @@ class ProfilePhotoUpdateRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'profile_photo' => ['nullable', File::image()->max(2 * 1024)],
+            'profile_photo' => [
+                Rule::requiredIf(fn (): bool => ! $this->boolean('remove_profile_photo')),
+                File::image()->max(2 * 1024),
+            ],
             'remove_profile_photo' => ['nullable', 'boolean'],
         ];
     }
@@ -35,6 +39,7 @@ class ProfilePhotoUpdateRequest extends FormRequest
     public function messages(): array
     {
         return [
+            'profile_photo.required' => 'Please choose a photo to upload.',
             'profile_photo.image' => 'Profile photo must be a valid image file.',
             'profile_photo.max' => 'Profile photo size must not exceed 2MB.',
         ];

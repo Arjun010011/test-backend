@@ -1,4 +1,5 @@
-import { Head, Link, router, useForm } from '@inertiajs/react';
+import { Head, router, useForm } from '@inertiajs/react';
+import { Building2, Eye, EyeOff, Globe, MapPin, Search, ShieldCheck, Users } from 'lucide-react';
 import type { FormEvent } from 'react';
 import { useMemo } from 'react';
 import InputError from '@/components/input-error';
@@ -44,46 +45,6 @@ type Props = {
     };
     status?: string;
 };
-
-function formatSalary(min: number | null, max: number | null): string | null {
-    if (min === null && max === null) {
-        return null;
-    }
-
-    if (min !== null && max !== null) {
-        return `${min} - ${max} LPA`;
-    }
-
-    if (min !== null) {
-        return `From ${min} LPA`;
-    }
-
-    return `Up to ${max} LPA`;
-}
-
-function formatExperience(min: number | null, max: number | null): string | null {
-    if (min === null && max === null) {
-        return null;
-    }
-
-    if (min !== null && max !== null) {
-        return `${min} - ${max} years`;
-    }
-
-    if (min !== null) {
-        return `${min}+ years`;
-    }
-
-    return `Up to ${max} years`;
-}
-
-function humanize(value: string | null): string | null {
-    if (value === null) {
-        return null;
-    }
-
-    return value.replaceAll('_', ' ');
-}
 
 export default function RecruiterCompaniesIndex({ companies, filters, status }: Props) {
     const form = useForm({
@@ -148,6 +109,18 @@ export default function RecruiterCompaniesIndex({ companies, filters, status }: 
         [filterForm.data.search, filterForm.data.source, filterForm.data.visibility, filterForm.data.approval_status],
     );
 
+    const companyStats = useMemo(() => {
+        const total = companies.data.length;
+        const active = companies.data.filter((company) => company.is_active).length;
+        const pending = companies.data.filter((company) => company.approval_status === 'pending').length;
+        const applications = companies.data.reduce(
+            (carry, company) => carry + company.applications_count,
+            0,
+        );
+
+        return { total, active, pending, applications };
+    }, [companies.data]);
+
     return (
         <RecruiterLayout title="Companies">
             <Head title="Companies" />
@@ -169,10 +142,45 @@ export default function RecruiterCompaniesIndex({ companies, filters, status }: 
                     </div>
                 )}
 
+                <section className="rounded-3xl border border-border/70 bg-blue-700 p-6 text-white shadow-lg">
+                    <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+                        <div className="max-w-2xl">
+                            <div className="inline-flex items-center gap-2 rounded-full border border-white/25 bg-white/10 px-3 py-1 text-xs font-medium">
+                                <Building2 className="size-3.5" />
+                                Company management
+                            </div>
+                            <h1 className="mt-3 text-2xl font-semibold md:text-3xl">
+                                Manage hiring partners
+                            </h1>
+                            <p className="mt-2 text-sm text-blue-100">
+                                Enroll new companies, track approvals, and monitor application volume across listings.
+                            </p>
+                        </div>
+                        <div className="grid gap-3 sm:grid-cols-4">
+                            <div className="rounded-xl border border-white/20 bg-white/10 px-4 py-3">
+                                <p className="text-xs text-blue-100">Companies</p>
+                                <p className="mt-1 text-xl font-semibold">{companyStats.total}</p>
+                            </div>
+                            <div className="rounded-xl border border-white/20 bg-white/10 px-4 py-3">
+                                <p className="text-xs text-blue-100">Active</p>
+                                <p className="mt-1 text-xl font-semibold">{companyStats.active}</p>
+                            </div>
+                            <div className="rounded-xl border border-white/20 bg-white/10 px-4 py-3">
+                                <p className="text-xs text-blue-100">Pending</p>
+                                <p className="mt-1 text-xl font-semibold">{companyStats.pending}</p>
+                            </div>
+                            <div className="rounded-xl border border-white/20 bg-white/10 px-4 py-3">
+                                <p className="text-xs text-blue-100">Applications</p>
+                                <p className="mt-1 text-xl font-semibold">{companyStats.applications}</p>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
                 <section className="rounded-2xl border border-border/70 bg-card/80 p-5 shadow-sm">
                     <h2 className="text-base font-semibold">Enroll company</h2>
                     <p className="mt-1 text-sm text-muted-foreground">
-                        Add a company to make it visible to candidates.
+                        Add a company profile to make opportunities visible to candidates.
                     </p>
 
                     <form onSubmit={submit} className="mt-4 grid gap-4 md:grid-cols-2">
@@ -240,7 +248,7 @@ export default function RecruiterCompaniesIndex({ companies, filters, status }: 
                         </label>
 
                         <div className="md:col-span-2">
-                            <Button type="submit" disabled={form.processing}>
+                            <Button type="submit" disabled={form.processing} className="bg-blue-700 text-white hover:bg-blue-800">
                                 {form.processing ? 'Saving...' : 'Enroll company'}
                             </Button>
                         </div>
@@ -248,7 +256,7 @@ export default function RecruiterCompaniesIndex({ companies, filters, status }: 
                 </section>
 
                 <section className="rounded-2xl border border-border/70 bg-card/80 p-5 shadow-sm">
-                    <h2 className="text-base font-semibold">All Registered Companies</h2>
+                    <h2 className="text-base font-semibold">All registered companies</h2>
                     <p className="mt-1 text-sm text-muted-foreground">
                         Recruiters can view all registered companies and manage visibility or delete.
                     </p>
@@ -296,77 +304,102 @@ export default function RecruiterCompaniesIndex({ companies, filters, status }: 
                     </div>
                 </section>
 
+                {companies.data.length === 0 && (
+                    <section className="rounded-2xl border border-dashed border-border/70 bg-card/70 px-6 py-12 text-center">
+                        <Building2 className="mx-auto size-8 text-muted-foreground" />
+                        <h3 className="mt-3 text-lg font-semibold">No companies found</h3>
+                        <p className="mt-2 text-sm text-muted-foreground">
+                            Try adjusting filters or enroll a new company to get started.
+                        </p>
+                    </section>
+                )}
+
                 <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                     {companies.data.map((company) => (
                         <article
                             key={company.id}
-                            className="rounded-2xl border border-border/70 bg-card/80 p-5 shadow-sm"
+                            className="cursor-pointer rounded-2xl border border-border/70 bg-card/80 p-4 shadow-sm transition-colors hover:bg-accent/30"
+                            role="link"
+                            tabIndex={0}
+                            onClick={() => router.get(show(company.id).url)}
+                            onKeyDown={(event) => {
+                                if (event.key === 'Enter' || event.key === ' ') {
+                                    event.preventDefault();
+                                    router.get(show(company.id).url);
+                                }
+                            }}
                         >
                             <div className="flex items-center justify-between gap-3">
-                                <h3 className="text-base font-semibold">{company.name}</h3>
-                                <span className="rounded-full border border-border/70 px-2 py-1 text-xs">
-                                    {company.is_active ? 'Active' : 'Hidden'}
-                                </span>
+                                <h3 className="text-sm font-semibold">{company.name}</h3>
+                                <div className="flex items-center gap-2">
+                                    <span className={`rounded-full border px-2 py-1 text-xs ${company.is_active ? 'border-emerald-300/70 bg-emerald-100/60 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-200' : 'border-amber-300/70 bg-amber-100/60 text-amber-800 dark:bg-amber-900/30 dark:text-amber-200'}`}>
+                                        {company.is_active ? 'Active' : 'Hidden'}
+                                    </span>
+                                    <span className={`rounded-full border px-2 py-1 text-xs ${company.approval_status === 'approved' ? 'border-blue-300/70 bg-blue-100/60 text-blue-800 dark:bg-blue-900/30 dark:text-blue-200' : 'border-orange-300/70 bg-orange-100/60 text-orange-800 dark:bg-orange-900/30 dark:text-orange-200'}`}>
+                                        {company.approval_status}
+                                    </span>
+                                </div>
                             </div>
                             {company.description && (
-                                <p className="mt-2 text-sm text-muted-foreground">{company.description}</p>
+                                <p className="mt-2 line-clamp-2 text-xs text-muted-foreground">{company.description}</p>
                             )}
-                            <div className="mt-3 space-y-1 text-sm text-muted-foreground">
+                            <div className="mt-3 grid gap-1 text-xs text-muted-foreground">
                                 {company.job_role && <div>Role: {company.job_role}</div>}
-                                {company.location && <div>Location: {company.location}</div>}
-                                {formatSalary(company.salary_min_lpa, company.salary_max_lpa) && (
-                                    <div>Salary: {formatSalary(company.salary_min_lpa, company.salary_max_lpa)}</div>
-                                )}
-                                {formatExperience(company.experience_min_years, company.experience_max_years) && (
-                                    <div>
-                                        Experience: {formatExperience(company.experience_min_years, company.experience_max_years)}
+                                {company.location && (
+                                    <div className="inline-flex items-center gap-1">
+                                        <MapPin className="size-3.5" />
+                                        Location: {company.location}
                                     </div>
                                 )}
-                                {humanize(company.employment_type) && <div>Type: {humanize(company.employment_type)}</div>}
-                                {humanize(company.work_mode) && <div>Mode: {humanize(company.work_mode)}</div>}
-                                {company.openings !== null && <div>Openings: {company.openings}</div>}
-                                {company.application_deadline && <div>Deadline: {company.application_deadline}</div>}
-                                {company.skills_required && <div>Skills: {company.skills_required}</div>}
-                                {company.website && <div>Website: {company.website}</div>}
-                                <div>Source: {company.source}</div>
-                                <div>Approval: {company.approval_status}</div>
+                                {company.website && (
+                                    <div className="inline-flex items-center gap-1">
+                                        <Globe className="size-3.5" />
+                                        Website: {company.website}
+                                    </div>
+                                )}
+                                <div className="inline-flex items-center gap-1">
+                                    <Users className="size-3.5" />
+                                    Applications: {company.applications_count}
+                                </div>
                                 <div>Visibility: {company.visibility}</div>
-                                <div>Applications: {company.applications_count}</div>
-                                {company.created_by_name && <div>Enrolled by: {company.created_by_name}</div>}
-                                {company.owner_name && <div>Company owner: {company.owner_name}</div>}
                             </div>
                             <div className="mt-4 flex flex-wrap items-center gap-2">
-                                <Link
-                                    href={show(company.id).url}
-                                    className="text-sm font-medium text-primary hover:text-primary/80"
-                                >
-                                    View applications
-                                </Link>
+                                <span className="inline-flex items-center gap-1 rounded-lg border border-border/70 px-3 py-1.5 text-xs font-medium text-muted-foreground">
+                                    <Search className="size-3.5" />
+                                    Open for full details
+                                </span>
                                 {company.approval_status === 'pending' && (
                                     <button
                                         type="button"
-                                        className="rounded-md border border-blue-400/60 px-2 py-1 text-xs text-blue-700 hover:bg-blue-200/60"
-                                        onClick={() => router.patch(approve(company.id).url)}
+                                        className="inline-flex items-center gap-1 rounded-md border border-blue-400/60 px-2 py-1 text-xs text-blue-700 hover:bg-blue-200/60"
+                                        onClick={(event) => {
+                                            event.stopPropagation();
+                                            router.patch(approve(company.id).url);
+                                        }}
                                     >
+                                        <ShieldCheck className="size-3.5" />
                                         Approve
                                     </button>
                                 )}
                                 <button
                                     type="button"
-                                    className="rounded-md border border-border/70 px-2 py-1 text-xs hover:bg-muted/60"
-                                    onClick={() =>
+                                    className="inline-flex items-center gap-1 rounded-md border border-border/70 px-2 py-1 text-xs hover:bg-muted/60"
+                                    onClick={(event) => {
+                                        event.stopPropagation();
                                         router.patch(
                                             updateVisibility(company.id).url,
                                             { visibility: company.visibility === 'public' ? 'private' : 'public' },
-                                        )
-                                    }
+                                        );
+                                    }}
                                 >
+                                    {company.visibility === 'public' ? <EyeOff className="size-3.5" /> : <Eye className="size-3.5" />}
                                     {company.visibility === 'public' ? 'Make Private' : 'Make Public'}
                                 </button>
                                 <button
                                     type="button"
                                     className="rounded-md border border-red-300/70 px-2 py-1 text-xs text-red-700 hover:bg-red-100/60"
-                                    onClick={() => {
+                                    onClick={(event) => {
+                                        event.stopPropagation();
                                         if (!window.confirm('Delete this company?')) {
                                             return;
                                         }

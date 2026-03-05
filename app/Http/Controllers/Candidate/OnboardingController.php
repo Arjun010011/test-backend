@@ -6,11 +6,13 @@ use App\Actions\Candidate\NormalizeSkills;
 use App\Actions\Candidate\ScanResume;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Candidate\OnboardingRequest;
+use App\Http\Requests\Candidate\ProfilePhotoUpdateRequest;
 use App\Models\CandidateProfile;
 use App\Models\Skill;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -54,6 +56,7 @@ class OnboardingController extends Controller
                 'linkedin_url' => $profile->linkedin_url,
                 'github_url' => $profile->github_url,
                 'portfolio_url' => $profile->portfolio_url,
+                'profile_photo_url' => $profile->profilePhotoUrl(),
                 'bio' => $profile->bio,
                 'achievements' => $profile->achievements,
                 'hackathons_experience' => $profile->hackathons_experience,
@@ -201,5 +204,57 @@ class OnboardingController extends Controller
             'status',
             $wasProfileCompleted ? 'profile-updated' : 'onboarding-complete',
         );
+    }
+
+    public function updateProfilePhoto(ProfilePhotoUpdateRequest $request): RedirectResponse
+    {
+        $user = $request->user();
+
+        if ($user === null) {
+            abort(403);
+        }
+
+        $profile = CandidateProfile::query()->firstOrCreate(['user_id' => $user->id]);
+        $disk = config('resume.storage_disk', config('filesystems.default', 'local'));
+        $directory = trim((string) config('resume.storage_directory', 'resumes'), '/').'/'.$user->id.'/profile-photos';
+        $existingPath = is_string($profile->profile_photo_path) ? $profile->profile_photo_path : null;
+
+        if ($request->boolean('remove_profile_photo')) {
+            if ($existingPath !== null && $existingPath !== '') {
+                Storage::disk($disk)->delete($existingPath);
+
+                if ($disk !== 'local') {
+                    Storage::disk('local')->delete($existingPath);
+                }
+            }
+
+            $profile->forceFill([
+                'profile_photo_path' => null,
+            ])->save();
+
+            return back()->with('status', 'profile-photo-removed');
+        }
+
+        $file = $request->file('profile_photo');
+
+        if ($file === null) {
+            return back();
+        }
+
+        $newPath = $file->store($directory, $disk);
+
+        $profile->forceFill([
+            'profile_photo_path' => $newPath,
+        ])->save();
+
+        if ($existingPath !== null && $existingPath !== '' && $existingPath !== $newPath) {
+            Storage::disk($disk)->delete($existingPath);
+
+            if ($disk !== 'local') {
+                Storage::disk('local')->delete($existingPath);
+            }
+        }
+
+        return back()->with('status', 'profile-photo-updated');
     }
 }

@@ -76,7 +76,7 @@ class RecruiterCandidateController extends Controller
         $recruiterService->assertCandidateIsVisible($user, $candidate);
 
         $candidate->load([
-            'candidateProfile:id,user_id,skills,location,graduation_year,candidate_status,profile_completed_at,university,degree,major,is_currently_studying,current_semester,total_semesters,semester_recorded_at,achievements,hackathons_experience,projects_description',
+            'candidateProfile:id,user_id,skills,location,graduation_year,candidate_status,profile_completed_at,university,degree,major,is_currently_studying,current_semester,total_semesters,semester_recorded_at,achievements,hackathons_experience,projects_description,profile_photo_path',
             'resumes' => fn ($query) => $query
                 ->select('id', 'user_id', 'original_name', 'file_size', 'extracted_skills', 'is_primary', 'created_at')
                 ->where('is_primary', true)

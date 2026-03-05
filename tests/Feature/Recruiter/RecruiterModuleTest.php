@@ -12,6 +12,11 @@ use Inertia\Testing\AssertableInertia as Assert;
 
 use function Pest\Laravel\actingAs;
 
+function recruiterStorageDisk(): string
+{
+    return (string) config('resume.storage_disk', config('filesystems.default', 'local'));
+}
+
 it('blocks non-admin users from recruiter routes', function () {
     $candidate = User::factory()->candidate()->create();
 
@@ -408,6 +413,30 @@ it('shows progressed education status on candidate detail page', function () {
             ->where('candidate.education.projected_semester', 8)
             ->where('candidate.education.status_label', 'Completed')
             ->where('candidate.degree', 'B.Tech')
+        );
+});
+
+it('shows candidate profile photo url on recruiter detail page', function () {
+    Storage::fake(recruiterStorageDisk());
+
+    $admin = User::factory()->admin()->create();
+    $candidate = User::factory()->candidate()->create();
+    $profilePhotoPath = 'resumes/'.$candidate->id.'/profile-photos/photo.jpg';
+
+    Storage::disk(recruiterStorageDisk())->put($profilePhotoPath, 'binary-image-content');
+
+    CandidateProfile::factory()->create([
+        'user_id' => $candidate->id,
+        'profile_completed_at' => now(),
+        'profile_photo_path' => $profilePhotoPath,
+    ]);
+
+    actingAs($admin)
+        ->get(route('recruiter.candidates.show', $candidate))
+        ->assertSuccessful()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('recruiter/candidates/show')
+            ->where('candidate.profile_photo_url', fn (?string $url): bool => is_string($url) && $url !== '')
         );
 });
 

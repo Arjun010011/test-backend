@@ -1,5 +1,5 @@
 import { Head, Link, router, useForm } from '@inertiajs/react';
-import { Plus } from 'lucide-react';
+import { FolderKanban, Layers3, Pencil, Plus, Trash2, Users } from 'lucide-react';
 import type { FormEvent } from 'react';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
@@ -85,24 +85,62 @@ export default function RecruiterCollectionsIndex({ collections }: Props) {
         });
     };
 
+    const totalCollections = collections.data.length;
+    const totalCandidates = collections.data.reduce(
+        (carry, collection) => carry + collection.candidates_count,
+        0,
+    );
+    const rootCollections = collections.data.filter(
+        (collection) => collection.parent_id === null,
+    ).length;
+
     return (
         <RecruiterLayout title="Collections">
             <Head title="Collections" />
 
             <div className="space-y-4">
-                <section className="rounded-3xl border border-blue-300/70 bg-blue-700 p-6 text-white shadow-xl dark:border-blue-400/20 dark:bg-blue-600/70">
-                    <div className="text-xs font-semibold uppercase tracking-[0.2em] text-blue-100">Recruiter</div>
-                    <h1 className="mt-2 text-2xl font-bold">Collection Studio</h1>
-                    <p className="mt-1 text-sm text-blue-100">
-                        Organize candidates with nested collections and share clearer hiring pipelines.
-                    </p>
+                <section className="rounded-3xl border border-border/70 bg-blue-700 p-6 text-white shadow-lg">
+                    <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+                        <div className="max-w-2xl">
+                            <div className="inline-flex items-center gap-2 rounded-full border border-white/25 bg-white/10 px-3 py-1 text-xs font-medium">
+                                <FolderKanban className="size-3.5" />
+                                Collection studio
+                            </div>
+                            <h1 className="mt-3 text-2xl font-semibold md:text-3xl">
+                                Organize your hiring pipelines
+                            </h1>
+                            <p className="mt-2 text-sm text-blue-100">
+                                Group candidates with parent and sub-collections so every role has a clear flow.
+                            </p>
+                        </div>
+                        <div className="grid gap-3 sm:grid-cols-3">
+                            <div className="rounded-xl border border-white/20 bg-white/10 px-4 py-3">
+                                <p className="text-xs text-blue-100">Collections</p>
+                                <p className="mt-1 text-xl font-semibold">{totalCollections}</p>
+                            </div>
+                            <div className="rounded-xl border border-white/20 bg-white/10 px-4 py-3">
+                                <p className="text-xs text-blue-100">Candidates tagged</p>
+                                <p className="mt-1 text-xl font-semibold">{totalCandidates}</p>
+                            </div>
+                            <div className="rounded-xl border border-white/20 bg-white/10 px-4 py-3">
+                                <p className="text-xs text-blue-100">Root collections</p>
+                                <p className="mt-1 text-xl font-semibold">{rootCollections}</p>
+                            </div>
+                        </div>
+                    </div>
                 </section>
 
                 <form
                     onSubmit={submit}
-                    className="rounded-2xl border border-border/70 bg-card/80 p-5 shadow-sm backdrop-blur"
+                    className="rounded-2xl border border-border/70 bg-card/80 p-5 shadow-sm"
                 >
-                    <div className="grid gap-3 md:grid-cols-3">
+                    <div className="mb-4">
+                        <h2 className="text-base font-semibold text-foreground">Create collection</h2>
+                        <p className="text-sm text-muted-foreground">
+                            Start with a clear collection name and optional description.
+                        </p>
+                    </div>
+                    <div className="grid gap-3 md:grid-cols-[1fr_1fr_auto]">
                         <input
                             value={form.data.name}
                             onChange={(event) => form.setData('name', event.target.value)}
@@ -118,7 +156,7 @@ export default function RecruiterCollectionsIndex({ collections }: Props) {
                         <input type="hidden" name="parent_id" value={form.data.parent_id} />
                         <button
                             type="submit"
-                            className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm text-primary-foreground hover:bg-primary/90"
+                            className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-blue-700 px-4 text-sm text-white hover:bg-blue-800"
                         >
                             <Plus className="size-4" />
                             Create collection
@@ -126,45 +164,68 @@ export default function RecruiterCollectionsIndex({ collections }: Props) {
                     </div>
                 </form>
 
+                {collections.data.length === 0 && (
+                    <section className="rounded-2xl border border-dashed border-border/70 bg-card/70 px-6 py-12 text-center">
+                        <Layers3 className="mx-auto size-8 text-muted-foreground" />
+                        <h3 className="mt-3 text-lg font-semibold">No collections yet</h3>
+                        <p className="mt-2 text-sm text-muted-foreground">
+                            Create your first collection to begin organizing candidates.
+                        </p>
+                    </section>
+                )}
+
                 <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
                     {collections.data.map((collection) => (
-                        <div
+                        <article
                             key={collection.id}
-                            className="rounded-2xl border border-border/70 bg-card/80 p-5 shadow-sm backdrop-blur"
+                            className="rounded-2xl border border-border/70 bg-card/80 p-5 shadow-sm"
                         >
-                            <div className="text-base font-semibold">{collection.name}</div>
+                            <div className="flex items-start justify-between gap-3">
+                                <div>
+                                    <div className="text-base font-semibold">{collection.name}</div>
+                                    {collection.parent_name && (
+                                        <div className="mt-1 inline-flex items-center rounded-full border border-border bg-background/80 px-2 py-0.5 text-[11px] text-muted-foreground">
+                                            Child of {collection.parent_name}
+                                        </div>
+                                    )}
+                                </div>
+                                <FolderKanban className="size-4 text-muted-foreground" />
+                            </div>
                             <p className="mt-1 text-sm text-muted-foreground">
                                 {collection.description ?? 'No description'}
                             </p>
-                            <div className="mt-4 text-sm text-muted-foreground">
-                                {collection.candidates_count} candidates
+                            <div className="mt-4 flex items-center gap-4 text-sm text-muted-foreground">
+                                <span className="inline-flex items-center gap-1">
+                                    <Users className="size-3.5" />
+                                    {collection.candidates_count} candidates
+                                </span>
+                                <span>Created {collection.created_at}</span>
                             </div>
-                            <div className="mt-1 text-xs text-muted-foreground">
-                                Created {collection.created_at}
-                            </div>
-                            <Link
-                                href={show(collection.id).url}
-                                className="mt-4 inline-flex rounded-lg border border-border/70 px-3 py-2 text-sm hover:bg-muted/30"
-                            >
-                                View
-                            </Link>
-                            <div className="mt-2 flex gap-2">
+                            <div className="mt-4 flex flex-wrap gap-2">
+                                <Link
+                                    href={show(collection.id).url}
+                                    className="inline-flex items-center gap-1 rounded-lg border border-border/70 px-3 py-2 text-sm hover:bg-muted/30"
+                                >
+                                    View workspace
+                                </Link>
                                 <button
                                     type="button"
                                     onClick={() => openEdit(collection)}
-                                    className="inline-flex rounded-lg border border-border/70 px-3 py-2 text-sm hover:bg-muted/30"
+                                    className="inline-flex items-center gap-1 rounded-lg border border-border/70 px-3 py-2 text-sm hover:bg-muted/30"
                                 >
+                                    <Pencil className="size-3.5" />
                                     Edit
                                 </button>
                                 <button
                                     type="button"
                                     onClick={() => deleteCollection(collection)}
-                                    className="inline-flex rounded-lg border border-red-300/60 px-3 py-2 text-sm text-red-600 hover:bg-red-500/10"
+                                    className="inline-flex items-center gap-1 rounded-lg border border-red-300/60 px-3 py-2 text-sm text-red-600 hover:bg-red-500/10"
                                 >
+                                    <Trash2 className="size-3.5" />
                                     Delete
                                 </button>
                             </div>
-                        </div>
+                        </article>
                     ))}
                 </div>
             </div>

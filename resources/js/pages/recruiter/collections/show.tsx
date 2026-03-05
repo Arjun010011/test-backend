@@ -1,6 +1,7 @@
 import { Head, Link, router, useForm } from '@inertiajs/react';
-import { Layers, Plus, Users } from 'lucide-react';
+import { FolderKanban, Layers, Plus, UserCheck, Users } from 'lucide-react';
 import { useMemo, useState } from 'react';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -30,6 +31,7 @@ type Candidate = {
     name: string;
     email: string;
     skills: string[];
+    profile_photo_url?: string | null;
     collections: Array<{ id: number; name: string }>;
 };
 
@@ -47,6 +49,15 @@ type Props = {
         search?: string | null;
     };
 };
+
+function initials(name: string): string {
+    return name
+        .split(' ')
+        .map((part) => part[0] ?? '')
+        .join('')
+        .slice(0, 2)
+        .toUpperCase();
+}
 
 export default function RecruiterCollectionShow({ collection, children, candidates, filters }: Props) {
     const [search, setSearch] = useState(filters.search ?? '');
@@ -147,11 +158,14 @@ export default function RecruiterCollectionShow({ collection, children, candidat
         >
             <Head title={collection.name} />
 
-            <section className="mb-6 rounded-3xl border border-blue-300/70 bg-blue-700 p-6 text-white shadow-xl dark:border-blue-400/20 dark:bg-blue-600/70">
+            <section className="mb-6 rounded-3xl border border-border/70 bg-blue-700 p-6 text-white shadow-lg">
                 <div className="grid gap-4 md:grid-cols-3">
                     <div className="md:col-span-2">
-                        <div className="text-xs font-semibold uppercase tracking-[0.2em] text-blue-100">Collection</div>
-                        <h1 className="mt-2 text-2xl font-bold">{collection.name}</h1>
+                        <div className="inline-flex items-center gap-2 rounded-full border border-white/25 bg-white/10 px-3 py-1 text-xs font-medium">
+                            <FolderKanban className="size-3.5" />
+                            Collection workspace
+                        </div>
+                        <h1 className="mt-3 text-2xl font-semibold">{collection.name}</h1>
                         <p className="mt-1 text-sm text-blue-100">{collection.description ?? 'No description'}</p>
                         {collection.parent_name && (
                             <div className="mt-2 text-xs text-blue-100/90">Parent: {collection.parent_name}</div>
@@ -170,7 +184,7 @@ export default function RecruiterCollectionShow({ collection, children, candidat
                 </div>
             </section>
 
-            <section className="mb-6 rounded-2xl border border-border/70 bg-card/80 p-5 shadow-sm backdrop-blur">
+            <section className="mb-6 rounded-2xl border border-border/70 bg-card/80 p-5 shadow-sm">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <div>
                         <div className="text-sm font-semibold text-foreground">Sub-collections</div>
@@ -185,7 +199,7 @@ export default function RecruiterCollectionShow({ collection, children, candidat
                 {children.data.length > 0 ? (
                     <div className="mt-4 grid gap-3 md:grid-cols-2">
                         {children.data.map((child) => (
-                            <div key={child.id} className="rounded-xl border border-border/70 bg-muted/20 p-4">
+                            <div key={child.id} className="rounded-xl border border-border/70 bg-background/70 p-4">
                                 <div className="flex items-start justify-between gap-3">
                                     <div>
                                         <div className="text-sm font-semibold text-foreground">{child.name}</div>
@@ -226,10 +240,13 @@ export default function RecruiterCollectionShow({ collection, children, candidat
                 )}
             </section>
 
-            <section className="rounded-2xl border border-border/70 bg-card/80 p-5 shadow-sm backdrop-blur">
+            <section className="rounded-2xl border border-border/70 bg-card/80 p-5 shadow-sm">
                 <div className="flex items-center justify-between gap-3">
                     <div>
-                        <div className="text-sm font-semibold text-foreground">Candidate assignment</div>
+                        <div className="inline-flex items-center gap-2 text-sm font-semibold text-foreground">
+                            <UserCheck className="size-4" />
+                            Candidate assignment
+                        </div>
                         <div className="text-xs text-muted-foreground">
                             Search candidates (including inherited parent candidates) and assign them to this collection.
                         </div>
@@ -243,18 +260,19 @@ export default function RecruiterCollectionShow({ collection, children, candidat
                         {selectableRows.length > 0 ? selectableRows.map(({ candidate, availableSubCollections }) => (
                             <div key={`selectable-${candidate.id}`} className="rounded-xl border border-border/70 bg-card/70 p-4">
                                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                                    <div>
-                                        <div className="text-sm font-semibold text-foreground">{candidate.name}</div>
-                                        <div className="text-xs text-muted-foreground">{candidate.email}</div>
-                                        <div className="mt-2 flex flex-wrap gap-1.5">
-                                            {candidate.skills.slice(0, 6).map((skill) => (
-                                                <span key={`${candidate.id}-${skill}`} className="rounded-full border border-sky-300/40 bg-sky-500/10 px-2 py-0.5 text-[11px] text-sky-700 dark:text-sky-300">
-                                                    {skill}
-                                                </span>
-                                            ))}
-                                            {candidate.skills.length === 0 && (
-                                                <span className="text-xs text-muted-foreground">No skills listed</span>
-                                            )}
+                                    <div className="flex items-center gap-3">
+                                        <Avatar className="size-10 border border-border/70">
+                                            <AvatarImage
+                                                src={candidate.profile_photo_url ?? undefined}
+                                                alt={candidate.name}
+                                            />
+                                            <AvatarFallback className="text-xs font-semibold">
+                                                {initials(candidate.name)}
+                                            </AvatarFallback>
+                                        </Avatar>
+                                        <div>
+                                            <div className="text-sm font-semibold text-foreground">{candidate.name}</div>
+                                            <div className="text-xs text-muted-foreground">{candidate.email}</div>
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-2">
@@ -273,6 +291,16 @@ export default function RecruiterCollectionShow({ collection, children, candidat
                                             Add to this collection
                                         </button>
                                     </div>
+                                </div>
+                                <div className="mt-2 flex flex-wrap gap-1.5">
+                                    {candidate.skills.slice(0, 6).map((skill) => (
+                                        <span key={`${candidate.id}-${skill}`} className="rounded-full border border-sky-300/40 bg-sky-500/10 px-2 py-0.5 text-[11px] text-sky-700 dark:text-sky-300">
+                                            {skill}
+                                        </span>
+                                    ))}
+                                    {candidate.skills.length === 0 && (
+                                        <span className="text-xs text-muted-foreground">No skills listed</span>
+                                    )}
                                 </div>
                                 {children.data.length > 0 && (
                                     <div className="mt-3 rounded-lg border border-border/60 bg-muted/20 p-3">
@@ -310,9 +338,20 @@ export default function RecruiterCollectionShow({ collection, children, candidat
                         {addedRows.length > 0 ? addedRows.map(({ candidate, assignedSubCollections, assignedToCurrent }) => (
                             <div key={`added-${candidate.id}`} className="rounded-xl border border-border/70 bg-card/70 p-4">
                                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                                    <div>
-                                        <div className="text-sm font-semibold text-foreground">{candidate.name}</div>
-                                        <div className="text-xs text-muted-foreground">{candidate.email}</div>
+                                    <div className="flex items-center gap-3">
+                                        <Avatar className="size-10 border border-border/70">
+                                            <AvatarImage
+                                                src={candidate.profile_photo_url ?? undefined}
+                                                alt={candidate.name}
+                                            />
+                                            <AvatarFallback className="text-xs font-semibold">
+                                                {initials(candidate.name)}
+                                            </AvatarFallback>
+                                        </Avatar>
+                                        <div>
+                                            <div className="text-sm font-semibold text-foreground">{candidate.name}</div>
+                                            <div className="text-xs text-muted-foreground">{candidate.email}</div>
+                                        </div>
                                     </div>
                                     <div className="flex items-center gap-2">
                                         <Link
