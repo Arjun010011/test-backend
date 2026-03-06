@@ -90,10 +90,30 @@ class AssessmentAttempt extends Model
 
     public function calculateScore(): void
     {
-        $responses = $this->responses()->get();
+        $responses = $this->responses()
+            ->with([
+                'question:id,points',
+                'selectedOption:id,is_correct',
+            ])
+            ->get();
 
         $maxScore = (int) $this->assessment()->withSum('questions', 'points')->first()?->questions_sum_points;
-        $score = $responses->sum('points_earned');
+        $score = 0;
+
+        foreach ($responses as $response) {
+            $isCorrect = (bool) $response->selectedOption?->is_correct;
+            $pointsEarned = $isCorrect ? (int) ($response->question?->points ?? 0) : 0;
+
+            if ($response->is_correct !== $isCorrect || (int) $response->points_earned !== $pointsEarned) {
+                $response->forceFill([
+                    'is_correct' => $isCorrect,
+                    'points_earned' => $pointsEarned,
+                ])->save();
+            }
+
+            $score += $pointsEarned;
+        }
+
         $percentage = $maxScore === 0 ? 0 : round(($score / $maxScore) * 100, 2);
 
         $this->forceFill([

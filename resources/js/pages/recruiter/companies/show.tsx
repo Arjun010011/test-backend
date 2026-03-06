@@ -1,6 +1,7 @@
 import { Head, Link, useForm } from '@inertiajs/react';
 import { Building2, Calendar, Filter, MapPin, Search, UserCircle, Users } from 'lucide-react';
-import { type ReactNode, useMemo, useState } from 'react';
+import {  useMemo, useState } from 'react';
+import type {ReactNode} from 'react';
 import InputError from '@/components/input-error';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';

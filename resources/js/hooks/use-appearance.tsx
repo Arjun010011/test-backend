@@ -11,6 +11,7 @@ export type UseAppearanceReturn = {
 
 const listeners = new Set<() => void>();
 let currentAppearance: Appearance = 'system';
+const validAppearances: Appearance[] = ['light', 'dark', 'system'];
 
 const prefersDark = (): boolean => {
     if (typeof window === 'undefined') return false;
@@ -24,10 +25,36 @@ const setCookie = (name: string, value: string, days = 365): void => {
     document.cookie = `${name}=${value};path=/;max-age=${maxAge};SameSite=Lax`;
 };
 
+const normalizeAppearance = (value: string | null): Appearance | null => {
+    if (value === null) return null;
+
+    return validAppearances.includes(value as Appearance) ? (value as Appearance) : null;
+};
+
+const getCookieAppearance = (): Appearance | null => {
+    if (typeof document === 'undefined') return null;
+
+    const cookie = document.cookie
+        .split('; ')
+        .find((entry) => entry.startsWith('appearance='));
+
+    if (!cookie) return null;
+
+    const value = decodeURIComponent(cookie.split('=').slice(1).join('='));
+
+    return normalizeAppearance(value);
+};
+
 const getStoredAppearance = (): Appearance => {
     if (typeof window === 'undefined') return 'system';
 
-    return (localStorage.getItem('appearance') as Appearance) || 'system';
+    const cookieAppearance = getCookieAppearance();
+
+    if (cookieAppearance !== null) {
+        return cookieAppearance;
+    }
+
+    return normalizeAppearance(localStorage.getItem('appearance')) ?? 'system';
 };
 
 const isDarkMode = (appearance: Appearance): boolean => {
@@ -62,12 +89,9 @@ const handleSystemThemeChange = (): void => applyTheme(currentAppearance);
 export function initializeTheme(): void {
     if (typeof window === 'undefined') return;
 
-    if (!localStorage.getItem('appearance')) {
-        localStorage.setItem('appearance', 'system');
-        setCookie('appearance', 'system');
-    }
-
     currentAppearance = getStoredAppearance();
+    localStorage.setItem('appearance', currentAppearance);
+    setCookie('appearance', currentAppearance);
     applyTheme(currentAppearance);
 
     // Set up system theme change listener

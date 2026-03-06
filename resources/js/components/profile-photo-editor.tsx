@@ -1,10 +1,10 @@
-import { useEffect, useRef, useState } from 'react';
 import { useForm, router } from '@inertiajs/react';
+import { useEffect, useRef, useState } from 'react';
 import { updateProfilePhoto } from '@/actions/App/Http/Controllers/Candidate/OnboardingController';
+import InputError from '@/components/input-error';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import InputError from '@/components/input-error';
 import { Label } from '@/components/ui/label';
 
 type Props = {

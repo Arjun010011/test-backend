@@ -38,6 +38,57 @@ type FaceDetectorLike = {
     detect: (input: HTMLVideoElement) => Promise<Array<unknown>>;
 };
 type FaceDetectorCtor = new (options?: { fastMode?: boolean; maxDetectedFaces?: number }) => FaceDetectorLike;
+type FullscreenDocument = Document & {
+    webkitFullscreenElement?: Element | null;
+    msFullscreenElement?: Element | null;
+    webkitExitFullscreen?: () => Promise<void>;
+    msExitFullscreen?: () => Promise<void>;
+};
+type FullscreenElement = HTMLElement & {
+    webkitRequestFullscreen?: () => Promise<void>;
+    msRequestFullscreen?: () => Promise<void>;
+};
+
+const getFullscreenElement = (): Element | null => {
+    if (typeof document === 'undefined') {
+        return null;
+    }
+
+    const fullscreenDocument = document as FullscreenDocument;
+
+    return document.fullscreenElement ?? fullscreenDocument.webkitFullscreenElement ?? fullscreenDocument.msFullscreenElement ?? null;
+};
+
+const isBrowserWindowFullscreen = (): boolean => {
+    if (typeof window === 'undefined' || typeof screen === 'undefined') {
+        return false;
+    }
+
+    const heightDelta = Math.abs(window.innerHeight - screen.height);
+    const widthDelta = Math.abs(window.innerWidth - screen.width);
+
+    return heightDelta <= 8 && widthDelta <= 8;
+};
+
+const isInFullscreenMode = (): boolean => {
+    return getFullscreenElement() !== null || isBrowserWindowFullscreen();
+};
+
+const getCookieValue = (name: string): string | null => {
+    if (typeof document === 'undefined') {
+        return null;
+    }
+
+    const cookie = document.cookie
+        .split('; ')
+        .find((entry) => entry.startsWith(`${name}=`));
+
+    if (!cookie) {
+        return null;
+    }
+
+    return decodeURIComponent(cookie.split('=').slice(1).join('='));
+};
 
 export default function CandidateAssessmentsTake({
     assessment,
@@ -76,13 +127,21 @@ export default function CandidateAssessmentsTake({
     const pendingSavesRef = useRef(new Set<Promise<boolean>>());
     const isSubmittingRef = useRef(false);
     const detectionIntervalRef = useRef<number | null>(null);
+    const detectionFailureCountRef = useRef(0);
+    const answerAbortControllersRef = useRef(new Map<number, AbortController>());
+    const answerRequestVersionRef = useRef(new Map<number, number>());
+    const failedSaveQuestionIdsRef = useRef<number[]>([]);
+
+    useEffect(() => {
+        failedSaveQuestionIdsRef.current = failedSaveQuestionIds;
+    }, [failedSaveQuestionIds]);
 
     const answeredCount = useMemo(
         () => questions.filter((question) => selectedOptions[question.id] !== undefined).length,
         [questions, selectedOptions],
     );
 
-    const canAccessQuestions = cameraState === 'live' && personState === 'detected' && isFullscreen;
+    const canAccessQuestions = cameraState === 'live' && (personState === 'detected' || personState === 'unsupported' || personState === 'checking') && isFullscreen;
 
     const addWarning = (message: string) => {
         setProctoringWarnings((warnings) => {
@@ -124,6 +183,7 @@ export default function CandidateAssessmentsTake({
         lastLoggedAtRef.current[throttleKey] = now;
 
         const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+        const xsrfToken = getCookieValue('XSRF-TOKEN');
 
         try {
             await fetch(`/candidate/assessments/${assessment.id}/proctor-events`, {
@@ -133,6 +193,7 @@ export default function CandidateAssessmentsTake({
                     Accept: 'application/json',
                     'X-Requested-With': 'XMLHttpRequest',
                     ...(csrfToken ? { 'X-CSRF-TOKEN': csrfToken } : {}),
+                    ...(xsrfToken ? { 'X-XSRF-TOKEN': xsrfToken } : {}),
                 },
                 credentials: 'same-origin',
                 body: JSON.stringify({
@@ -148,20 +209,40 @@ export default function CandidateAssessmentsTake({
     };
 
     const requestExamFullscreen = async (): Promise<boolean> => {
-        if (!document.documentElement.requestFullscreen) {
+        const fullscreenElement = document.documentElement as FullscreenElement;
+        const requestFullscreen =
+            fullscreenElement.requestFullscreen ??
+            fullscreenElement.webkitRequestFullscreen ??
+            fullscreenElement.msRequestFullscreen;
+
+        if (!requestFullscreen) {
             addWarning('Fullscreen mode is not supported in this browser.');
             void logProctoringEvent('fullscreen_unsupported', 'high');
-            return false;
+            const inFullscreen = isInFullscreenMode();
+            setIsFullscreen(inFullscreen);
+            return inFullscreen;
         }
 
-        if (document.fullscreenElement) {
+        if (isInFullscreenMode()) {
             return true;
         }
 
         try {
-            await document.documentElement.requestFullscreen();
-            return true;
+            await requestFullscreen.call(fullscreenElement);
+            const inFullscreen = isInFullscreenMode();
+
+            if (inFullscreen) {
+                return true;
+            }
+
+            addWarning('Fullscreen permission denied. Test remains locked until fullscreen is enabled.');
+            void logProctoringEvent('fullscreen_denied', 'high');
+            return false;
         } catch {
+            if (isInFullscreenMode()) {
+                return true;
+            }
+
             addWarning('Fullscreen permission denied. Test remains locked until fullscreen is enabled.');
             void logProctoringEvent('fullscreen_denied', 'high');
             return false;
@@ -188,7 +269,7 @@ export default function CandidateAssessmentsTake({
 
         await flushPendingSaves();
 
-        if (failedSaveQuestionIds.length > 0) {
+        if (failedSaveQuestionIdsRef.current.length > 0) {
             addWarning('Some answers are still not saved. Please reselect those answers before submitting.');
             setIsSubmitting(false);
             isSubmittingRef.current = false;
@@ -240,7 +321,7 @@ export default function CandidateAssessmentsTake({
 
     useEffect(() => {
         const handleFullscreenChange = () => {
-            const inFullscreen = Boolean(document.fullscreenElement);
+            const inFullscreen = isInFullscreenMode();
             setIsFullscreen(inFullscreen);
 
             if (!inFullscreen) {
@@ -250,12 +331,16 @@ export default function CandidateAssessmentsTake({
         };
 
         void requestExamFullscreen();
-        setIsFullscreen(Boolean(document.fullscreenElement));
+        setIsFullscreen(isInFullscreenMode());
 
         document.addEventListener('fullscreenchange', handleFullscreenChange);
+        document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+        window.addEventListener('resize', handleFullscreenChange);
 
         return () => {
             document.removeEventListener('fullscreenchange', handleFullscreenChange);
+            document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
+            window.removeEventListener('resize', handleFullscreenChange);
         };
     }, []);
 
@@ -395,13 +480,20 @@ export default function CandidateAssessmentsTake({
                 streamRef.current = null;
             }
 
+            answerAbortControllersRef.current.forEach((controller) => controller.abort());
+            answerAbortControllersRef.current.clear();
+
             if (detectionIntervalRef.current !== null) {
                 window.clearInterval(detectionIntervalRef.current);
                 detectionIntervalRef.current = null;
             }
 
-            if (document.fullscreenElement) {
-                void document.exitFullscreen();
+            const fullscreenDocument = document as FullscreenDocument;
+            const exitFullscreen =
+                document.exitFullscreen ?? fullscreenDocument.webkitExitFullscreen ?? fullscreenDocument.msExitFullscreen;
+
+            if (getFullscreenElement() && exitFullscreen) {
+                void exitFullscreen.call(document);
             }
         };
     }, [assessment.id]);
@@ -415,8 +507,8 @@ export default function CandidateAssessmentsTake({
 
         if (!FaceDetectorImpl) {
             setPersonState('unsupported');
-            addWarning('Person detection is unsupported in this browser. Test remains locked.');
-            void logProctoringEvent('person_detection_unsupported', 'high');
+            addWarning('Person detection is unsupported in this browser. You can continue, but proctoring checks are limited.');
+            void logProctoringEvent('person_detection_unsupported', 'medium');
             return;
         }
 
@@ -431,6 +523,7 @@ export default function CandidateAssessmentsTake({
                 const faces = await detector.detect(videoPreviewRef.current);
 
                 if (faces.length === 1) {
+                    detectionFailureCountRef.current = 0;
                     setPersonState('detected');
                     void logProctoringEvent('person_detected', 'low');
                     return;
@@ -447,6 +540,15 @@ export default function CandidateAssessmentsTake({
                 addWarning('Multiple people detected on camera. Only one person is allowed.');
                 void logProctoringEvent('multiple_people_detected', 'high', { detected_faces: faces.length });
             } catch {
+                detectionFailureCountRef.current += 1;
+
+                if (detectionFailureCountRef.current >= 3) {
+                    setPersonState('unsupported');
+                    addWarning('Person detection is unstable in this browser. You can continue, but proctoring checks are limited.');
+                    void logProctoringEvent('person_detection_unstable', 'medium');
+                    return;
+                }
+
                 setPersonState('not_detected');
                 addWarning('Person detection failed. Keep camera visible and try again.');
                 void logProctoringEvent('person_detection_failed', 'high');
@@ -468,10 +570,23 @@ export default function CandidateAssessmentsTake({
         };
     }, [cameraState]);
 
-    const persistAnswer = async (questionId: number, selectedOptionId: number): Promise<boolean> => {
+    const persistAnswer = async (questionId: number, selectedOptionId: number, requestVersion: number): Promise<boolean> => {
         const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+        const xsrfToken = getCookieValue('XSRF-TOKEN');
+
+        const previousController = answerAbortControllersRef.current.get(questionId);
+        if (previousController) {
+            previousController.abort();
+        }
 
         for (let attemptCount = 1; attemptCount <= 3; attemptCount += 1) {
+            if ((answerRequestVersionRef.current.get(questionId) ?? 0) !== requestVersion) {
+                return true;
+            }
+
+            const controller = new AbortController();
+            answerAbortControllersRef.current.set(questionId, controller);
+
             try {
                 const response = await fetch(answer({ assessment: assessment.id }).url, {
                     method: 'POST',
@@ -480,8 +595,10 @@ export default function CandidateAssessmentsTake({
                         Accept: 'application/json',
                         'X-Requested-With': 'XMLHttpRequest',
                         ...(csrfToken ? { 'X-CSRF-TOKEN': csrfToken } : {}),
+                        ...(xsrfToken ? { 'X-XSRF-TOKEN': xsrfToken } : {}),
                     },
                     credentials: 'same-origin',
+                    signal: controller.signal,
                     body: JSON.stringify({
                         question_id: questionId,
                         selected_option_id: selectedOptionId,
@@ -492,10 +609,22 @@ export default function CandidateAssessmentsTake({
                     throw new Error('Failed to save answer');
                 }
 
+                if ((answerRequestVersionRef.current.get(questionId) ?? 0) !== requestVersion) {
+                    return true;
+                }
+
                 clearFailedSave(questionId);
                 setLastSavedAt(new Date().toLocaleTimeString());
                 return true;
-            } catch {
+            } catch (error) {
+                if (error instanceof DOMException && error.name === 'AbortError') {
+                    return true;
+                }
+
+                if ((answerRequestVersionRef.current.get(questionId) ?? 0) !== requestVersion) {
+                    return true;
+                }
+
                 if (attemptCount === 3) {
                     addFailedSave(questionId);
                     addWarning('Could not save the selected answer. Please select again before submitting.');
@@ -518,6 +647,9 @@ export default function CandidateAssessmentsTake({
             return;
         }
 
+        const nextRequestVersion = (answerRequestVersionRef.current.get(questionId) ?? 0) + 1;
+        answerRequestVersionRef.current.set(questionId, nextRequestVersion);
+
         setSelectedOptions((currentOptions) => ({
             ...currentOptions,
             [questionId]: selectedOptionId,
@@ -525,7 +657,7 @@ export default function CandidateAssessmentsTake({
 
         setPendingSaveCount((currentCount) => currentCount + 1);
 
-        const savePromise = persistAnswer(questionId, selectedOptionId);
+        const savePromise = persistAnswer(questionId, selectedOptionId, nextRequestVersion);
         pendingSavesRef.current.add(savePromise);
 
         try {
@@ -547,19 +679,19 @@ export default function CandidateAssessmentsTake({
         <>
             <Head title={`Take ${assessment.title}`} />
 
-            <div className="fixed inset-0 z-50 overflow-hidden bg-slate-950 text-slate-100">
+            <div className="fixed inset-0 z-50 overflow-hidden bg-background text-foreground">
                 <div className="pointer-events-none absolute -top-24 left-1/3 h-72 w-72 rounded-full bg-cyan-500/25 blur-3xl" />
                 <div className="pointer-events-none absolute -bottom-24 right-1/4 h-72 w-72 rounded-full bg-emerald-500/15 blur-3xl" />
 
-                <div className="fixed top-4 right-4 z-30 w-56 overflow-hidden rounded-xl border border-white/20 bg-black/75 shadow-lg backdrop-blur-sm">
-                    <div className="flex items-center gap-1 border-b border-white/15 bg-black/80 px-2 py-1 text-[11px] font-medium text-white">
+                <div className="fixed top-4 right-4 z-30 w-56 overflow-hidden rounded-xl border border-border bg-card/95 shadow-lg backdrop-blur-sm">
+                    <div className="flex items-center gap-1 border-b border-border bg-muted px-2 py-1 text-[11px] font-medium text-foreground">
                         <Video className="size-3.5" />
                         Proctoring Camera
-                        <span className="ml-auto rounded-full bg-emerald-500 px-1.5 py-0.5 text-[10px] font-semibold text-white">
+                        <span className={`ml-auto rounded-full px-1.5 py-0.5 text-[10px] font-semibold text-white ${cameraState === 'live' ? 'bg-emerald-500' : cameraState === 'initializing' ? 'bg-amber-500' : 'bg-rose-500'}`}>
                             {cameraState === 'live' ? 'Live' : cameraState === 'initializing' ? 'Starting' : 'Off'}
                         </span>
                     </div>
-                    <div className="relative h-32 w-full bg-slate-900">
+                    <div className="relative h-32 w-full bg-muted">
                         <video
                             ref={videoPreviewRef}
                             autoPlay
@@ -568,58 +700,58 @@ export default function CandidateAssessmentsTake({
                             className={`h-full w-full object-cover ${cameraState === 'live' ? 'block' : 'hidden'}`}
                         />
                         {cameraState !== 'live' && (
-                            <div className="flex h-full items-center justify-center px-2 text-center text-[11px] text-slate-200">
+                            <div className="text-muted-foreground flex h-full items-center justify-center px-2 text-center text-[11px]">
                                 {cameraState === 'blocked'
                                     ? 'Camera permission denied'
                                     : cameraState === 'unsupported'
-                                      ? 'Camera not supported'
-                                      : 'Initializing camera...'}
+                                        ? 'Camera not supported'
+                                        : 'Initializing camera...'}
                             </div>
                         )}
                     </div>
                 </div>
 
                 <div className="relative z-10 grid h-full w-full gap-4 overflow-y-auto p-4 sm:grid-cols-[320px_minmax(0,1fr)]">
-                    <aside className="space-y-4 rounded-2xl border border-white/10 bg-slate-900/80 p-4 shadow-2xl backdrop-blur-sm">
+                    <aside className="space-y-4 rounded-2xl border border-border bg-card/90 p-4 shadow-2xl backdrop-blur-sm">
                         <div>
-                            <h2 className="text-base font-semibold text-white">{assessment.title}</h2>
-                            <p className="mt-1 inline-flex items-center gap-1 text-sm text-slate-300">
+                            <h2 className="text-base font-semibold text-foreground">{assessment.title}</h2>
+                            <p className="text-muted-foreground mt-1 inline-flex items-center gap-1 text-sm">
                                 <Clock3 className="size-4 text-cyan-400" />
                                 Time left: {minutes}:{seconds}
                             </p>
                         </div>
 
-                        <div className="rounded-xl border border-white/10 bg-slate-800/60 p-3 text-sm">
-                            <p className="inline-flex items-center gap-1 font-medium text-white">
+                        <div className="rounded-xl border border-border bg-muted/40 p-3 text-sm">
+                            <p className="inline-flex items-center gap-1 font-medium text-foreground">
                                 <ListChecks className="size-4 text-indigo-400" />
                                 Progress
                             </p>
-                            <p className="mt-1 text-slate-300">
+                            <p className="text-muted-foreground mt-1">
                                 {answeredCount} / {questions.length} answered
                             </p>
-                            <p className="mt-1 text-slate-300">Tab switches: {tabSwitchCount}</p>
-                            <p className="mt-1 text-slate-300">Pending saves: {pendingSaveCount}</p>
-                            <p className="mt-1 text-slate-300">Unsaved answers: {failedSaveQuestionIds.length}</p>
-                            <p className="mt-1 text-slate-300">Last saved: {lastSavedAt ?? 'Not yet'}</p>
+                            <p className="text-muted-foreground mt-1">Tab switches: {tabSwitchCount}</p>
+                            <p className="text-muted-foreground mt-1">Pending saves: {pendingSaveCount}</p>
+                            <p className="text-muted-foreground mt-1">Unsaved answers: {failedSaveQuestionIds.length}</p>
+                            <p className="text-muted-foreground mt-1">Last saved: {lastSavedAt ?? 'Not yet'}</p>
                         </div>
 
-                        <div className="rounded-xl border border-white/10 bg-slate-800/60 p-3 text-xs text-slate-200">
+                        <div className="text-muted-foreground rounded-xl border border-border bg-muted/40 p-3 text-xs">
                             <p>
-                                Fullscreen: <span className={isFullscreen ? 'text-emerald-300' : 'text-rose-300'}>{isFullscreen ? 'On' : 'Off'}</span>
+                                Fullscreen: <span className={isFullscreen ? 'text-emerald-600 dark:text-emerald-300' : 'text-rose-600 dark:text-rose-300'}>{isFullscreen ? 'On' : 'Off'}</span>
                             </p>
                             <p>
-                                Camera: <span className={cameraState === 'live' ? 'text-emerald-300' : 'text-rose-300'}>{cameraState}</span>
+                                Camera: <span className={cameraState === 'live' ? 'text-emerald-600 dark:text-emerald-300' : 'text-rose-600 dark:text-rose-300'}>{cameraState}</span>
                             </p>
                             <p>
                                 Person detection:{' '}
-                                <span className={personState === 'detected' ? 'text-emerald-300' : 'text-rose-300'}>
+                                <span className={personState === 'detected' ? 'text-emerald-600 dark:text-emerald-300' : 'text-rose-600 dark:text-rose-300'}>
                                     {personState.replace('_', ' ')}
                                 </span>
                             </p>
                         </div>
 
                         {proctoringWarnings.length > 0 && (
-                            <div className="rounded-xl border border-amber-300/40 bg-amber-500/10 p-3 text-xs text-amber-100">
+                            <div className="rounded-xl border border-amber-400/50 bg-amber-500/10 p-3 text-xs text-amber-800 dark:border-amber-300/40 dark:text-amber-100">
                                 <p className="inline-flex items-center gap-1 font-semibold">
                                     <ShieldAlert className="size-4" />
                                     Proctoring alerts
@@ -641,13 +773,12 @@ export default function CandidateAssessmentsTake({
                                         key={question.id}
                                         type="button"
                                         onClick={() => setActiveQuestionIndex(index)}
-                                        className={`rounded-md border px-2 py-1 text-xs font-medium ${
-                                            activeQuestionIndex === index
-                                                ? 'border-cyan-400 bg-cyan-500 text-slate-950'
+                                        className={`rounded-md border px-2 py-1 text-xs font-medium ${activeQuestionIndex === index
+                                                ? 'border-cyan-400 bg-cyan-500 text-white dark:text-slate-950'
                                                 : isAnswered
-                                                  ? 'border-emerald-300/80 bg-emerald-500/15 text-emerald-100'
-                                                  : 'border-white/15 bg-slate-900/90 text-slate-200'
-                                        }`}
+                                                    ? 'border-emerald-400/80 bg-emerald-500/15 text-emerald-800 dark:border-emerald-300/80 dark:text-emerald-100'
+                                                    : 'border-border bg-background text-muted-foreground'
+                                            }`}
                                     >
                                         {index + 1}
                                     </button>
@@ -661,16 +792,16 @@ export default function CandidateAssessmentsTake({
                             onClick={() => {
                                 void submitAssessment();
                             }}
-                            className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-cyan-400 bg-cyan-400 px-3 py-2 text-sm font-semibold text-slate-950 hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-70"
+                            className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-cyan-400 bg-cyan-400 px-3 py-2 text-sm font-semibold text-white hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-70 dark:text-slate-950"
                         >
                             <CheckCircle2 className="size-4" />
                             {isSubmitting ? 'Submitting...' : pendingSaveCount > 0 ? 'Saving answers...' : 'Submit Test'}
                         </button>
                     </aside>
 
-                    <section className="rounded-2xl border border-white/10 bg-slate-900/80 p-5 shadow-2xl backdrop-blur-sm">
+                    <section className="rounded-2xl border border-border bg-card/90 p-5 shadow-2xl backdrop-blur-sm">
                         {!canAccessQuestions && (
-                            <div className="mb-4 rounded-xl border border-rose-300/40 bg-rose-500/10 p-4 text-sm text-rose-100">
+                            <div className="mb-4 rounded-xl border border-rose-400/50 bg-rose-500/10 p-4 text-sm text-rose-800 dark:border-rose-300/40 dark:text-rose-100">
                                 <p className="font-semibold">Test locked</p>
                                 <p className="mt-1">Enable fullscreen and make sure exactly one person is visible on camera to continue.</p>
                                 <button
@@ -678,7 +809,7 @@ export default function CandidateAssessmentsTake({
                                     onClick={() => {
                                         void requestExamFullscreen();
                                     }}
-                                    className="mt-3 rounded-md border border-rose-200/50 bg-rose-100/10 px-3 py-1.5 text-xs font-semibold hover:bg-rose-100/20"
+                                    className="mt-3 rounded-md border border-rose-300/60 bg-rose-100/20 px-3 py-1.5 text-xs font-semibold hover:bg-rose-100/30 dark:border-rose-200/50 dark:bg-rose-100/10 dark:hover:bg-rose-100/20"
                                 >
                                     Retry Fullscreen
                                 </button>
@@ -688,20 +819,20 @@ export default function CandidateAssessmentsTake({
                         {currentQuestion ? (
                             <div className="space-y-4">
                                 <div className="flex flex-wrap items-center justify-between gap-2">
-                                    <span className="rounded-full border border-white/20 px-2 py-1 text-xs text-slate-300">
+                                    <span className="text-muted-foreground rounded-full border border-border px-2 py-1 text-xs">
                                         Question {activeQuestionIndex + 1} / {questions.length}
                                     </span>
-                                    <div className="flex items-center gap-2 text-xs text-slate-300">
-                                        <span className="rounded-full border border-white/20 px-2 py-1 capitalize">
+                                    <div className="text-muted-foreground flex items-center gap-2 text-xs">
+                                        <span className="rounded-full border border-border px-2 py-1 capitalize">
                                             {currentQuestion.difficulty}
                                         </span>
-                                        <span className="rounded-full border border-white/20 px-2 py-1">
+                                        <span className="rounded-full border border-border px-2 py-1">
                                             {currentQuestion.points} pts
                                         </span>
                                     </div>
                                 </div>
 
-                                <h3 className="text-lg font-semibold leading-relaxed text-white">{currentQuestion.question_text}</h3>
+                                <h3 className="text-lg leading-relaxed font-semibold text-foreground">{currentQuestion.question_text}</h3>
 
                                 <div className="space-y-2">
                                     {currentQuestion.options.map((option, optionIndex) => {
@@ -715,13 +846,12 @@ export default function CandidateAssessmentsTake({
                                                 onClick={() => {
                                                     void selectOption(currentQuestion.id, option.id);
                                                 }}
-                                                className={`w-full rounded-xl border p-3 text-left text-sm transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${
-                                                    isSelected
-                                                        ? 'border-cyan-300 bg-cyan-500/20 text-cyan-100'
-                                                        : 'border-white/15 bg-slate-800/80 text-slate-100 hover:bg-slate-700/70'
-                                                }`}
+                                                className={`w-full rounded-xl border p-3 text-left text-sm transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${isSelected
+                                                        ? 'border-cyan-400 bg-cyan-500/15 text-cyan-800 dark:border-cyan-300 dark:bg-cyan-500/20 dark:text-cyan-100'
+                                                        : 'border-border bg-background text-foreground hover:bg-muted/60'
+                                                    }`}
                                             >
-                                                <span className="mr-2 font-semibold text-slate-300">{String.fromCharCode(65 + optionIndex)}.</span>
+                                                <span className="text-muted-foreground mr-2 font-semibold">{String.fromCharCode(65 + optionIndex)}.</span>
                                                 {option.option_text}
                                             </button>
                                         );
@@ -733,7 +863,7 @@ export default function CandidateAssessmentsTake({
                                         type="button"
                                         disabled={activeQuestionIndex === 0}
                                         onClick={() => setActiveQuestionIndex((currentIndex) => Math.max(0, currentIndex - 1))}
-                                        className="rounded-lg border border-white/20 bg-slate-800 px-3 py-2 text-sm font-semibold text-slate-100 hover:bg-slate-700 disabled:opacity-50"
+                                        className="rounded-lg border border-border bg-muted px-3 py-2 text-sm font-semibold text-foreground hover:bg-muted/70 disabled:opacity-50"
                                     >
                                         Previous
                                     </button>
@@ -743,14 +873,14 @@ export default function CandidateAssessmentsTake({
                                         onClick={() =>
                                             setActiveQuestionIndex((currentIndex) => Math.min(questions.length - 1, currentIndex + 1))
                                         }
-                                        className="rounded-lg border border-white/20 bg-slate-800 px-3 py-2 text-sm font-semibold text-slate-100 hover:bg-slate-700 disabled:opacity-50"
+                                        className="rounded-lg border border-border bg-muted px-3 py-2 text-sm font-semibold text-foreground hover:bg-muted/70 disabled:opacity-50"
                                     >
                                         Next
                                     </button>
                                 </div>
                             </div>
                         ) : (
-                            <p className="text-sm text-slate-300">No questions loaded.</p>
+                            <p className="text-muted-foreground text-sm">No questions loaded.</p>
                         )}
                     </section>
                 </div>

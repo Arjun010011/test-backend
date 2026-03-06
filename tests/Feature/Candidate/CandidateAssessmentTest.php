@@ -9,6 +9,7 @@ use App\Models\AssessmentQuestionOption;
 use App\Models\AssessmentResponse;
 use App\Models\CandidateProfile;
 use App\Models\User;
+use Inertia\Testing\AssertableInertia as Assert;
 
 use function Pest\Laravel\actingAs;
 
@@ -265,6 +266,185 @@ it('persists the latest selected option for a question', function () {
     expect($response->selected_option_id)->toBe($secondOption->id)
         ->and($response->is_correct)->toBeTrue()
         ->and($response->points_earned)->toBe(5);
+});
+
+it('recalculates score from selected option correctness when response points are stale', function () {
+    $admin = User::factory()->admin()->create();
+    $candidate = User::factory()->candidate()->create();
+
+    CandidateProfile::factory()->create([
+        'user_id' => $candidate->id,
+        'university' => 'ABC Engineering College',
+        'profile_completed_at' => now(),
+    ]);
+
+    $assessment = Assessment::query()->create([
+        'created_by' => $admin->id,
+        'title' => 'Stale Response Score Recovery Test',
+        'description' => null,
+        'category' => 'aptitude',
+        'difficulty' => 'easy',
+        'duration_minutes' => 60,
+        'total_questions' => 1,
+        'passing_score' => 50,
+        'randomize_questions' => false,
+        'show_results_immediately' => true,
+        'is_active' => true,
+        'published_at' => now(),
+    ]);
+
+    $question = AssessmentQuestion::query()->create([
+        'assessment_id' => $assessment->id,
+        'question_text' => '2 + 2 = ?',
+        'question_type' => 'multiple_choice',
+        'category' => 'aptitude',
+        'difficulty' => 'easy',
+        'points' => 5,
+        'source' => 'template',
+    ]);
+
+    $correctOption = AssessmentQuestionOption::query()->create([
+        'question_id' => $question->id,
+        'option_text' => '4',
+        'is_correct' => true,
+        'display_order' => 1,
+    ]);
+
+    AssessmentAssignment::query()->create([
+        'assessment_id' => $assessment->id,
+        'college_name' => 'ABC Engineering College',
+        'starts_at' => now()->subHour(),
+        'ends_at' => now()->addHour(),
+        'max_attempts' => 1,
+        'is_active' => true,
+    ]);
+
+    actingAs($candidate)
+        ->post(route('candidate.assessments.start', $assessment))
+        ->assertRedirect(route('candidate.assessments.take', $assessment));
+
+    $attempt = AssessmentAttempt::query()->latest('id')->firstOrFail();
+
+    AssessmentResponse::query()->create([
+        'attempt_id' => $attempt->id,
+        'question_id' => $question->id,
+        'selected_option_id' => $correctOption->id,
+        'is_correct' => false,
+        'points_earned' => 0,
+    ]);
+
+    actingAs($candidate)
+        ->post(route('candidate.assessments.submit', $assessment))
+        ->assertRedirect(route('candidate.assessments.result', $assessment));
+
+    $attempt->refresh();
+
+    $response = AssessmentResponse::query()
+        ->where('attempt_id', $attempt->id)
+        ->where('question_id', $question->id)
+        ->firstOrFail();
+
+    expect($attempt->status)->toBe('submitted')
+        ->and((int) $attempt->score)->toBe(5)
+        ->and((int) $attempt->max_score)->toBe(5)
+        ->and((float) $attempt->percentage)->toBe(100.0)
+        ->and($response->is_correct)->toBeTrue()
+        ->and((int) $response->points_earned)->toBe(5);
+});
+
+it('shows correct answer count and weighted points on result page', function () {
+    $admin = User::factory()->admin()->create();
+    $candidate = User::factory()->candidate()->create();
+
+    CandidateProfile::factory()->create([
+        'user_id' => $candidate->id,
+        'university' => 'ABC Engineering College',
+        'profile_completed_at' => now(),
+    ]);
+
+    $assessment = Assessment::query()->create([
+        'created_by' => $admin->id,
+        'title' => 'Result Breakdown Test',
+        'description' => null,
+        'category' => 'aptitude',
+        'difficulty' => 'mixed',
+        'duration_minutes' => 60,
+        'total_questions' => 2,
+        'passing_score' => 50,
+        'randomize_questions' => false,
+        'show_results_immediately' => true,
+        'is_active' => true,
+        'published_at' => now(),
+    ]);
+
+    $questionOne = AssessmentQuestion::query()->create([
+        'assessment_id' => $assessment->id,
+        'question_text' => 'Q1',
+        'question_type' => 'multiple_choice',
+        'category' => 'aptitude',
+        'difficulty' => 'easy',
+        'points' => 1,
+        'source' => 'template',
+    ]);
+
+    $questionOneCorrect = AssessmentQuestionOption::query()->create([
+        'question_id' => $questionOne->id,
+        'option_text' => 'A1',
+        'is_correct' => true,
+        'display_order' => 1,
+    ]);
+
+    $questionTwo = AssessmentQuestion::query()->create([
+        'assessment_id' => $assessment->id,
+        'question_text' => 'Q2',
+        'question_type' => 'multiple_choice',
+        'category' => 'aptitude',
+        'difficulty' => 'hard',
+        'points' => 3,
+        'source' => 'template',
+    ]);
+
+    AssessmentQuestionOption::query()->create([
+        'question_id' => $questionTwo->id,
+        'option_text' => 'B1',
+        'is_correct' => false,
+        'display_order' => 1,
+    ]);
+
+    AssessmentAssignment::query()->create([
+        'assessment_id' => $assessment->id,
+        'college_name' => 'ABC Engineering College',
+        'starts_at' => now()->subHour(),
+        'ends_at' => now()->addHour(),
+        'max_attempts' => 1,
+        'is_active' => true,
+    ]);
+
+    actingAs($candidate)
+        ->post(route('candidate.assessments.start', $assessment))
+        ->assertRedirect(route('candidate.assessments.take', $assessment));
+
+    actingAs($candidate)
+        ->postJson(route('candidate.assessments.answer', $assessment), [
+            'question_id' => $questionOne->id,
+            'selected_option_id' => $questionOneCorrect->id,
+        ])
+        ->assertSuccessful();
+
+    actingAs($candidate)
+        ->post(route('candidate.assessments.submit', $assessment))
+        ->assertRedirect(route('candidate.assessments.result', $assessment));
+
+    actingAs($candidate)
+        ->get(route('candidate.assessments.result', $assessment))
+        ->assertSuccessful()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('candidate/assessments/result')
+            ->where('correct_answers', 1)
+            ->where('total_questions', 2)
+            ->where('attempt.score', 1)
+            ->where('attempt.max_score', 4)
+        );
 });
 
 it('shows onboarding message when candidate has no college set', function () {

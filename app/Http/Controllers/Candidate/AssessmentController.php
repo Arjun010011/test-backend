@@ -338,9 +338,16 @@ class AssessmentController extends Controller
             ->with(['responses.question.options', 'responses.selectedOption'])
             ->firstOrFail();
 
+        $totalQuestions = (int) $assessment->questions()->count();
+        $correctAnswers = $attempt->responses
+            ->filter(fn (AssessmentResponse $response): bool => (bool) $response->selectedOption?->is_correct)
+            ->count();
+
         return Inertia::render('candidate/assessments/result', [
             'assessment' => $assessment,
             'attempt' => $attempt,
+            'correct_answers' => $correctAnswers,
+            'total_questions' => $totalQuestions,
             'passed' => $assessment->passing_score !== null
                 ? (float) $attempt->percentage >= $assessment->passing_score
                 : null,

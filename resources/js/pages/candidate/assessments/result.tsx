@@ -16,10 +16,12 @@ type Props = {
         time_taken_seconds: number | null;
         submitted_at: string | null;
     };
+    correct_answers: number;
+    total_questions: number;
     passed: boolean | null;
 };
 
-export default function CandidateAssessmentsResult({ assessment, attempt, passed }: Props) {
+export default function CandidateAssessmentsResult({ assessment, attempt, correct_answers, total_questions, passed }: Props) {
     const safeTimeTakenSeconds = attempt.time_taken_seconds === null ? null : Math.max(0, attempt.time_taken_seconds);
     const timeTakenMinutes = safeTimeTakenSeconds !== null ? (safeTimeTakenSeconds / 60).toFixed(1) : '-';
 
@@ -51,7 +53,11 @@ export default function CandidateAssessmentsResult({ assessment, attempt, passed
 
                 <section className="grid gap-4 sm:grid-cols-2">
                     <article className="rounded-xl border border-border/70 bg-card p-4">
-                        <p className="text-xs uppercase text-muted-foreground">Score</p>
+                        <p className="text-xs uppercase text-muted-foreground">Correct answers</p>
+                        <p className="mt-1 text-2xl font-semibold">{correct_answers} / {total_questions}</p>
+                    </article>
+                    <article className="rounded-xl border border-border/70 bg-card p-4">
+                        <p className="text-xs uppercase text-muted-foreground">Points</p>
                         <p className="mt-1 text-2xl font-semibold">{attempt.score} / {attempt.max_score}</p>
                     </article>
                     <article className="rounded-xl border border-border/70 bg-card p-4">
