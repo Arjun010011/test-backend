@@ -1,6 +1,6 @@
 # Project Documentation
 
-Last updated: March 4, 2026
+Last updated: March 6, 2026
 
 ## 1. Product Summary
 This project is a role-based recruitment platform where:
@@ -282,3 +282,16 @@ Recommended order for larger feature work:
 4. Controller endpoints.
 5. Inertia page updates.
 6. Feature tests.
+
+## 17. Work Completed Today (March 6, 2026)
+- Updated the welcome page UI copy and visual styling for workflow stage communication.
+- Refactored settings pages to use a shared `SettingsPageLayout` component and adjusted related layout rendering.
+- Improved recruiter company applications UX with search, filter, and sort controls.
+- Enhanced candidate assessment flow:
+  - Improved scoring and result display (including correct answers and total question count).
+  - Improved fullscreen/session handling and appearance cookie behavior.
+  - Integrated MediaPipe tasks for stronger face detection/landmarking behavior during assessments.
+- Updated recruiter and candidate assessment pages/controllers and related routing/request handling, including removal of obsolete assignment request/page files.
+- Expanded and adjusted seed data for local development in `DatabaseSeeder`.
+- Added/updated test coverage for assessment behavior, appearance cookie behavior, auth flow, candidate assessment flow, and settings profile updates.
+- Removed an accidental `host` gitlink from the repository history.
