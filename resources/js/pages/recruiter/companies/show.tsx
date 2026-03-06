@@ -1,7 +1,11 @@
 import { Head, Link, useForm } from '@inertiajs/react';
-import { BriefcaseBusiness, Building2, Calendar, MapPin, UserCircle, Users } from 'lucide-react';
+import { Building2, Calendar, Filter, MapPin, Search, UserCircle, Users } from 'lucide-react';
+import { type ReactNode, useMemo, useState } from 'react';
 import InputError from '@/components/input-error';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import RecruiterLayout from '@/layouts/recruiter-layout';
 import { companyApplicationStatuses } from '@/lib/company-application-statuses';
 import { index as companiesIndex } from '@/routes/recruiter/companies';
@@ -50,6 +54,8 @@ type Props = {
     applications: { data: Application[] };
 };
 
+type SortMode = 'newest' | 'oldest' | 'candidate';
+
 function formatSalary(min: number | null, max: number | null): string | null {
     if (min === null && max === null) {
         return null;
@@ -90,13 +96,80 @@ function humanize(value: string | null): string | null {
     return value.replaceAll('_', ' ');
 }
 
+function humanizeStatus(value: string): string {
+    return value.replaceAll('_', ' ');
+}
+
+function formatAppliedAt(value: string | null): string {
+    if (value === null) {
+        return 'Applied recently';
+    }
+
+    const date = new Date(value);
+
+    if (Number.isNaN(date.getTime())) {
+        return value;
+    }
+
+    return date.toLocaleString();
+}
+
 export default function RecruiterCompanyShow({ company, applications }: Props) {
+    const [searchQuery, setSearchQuery] = useState<string>('');
+    const [statusFilter, setStatusFilter] = useState<string>('all');
+    const [sortMode, setSortMode] = useState<SortMode>('newest');
+
+    const statusCounts = useMemo(() => {
+        return applications.data.reduce<Record<string, number>>((counts, application) => {
+            counts[application.status] = (counts[application.status] ?? 0) + 1;
+
+            return counts;
+        }, {});
+    }, [applications.data]);
+
+    const filteredApplications = useMemo(() => {
+        const normalizedQuery = searchQuery.trim().toLowerCase();
+
+        const filtered = applications.data.filter((application) => {
+            if (statusFilter !== 'all' && application.status !== statusFilter) {
+                return false;
+            }
+
+            if (normalizedQuery === '') {
+                return true;
+            }
+
+            const candidateName = application.candidate.name?.toLowerCase() ?? '';
+            const candidateEmail = application.candidate.email?.toLowerCase() ?? '';
+
+            return candidateName.includes(normalizedQuery) || candidateEmail.includes(normalizedQuery);
+        });
+
+        return filtered.sort((a, b) => {
+            if (sortMode === 'candidate') {
+                return (a.candidate.name ?? '').localeCompare(b.candidate.name ?? '');
+            }
+
+            const aTimestamp = a.applied_at === null ? 0 : new Date(a.applied_at).getTime();
+            const bTimestamp = b.applied_at === null ? 0 : new Date(b.applied_at).getTime();
+
+            if (sortMode === 'oldest') {
+                return aTimestamp - bTimestamp;
+            }
+
+            return bTimestamp - aTimestamp;
+        });
+    }, [applications.data, searchQuery, sortMode, statusFilter]);
+
+    const salary = formatSalary(company.salary_min_lpa, company.salary_max_lpa);
+    const experience = formatExperience(company.experience_min_years, company.experience_max_years);
+
     return (
         <RecruiterLayout title={`${company.name} Applications`}>
             <Head title={`${company.name} Applications`} />
 
-            <div className="space-y-4">
-                <section className="rounded-3xl border border-border/70 bg-blue-700 p-6 text-white shadow-lg">
+            <div className="space-y-5">
+                <section className="rounded-3xl border border-border/70 bg-linear-to-br from-blue-700 via-blue-700 to-blue-600 p-6 text-white shadow-lg">
                     <div className="flex flex-wrap items-start justify-between gap-4">
                         <div className="max-w-2xl">
                             <div className="inline-flex items-center gap-2 rounded-full border border-white/25 bg-white/10 px-3 py-1 text-xs font-medium">
@@ -113,62 +186,128 @@ export default function RecruiterCompanyShow({ company, applications }: Props) {
                         </Link>
                     </div>
 
-                    <div className="mt-4 grid gap-3 text-sm text-blue-100 md:grid-cols-2">
-                        {company.job_role && (
-                            <div className="inline-flex items-center gap-2">
-                                <BriefcaseBusiness className="size-4" />
-                                Role: {company.job_role}
-                            </div>
-                        )}
-                        {formatSalary(company.salary_min_lpa, company.salary_max_lpa) && (
-                            <div>Salary: {formatSalary(company.salary_min_lpa, company.salary_max_lpa)}</div>
-                        )}
-                        {formatExperience(company.experience_min_years, company.experience_max_years) && (
-                            <div>Experience: {formatExperience(company.experience_min_years, company.experience_max_years)}</div>
-                        )}
-                        {humanize(company.employment_type) && <div>Type: {humanize(company.employment_type)}</div>}
-                        {humanize(company.work_mode) && <div>Mode: {humanize(company.work_mode)}</div>}
-                        {company.openings !== null && <div>Openings: {company.openings}</div>}
-                        {company.application_deadline && (
-                            <div className="inline-flex items-center gap-2">
-                                <Calendar className="size-4" />
-                                Deadline: {company.application_deadline}
-                            </div>
-                        )}
-                        {company.skills_required && <div>Skills: {company.skills_required}</div>}
-                        {company.location && (
-                            <div className="inline-flex items-center gap-2">
-                                <MapPin className="size-4" />
-                                Location: {company.location}
-                            </div>
-                        )}
-                        {company.website && <div>Website: {company.website}</div>}
-                        <div>Source: {company.source}</div>
-                        <div>Approval: {company.approval_status}</div>
-                        <div>Visibility: {company.visibility}</div>
-                        {company.created_by_name && (
-                            <div className="inline-flex items-center gap-2">
-                                <UserCircle className="size-4" />
-                                Enrolled by: {company.created_by_name}
-                            </div>
-                        )}
-                        {company.owner_name && (
-                            <div className="inline-flex items-center gap-2">
-                                <Users className="size-4" />
-                                Company owner: {company.owner_name}
-                            </div>
-                        )}
+                    <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                        <CompanyStat label="Applications" value={String(applications.data.length)} />
+                        <CompanyStat label="Role" value={company.job_role ?? 'Not specified'} />
+                        <CompanyStat label="Salary" value={salary ?? 'Not specified'} />
+                        <CompanyStat label="Experience" value={experience ?? 'Not specified'} />
                     </div>
+
+                    <div className="mt-4 flex flex-wrap gap-2 text-xs text-blue-100">
+                        {humanize(company.employment_type) && <MetaPill label="Type" value={humanize(company.employment_type) ?? ''} />}
+                        {humanize(company.work_mode) && <MetaPill label="Mode" value={humanize(company.work_mode) ?? ''} />}
+                        {company.openings !== null && <MetaPill label="Openings" value={String(company.openings)} />}
+                        {company.application_deadline && <MetaPill label="Deadline" value={company.application_deadline} icon={<Calendar className="size-3.5" />} />}
+                        {company.location && <MetaPill label="Location" value={company.location} icon={<MapPin className="size-3.5" />} />}
+                        <MetaPill label="Source" value={company.source} />
+                        <MetaPill label="Approval" value={company.approval_status} />
+                        <MetaPill label="Visibility" value={company.visibility} />
+                        {company.created_by_name && <MetaPill label="Enrolled by" value={company.created_by_name} icon={<UserCircle className="size-3.5" />} />}
+                        {company.owner_name && <MetaPill label="Owner" value={company.owner_name} icon={<Users className="size-3.5" />} />}
+                    </div>
+
+                    {company.skills_required && <p className="mt-3 text-sm text-blue-100"><span className="font-medium text-white">Skills:</span> {company.skills_required}</p>}
                     {company.description && <p className="mt-3 text-sm text-blue-100">{company.description}</p>}
                 </section>
 
                 <section className="rounded-2xl border border-border/70 bg-card/80 p-5 shadow-sm">
-                    <h3 className="text-base font-semibold">Applications</h3>
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                        <div>
+                            <h3 className="text-base font-semibold">Applications</h3>
+                            <p className="text-sm text-muted-foreground">
+                                {filteredApplications.length} of {applications.data.length} candidates shown
+                            </p>
+                        </div>
+                    </div>
+
+                    <div className="mt-4 grid gap-3 lg:grid-cols-[1.2fr_auto_auto]">
+                        <div className="relative">
+                            <Search className="pointer-events-none absolute top-2.5 left-3 size-4 text-muted-foreground" />
+                            <Input
+                                value={searchQuery}
+                                onChange={(event) => setSearchQuery(event.target.value)}
+                                placeholder="Search candidate name or email"
+                                className="h-10 rounded-lg border-border/70 bg-background/90 pl-9 shadow-xs"
+                            />
+                        </div>
+                        <div className="inline-flex items-center gap-2 rounded-lg border border-border/70 bg-background/90 px-2 py-1 shadow-xs">
+                            <Filter className="size-4" />
+                            <Select
+                                value={statusFilter}
+                                onValueChange={setStatusFilter}
+                            >
+                                <SelectTrigger className="h-8 w-[170px] border-0 bg-transparent px-2 text-sm shadow-none focus-visible:ring-0">
+                                    <SelectValue placeholder="All statuses" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">All statuses</SelectItem>
+                                    {companyApplicationStatuses.map((status) => (
+                                        <SelectItem key={status} value={status}>
+                                            {humanizeStatus(status)}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="inline-flex items-center gap-2 rounded-lg border border-border/70 bg-background/90 px-2 py-1 shadow-xs">
+                            <span>Sort</span>
+                            <Select
+                                value={sortMode}
+                                onValueChange={(value) => setSortMode(value as SortMode)}
+                            >
+                                <SelectTrigger className="h-8 w-[170px] border-0 bg-transparent px-2 text-sm shadow-none focus-visible:ring-0">
+                                    <SelectValue placeholder="Sort" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="newest">Newest applied</SelectItem>
+                                    <SelectItem value="oldest">Oldest applied</SelectItem>
+                                    <SelectItem value="candidate">Candidate name</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    </div>
+
+                    <div className="mt-3 flex flex-wrap gap-2">
+                        <StatusFilterPill
+                            label="All"
+                            count={applications.data.length}
+                            active={statusFilter === 'all'}
+                            onClick={() => setStatusFilter('all')}
+                        />
+                        {companyApplicationStatuses.map((status) => (
+                            <StatusFilterPill
+                                key={status}
+                                label={humanizeStatus(status)}
+                                count={statusCounts[status] ?? 0}
+                                active={statusFilter === status}
+                                onClick={() => setStatusFilter(status)}
+                            />
+                        ))}
+                    </div>
+
                     {applications.data.length === 0 ? (
                         <p className="mt-2 text-sm text-muted-foreground">No student applications yet.</p>
+                    ) : filteredApplications.length === 0 ? (
+                        <div className="mt-5 rounded-xl border border-dashed border-border/80 bg-background/50 p-8 text-center">
+                            <p className="text-sm font-medium">No applications match your filters.</p>
+                            <p className="mt-1 text-sm text-muted-foreground">Try clearing search or switching status.</p>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                className="mt-4"
+                                onClick={() => {
+                                    setSearchQuery('');
+                                    setStatusFilter('all');
+                                    setSortMode('newest');
+                                }}
+                            >
+                                Reset filters
+                            </Button>
+                        </div>
                     ) : (
                         <div className="mt-4 space-y-3">
-                            {applications.data.map((application) => (
+                            {filteredApplications.map((application) => (
                                 <ApplicationReviewCard
                                     key={application.id}
                                     companyId={company.id}
@@ -195,18 +334,23 @@ function ApplicationReviewCard({ companyId, application }: ApplicationReviewCard
     });
 
     return (
-        <article className="rounded-xl border border-border/70 bg-background/40 p-4">
+        <article className="rounded-xl border border-border/70 bg-background/40 p-4 shadow-xs">
             <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
-                    <div className="text-sm font-medium">
+                    <div className="text-sm font-semibold">
                         {application.candidate.name ?? 'Unknown candidate'}
                     </div>
                     {application.candidate.email && (
                         <div className="text-xs text-muted-foreground">{application.candidate.email}</div>
                     )}
                 </div>
-                <div className="text-xs text-muted-foreground">
-                    {application.applied_at ? `Applied ${application.applied_at}` : 'Applied recently'}
+                <div className="flex items-center gap-2">
+                    <Badge variant="secondary" className="capitalize">
+                        {humanizeStatus(reviewForm.data.status)}
+                    </Badge>
+                    <div className="text-xs text-muted-foreground">
+                        {formatAppliedAt(application.applied_at)}
+                    </div>
                 </div>
             </div>
             {application.cover_letter_preview && (
@@ -214,45 +358,62 @@ function ApplicationReviewCard({ companyId, application }: ApplicationReviewCard
             )}
 
             <div className="mt-3 space-y-2">
-                <select
+                <Select
                     value={reviewForm.data.status}
-                    onChange={(event) => reviewForm.setData('status', event.target.value)}
-                    className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                    onValueChange={(value) => reviewForm.setData('status', value)}
                 >
-                    {companyApplicationStatuses.map((status) => (
-                        <option key={status} value={status}>
-                            {status.replaceAll('_', ' ')}
-                        </option>
-                    ))}
-                </select>
+                    <SelectTrigger className="h-10 rounded-lg border-border/70 bg-background/90">
+                        <SelectValue placeholder="Select status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        {companyApplicationStatuses.map((status) => (
+                            <SelectItem key={status} value={status}>
+                                {humanizeStatus(status)}
+                            </SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
                 <InputError message={reviewForm.errors.status} />
                 <textarea
                     value={reviewForm.data.review_note}
                     onChange={(event) => reviewForm.setData('review_note', event.target.value)}
-                    rows={2}
-                    className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                    rows={3}
+                    className="focus-visible:border-ring focus-visible:ring-ring/50 w-full resize-y rounded-lg border border-border/70 bg-background/90 px-3 py-2 text-sm shadow-xs outline-none focus-visible:ring-[3px]"
                     placeholder="Recruiter/company note for this role"
                 />
                 <InputError message={reviewForm.errors.review_note} />
             </div>
 
             <div className="mt-3 flex items-center justify-between">
-                <Button
-                    type="button"
-                    size="sm"
-                    onClick={() =>
-                        reviewForm.patch(
-                            updateApplication({
-                                company: companyId,
-                                application: application.id,
-                            }).url,
-                            { preserveScroll: true },
-                        )
-                    }
-                    disabled={reviewForm.processing}
-                >
-                    {reviewForm.processing ? 'Saving...' : 'Save review'}
-                </Button>
+                <div className="flex items-center gap-2">
+                    <Button
+                        type="button"
+                        size="sm"
+                        onClick={() =>
+                            reviewForm.patch(
+                                updateApplication({
+                                    company: companyId,
+                                    application: application.id,
+                                }).url,
+                                { preserveScroll: true },
+                            )
+                        }
+                        disabled={reviewForm.processing || !reviewForm.isDirty}
+                    >
+                        {reviewForm.processing ? 'Saving...' : 'Save review'}
+                    </Button>
+                    {reviewForm.isDirty && (
+                        <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            onClick={() => reviewForm.reset()}
+                            disabled={reviewForm.processing}
+                        >
+                            Reset
+                        </Button>
+                    )}
+                </div>
                 <Link
                     href={showApplication({ company: companyId, application: application.id }).url}
                     className="rounded-lg border border-border/70 px-3 py-1.5 text-sm font-medium hover:bg-muted/50"
@@ -261,5 +422,58 @@ function ApplicationReviewCard({ companyId, application }: ApplicationReviewCard
                 </Link>
             </div>
         </article>
+    );
+}
+
+type CompanyStatProps = {
+    label: string;
+    value: string;
+};
+
+function CompanyStat({ label, value }: CompanyStatProps) {
+    return (
+        <div className="rounded-xl border border-white/20 bg-white/10 p-3">
+            <p className="text-xs text-blue-100">{label}</p>
+            <p className="mt-1 text-lg font-semibold text-white">{value}</p>
+        </div>
+    );
+}
+
+type MetaPillProps = {
+    label: string;
+    value: string;
+    icon?: ReactNode;
+};
+
+function MetaPill({ label, value, icon }: MetaPillProps) {
+    return (
+        <span className="inline-flex items-center gap-1.5 rounded-full border border-white/25 bg-white/10 px-2.5 py-1">
+            {icon}
+            <span className="text-white">{label}:</span> {value}
+        </span>
+    );
+}
+
+type StatusFilterPillProps = {
+    label: string;
+    count: number;
+    active: boolean;
+    onClick: () => void;
+};
+
+function StatusFilterPill({ label, count, active, onClick }: StatusFilterPillProps) {
+    return (
+        <button
+            type="button"
+            onClick={onClick}
+            className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
+                active
+                    ? 'border-blue-200 bg-blue-100 text-blue-800'
+                    : 'border-border/70 bg-background text-muted-foreground hover:bg-muted/40'
+            }`}
+        >
+            <span className="capitalize">{label}</span>
+            <span className="rounded-full bg-white/70 px-1.5 py-0.5 text-[10px] text-foreground">{count}</span>
+        </button>
     );
 }

@@ -96,7 +96,7 @@ class AssessmentController extends Controller
         ]);
     }
 
-    public function show(Request $request, Assessment $assessment): Response
+    public function show(Request $request, Assessment $assessment): Response|RedirectResponse
     {
         $user = $request->user();
 
@@ -104,7 +104,10 @@ class AssessmentController extends Controller
 
         $assignment = $this->findLatestAssignmentForCandidate($assessment, $user->candidateProfile?->university);
 
-        abort_unless($this->canCandidateAccessAssessment($assessment, $assignment), 403);
+        if (! $this->canCandidateAccessAssessment($assessment, $assignment)) {
+            return to_route('candidate.assessments.index')
+                ->with('status', 'assessment-no-longer-available');
+        }
 
         $attempts = AssessmentAttempt::query()
             ->where('assessment_id', $assessment->id)
@@ -134,7 +137,10 @@ class AssessmentController extends Controller
 
         $assignment = $this->findLatestAssignmentForCandidate($assessment, $user->candidateProfile?->university);
 
-        abort_unless($this->canCandidateAccessAssessment($assessment, $assignment), 403);
+        if (! $this->canCandidateAccessAssessment($assessment, $assignment)) {
+            return to_route('candidate.assessments.index')
+                ->with('status', 'assessment-no-longer-available');
+        }
 
         $attemptCount = AssessmentAttempt::query()
             ->where('assessment_id', $assessment->id)

@@ -6,6 +6,7 @@ use App\Models\AssessmentAttempt;
 use App\Models\AssessmentProctoringEvent;
 use App\Models\AssessmentQuestion;
 use App\Models\AssessmentQuestionOption;
+use App\Models\AssessmentResponse;
 use App\Models\CandidateProfile;
 use App\Models\User;
 
@@ -178,6 +179,94 @@ it('awards zero points for incorrect answers', function () {
         ->and((float) $attempt->percentage)->toBe(0.0);
 });
 
+it('persists the latest selected option for a question', function () {
+    $admin = User::factory()->admin()->create();
+    $candidate = User::factory()->candidate()->create();
+
+    CandidateProfile::factory()->create([
+        'user_id' => $candidate->id,
+        'university' => 'ABC Engineering College',
+        'profile_completed_at' => now(),
+    ]);
+
+    $assessment = Assessment::query()->create([
+        'created_by' => $admin->id,
+        'title' => 'Latest Option Save Test',
+        'description' => null,
+        'category' => 'aptitude',
+        'difficulty' => 'easy',
+        'duration_minutes' => 60,
+        'total_questions' => 1,
+        'passing_score' => 50,
+        'randomize_questions' => false,
+        'show_results_immediately' => true,
+        'is_active' => true,
+        'published_at' => now(),
+    ]);
+
+    $question = AssessmentQuestion::query()->create([
+        'assessment_id' => $assessment->id,
+        'question_text' => '2 + 2 = ?',
+        'question_type' => 'multiple_choice',
+        'category' => 'aptitude',
+        'difficulty' => 'easy',
+        'points' => 5,
+        'source' => 'template',
+    ]);
+
+    $firstOption = AssessmentQuestionOption::query()->create([
+        'question_id' => $question->id,
+        'option_text' => '3',
+        'is_correct' => false,
+        'display_order' => 1,
+    ]);
+
+    $secondOption = AssessmentQuestionOption::query()->create([
+        'question_id' => $question->id,
+        'option_text' => '4',
+        'is_correct' => true,
+        'display_order' => 2,
+    ]);
+
+    AssessmentAssignment::query()->create([
+        'assessment_id' => $assessment->id,
+        'college_name' => 'ABC Engineering College',
+        'starts_at' => now()->subHour(),
+        'ends_at' => now()->addHour(),
+        'max_attempts' => 1,
+        'is_active' => true,
+    ]);
+
+    actingAs($candidate)
+        ->post(route('candidate.assessments.start', $assessment))
+        ->assertRedirect(route('candidate.assessments.take', $assessment));
+
+    actingAs($candidate)
+        ->postJson(route('candidate.assessments.answer', $assessment), [
+            'question_id' => $question->id,
+            'selected_option_id' => $firstOption->id,
+        ])
+        ->assertSuccessful();
+
+    actingAs($candidate)
+        ->postJson(route('candidate.assessments.answer', $assessment), [
+            'question_id' => $question->id,
+            'selected_option_id' => $secondOption->id,
+        ])
+        ->assertSuccessful();
+
+    $attempt = AssessmentAttempt::query()->latest('id')->firstOrFail();
+
+    $response = AssessmentResponse::query()
+        ->where('attempt_id', $attempt->id)
+        ->where('question_id', $question->id)
+        ->firstOrFail();
+
+    expect($response->selected_option_id)->toBe($secondOption->id)
+        ->and($response->is_correct)->toBeTrue()
+        ->and($response->points_earned)->toBe(5);
+});
+
 it('shows onboarding message when candidate has no college set', function () {
     $candidate = User::factory()->candidate()->create();
 
@@ -242,7 +331,39 @@ it('blocks candidate access when assigned assessment window has ended', function
 
     actingAs($candidate)
         ->get(route('candidate.assessments.show', $assessment))
-        ->assertForbidden();
+        ->assertRedirect(route('candidate.assessments.index'))
+        ->assertSessionHas('status', 'assessment-no-longer-available');
+});
+
+it('redirects candidate with friendly message when starting a private assessment', function () {
+    $admin = User::factory()->admin()->create();
+    $candidate = User::factory()->candidate()->create();
+
+    CandidateProfile::factory()->create([
+        'user_id' => $candidate->id,
+        'university' => 'ABC Engineering College',
+        'profile_completed_at' => now(),
+    ]);
+
+    $assessment = Assessment::query()->create([
+        'created_by' => $admin->id,
+        'title' => 'Private Assessment',
+        'description' => null,
+        'category' => 'aptitude',
+        'difficulty' => 'easy',
+        'duration_minutes' => 60,
+        'total_questions' => 1,
+        'passing_score' => 50,
+        'randomize_questions' => false,
+        'show_results_immediately' => true,
+        'status' => 'private',
+        'is_active' => false,
+    ]);
+
+    actingAs($candidate)
+        ->post(route('candidate.assessments.start', $assessment))
+        ->assertRedirect(route('candidate.assessments.index'))
+        ->assertSessionHas('status', 'assessment-no-longer-available');
 });
 
 it('stores proctoring events for in-progress attempts', function () {

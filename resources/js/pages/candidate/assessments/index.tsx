@@ -1,5 +1,5 @@
-import { Head, Link } from '@inertiajs/react';
-import { CalendarClock, CircleCheck, PlayCircle, Timer } from 'lucide-react';
+import { Head, Link, usePage } from '@inertiajs/react';
+import { CalendarClock, CircleAlert, CircleCheck, PlayCircle, Timer } from 'lucide-react';
 import AppLayout from '@/layouts/app-layout';
 import { show } from '@/routes/candidate/assessments';
 
@@ -33,6 +33,12 @@ type Props = {
     message?: string | null;
 };
 
+type SharedProps = {
+    flash?: {
+        status?: string | null;
+    };
+};
+
 const stateBadgeClass = (state: string): string => {
     if (state === 'active') {
         return 'border-emerald-300 bg-emerald-100 text-emerald-800 dark:border-emerald-500/50 dark:bg-emerald-500/10 dark:text-emerald-200';
@@ -50,11 +56,26 @@ const stateBadgeClass = (state: string): string => {
 };
 
 export default function CandidateAssessmentsIndex({ assessments, college, message }: Props) {
+    const { flash } = usePage<SharedProps>().props;
+    const status = flash?.status ?? null;
+
     return (
         <AppLayout fullWidth>
             <Head title="Assessments" />
 
             <div className="w-full space-y-5 px-3 py-4 sm:px-4">
+                {status === 'assessment-no-longer-available' && (
+                    <section className="rounded-xl border border-amber-300/70 bg-amber-100/80 p-4 text-sm text-amber-900 dark:border-amber-500/50 dark:bg-amber-500/10 dark:text-amber-200">
+                        <p className="inline-flex items-center gap-2 font-medium">
+                            <CircleAlert className="size-4" />
+                            This assessment is no longer available.
+                        </p>
+                        <p className="mt-1 text-xs">
+                            It may have been set to private, unpublished, or moved outside its assignment window.
+                        </p>
+                    </section>
+                )}
+
                 <section className="rounded-3xl border border-border/70 bg-card p-5 shadow-sm">
                     <h2 className="text-xl font-semibold tracking-tight">Your assessments</h2>
                     <p className="mt-1 text-sm text-muted-foreground">
