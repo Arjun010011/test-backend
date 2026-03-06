@@ -12,7 +12,6 @@ type Assessment = {
     questions_count: number;
     attempts_count: number;
     completed_attempts_count: number;
-    assignments_count: number;
     status: 'active' | 'draft' | 'private' | string;
     created_at: string | null;
 };
@@ -93,7 +92,6 @@ export default function RecruiterAssessmentsIndex({ assessments }: Props) {
                                         <th className="px-3 py-2 font-medium">Assessment</th>
                                         <th className="px-3 py-2 font-medium">Questions</th>
                                         <th className="px-3 py-2 font-medium">Attempts</th>
-                                        <th className="px-3 py-2 font-medium">Assignments</th>
                                         <th className="px-3 py-2 font-medium">Status</th>
                                         <th className="px-3 py-2 font-medium">Actions</th>
                                     </tr>
@@ -117,7 +115,6 @@ export default function RecruiterAssessmentsIndex({ assessments }: Props) {
                                                     {assessment.completed_attempts_count} submitted
                                                 </div>
                                             </td>
-                                            <td className="px-3 py-3 align-top">{assessment.assignments_count}</td>
                                             <td className="px-3 py-3 align-top">
                                                 <span className={`rounded-full border px-2 py-1 text-xs font-medium ${statusPillClass(assessment.status)}`}>
                                                     {assessment.status}

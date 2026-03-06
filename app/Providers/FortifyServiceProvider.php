@@ -4,8 +4,11 @@ namespace App\Providers;
 
 use App\Actions\Fortify\CreateNewUser;
 use App\Actions\Fortify\ResetUserPassword;
+use App\Enums\Role;
+use App\Models\User;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
@@ -40,6 +43,35 @@ class FortifyServiceProvider extends ServiceProvider
     {
         Fortify::resetUserPasswordsUsing(ResetUserPassword::class);
         Fortify::createUsersUsing(CreateNewUser::class);
+        Fortify::authenticateUsing(function (Request $request): ?User {
+            $email = trim((string) $request->input('email'));
+            $password = (string) $request->input('password');
+
+            if ($email === '' || $password === '') {
+                return null;
+            }
+
+            $user = User::query()->where('email', $email)->first();
+
+            if ($user === null || ! Hash::check($password, $user->password)) {
+                return null;
+            }
+
+            $accountType = strtolower(trim((string) $request->input('account_type')));
+
+            if ($accountType === '' || $accountType === 'any') {
+                return $user;
+            }
+
+            $isRoleMatch = match ($accountType) {
+                'candidate' => $user->role === Role::Candidate,
+                'company' => $user->role === Role::Company,
+                'recruiter' => in_array($user->role, [Role::Admin, Role::SuperAdmin], true),
+                default => false,
+            };
+
+            return $isRoleMatch ? $user : null;
+        });
 
         $this->app->singleton(
             \Laravel\Fortify\Contracts\LoginResponse::class,

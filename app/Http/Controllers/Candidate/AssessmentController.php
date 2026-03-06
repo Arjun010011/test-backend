@@ -6,7 +6,6 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Candidate\SaveAssessmentAnswerRequest;
 use App\Http\Requests\Candidate\StoreAssessmentProctoringEventRequest;
 use App\Models\Assessment;
-use App\Models\AssessmentAssignment;
 use App\Models\AssessmentAttempt;
 use App\Models\AssessmentProctoringEvent;
 use App\Models\AssessmentQuestion;
@@ -30,36 +29,17 @@ class AssessmentController extends Controller
 
         $assessments = Assessment::query()
             ->active()
-            ->with([
-                'assignments' => fn ($query) => $query->latest(),
-            ])
             ->latest()
             ->get()
-            ->filter(function (Assessment $assessment) use ($college): bool {
-                if (! $assessment->assignments->contains(fn (AssessmentAssignment $assignment): bool => $assignment->is_active)) {
-                    return true;
-                }
-
-                if ($college === null || trim($college) === '') {
-                    return false;
-                }
-
-                return $assessment->assignments->contains(
-                    fn (AssessmentAssignment $assignment): bool => $assignment->college_name === $college && $assignment->is_active,
-                );
-            })
-            ->map(function (Assessment $assessment) use ($college, $user): array {
-                $assignment = $this->findLatestAssignmentForCandidate($assessment, $college);
-
+            ->map(function (Assessment $assessment) use ($user): array {
                 $attemptCount = AssessmentAttempt::query()
                     ->where('assessment_id', $assessment->id)
                     ->where('candidate_id', $user->id)
                     ->count();
 
-                $maxAttempts = $assignment?->max_attempts ?? 1;
-                $isAssignmentAvailable = $assignment?->isAvailable() ?? true;
-                $canAttempt = $isAssignmentAvailable && $attemptCount < $maxAttempts;
-                $state = $this->candidateAssessmentState($assessment, $assignment, $canAttempt);
+                $maxAttempts = 1;
+                $canAttempt = $attemptCount < $maxAttempts;
+                $state = $this->candidateAssessmentState($assessment, $canAttempt);
 
                 return [
                     'assessment' => [
@@ -72,13 +52,7 @@ class AssessmentController extends Controller
                         'total_questions' => $assessment->total_questions,
                         'passing_score' => $assessment->passing_score,
                     ],
-                    'assignment' => $assignment === null ? null : [
-                        'id' => $assignment->id,
-                        'college_name' => $assignment->college_name,
-                        'starts_at' => $assignment->starts_at?->toDateTimeString(),
-                        'ends_at' => $assignment->ends_at?->toDateTimeString(),
-                        'max_attempts' => $assignment->max_attempts,
-                    ],
+                    'assignment' => null,
                     'attempts_taken' => $attemptCount,
                     'max_attempts' => $maxAttempts,
                     'can_attempt' => $canAttempt,
@@ -102,9 +76,7 @@ class AssessmentController extends Controller
 
         abort_unless($user !== null, 403);
 
-        $assignment = $this->findLatestAssignmentForCandidate($assessment, $user->candidateProfile?->university);
-
-        if (! $this->canCandidateAccessAssessment($assessment, $assignment)) {
+        if ($assessment->status !== 'active') {
             return to_route('candidate.assessments.index')
                 ->with('status', 'assessment-no-longer-available');
         }
@@ -115,13 +87,13 @@ class AssessmentController extends Controller
             ->latest()
             ->get();
 
-        $maxAttempts = $assignment?->max_attempts ?? 1;
-        $canAttempt = ($assignment?->isAvailable() ?? true) && $attempts->count() < $maxAttempts;
-        $state = $this->candidateAssessmentState($assessment, $assignment, $canAttempt);
+        $maxAttempts = 1;
+        $canAttempt = $attempts->count() < $maxAttempts;
+        $state = $this->candidateAssessmentState($assessment, $canAttempt);
 
         return Inertia::render('candidate/assessments/show', [
             'assessment' => $assessment,
-            'assignment' => $assignment,
+            'assignment' => null,
             'attempts' => $attempts,
             'can_attempt' => $canAttempt,
             'max_attempts' => $maxAttempts,
@@ -135,9 +107,7 @@ class AssessmentController extends Controller
 
         abort_unless($user !== null, 403);
 
-        $assignment = $this->findLatestAssignmentForCandidate($assessment, $user->candidateProfile?->university);
-
-        if (! $this->canCandidateAccessAssessment($assessment, $assignment)) {
+        if ($assessment->status !== 'active') {
             return to_route('candidate.assessments.index')
                 ->with('status', 'assessment-no-longer-available');
         }
@@ -147,7 +117,7 @@ class AssessmentController extends Controller
             ->where('candidate_id', $user->id)
             ->count();
 
-        $maxAttempts = $assignment?->max_attempts ?? 1;
+        $maxAttempts = 1;
 
         if ($attemptCount >= $maxAttempts) {
             return back()->with('status', 'assessment-attempt-limit-reached');
@@ -171,7 +141,7 @@ class AssessmentController extends Controller
         AssessmentAttempt::query()->create([
             'assessment_id' => $assessment->id,
             'candidate_id' => $user->id,
-            'assignment_id' => $assignment?->id,
+            'assignment_id' => null,
             'attempt_number' => $attemptCount + 1,
             'started_at' => now(),
             'max_score' => (int) $assessment->questions()->sum('points'),
@@ -354,49 +324,12 @@ class AssessmentController extends Controller
         ]);
     }
 
-    private function findLatestAssignmentForCandidate(Assessment $assessment, ?string $college): ?AssessmentAssignment
-    {
-        if ($college === null || trim($college) === '') {
-            return null;
-        }
-
-        return AssessmentAssignment::query()
-            ->where('assessment_id', $assessment->id)
-            ->where('college_name', $college)
-            ->latest()
-            ->first();
-    }
-
-    private function canCandidateAccessAssessment(Assessment $assessment, ?AssessmentAssignment $assignment): bool
-    {
-        if ($assessment->status !== 'active') {
-            return false;
-        }
-
-        $hasAssignmentRules = $assessment->assignments()->where('is_active', true)->exists();
-
-        if (! $hasAssignmentRules) {
-            return true;
-        }
-
-        return $assignment !== null && $assignment->isAvailable();
-    }
-
     private function candidateAssessmentState(
         Assessment $assessment,
-        ?AssessmentAssignment $assignment,
         bool $canAttempt,
     ): string {
         if ($assessment->status !== 'active') {
             return 'inactive';
-        }
-
-        if ($assignment !== null && ! $assignment->isAvailable()) {
-            if ($assignment->starts_at !== null && now()->lt($assignment->starts_at)) {
-                return 'upcoming';
-            }
-
-            return 'completed';
         }
 
         if (! $canAttempt) {

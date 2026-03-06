@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\Role;
 use App\Models\User;
 use Illuminate\Support\Facades\RateLimiter;
 use Laravel\Fortify\Features;
@@ -68,6 +69,56 @@ test('users can logout', function () {
 
     $this->assertGuest();
     $response->assertRedirect(route('home'));
+});
+
+test('candidate and recruiter with same name and password can authenticate without conflicts', function () {
+    $candidate = User::factory()->create([
+        'name' => 'Same Person',
+        'email' => 'candidate.same@example.com',
+        'role' => Role::Candidate,
+    ]);
+
+    $recruiter = User::factory()->create([
+        'name' => 'Same Person',
+        'email' => 'recruiter.same@example.com',
+        'role' => Role::Admin,
+    ]);
+
+    $candidateLoginResponse = $this->post(route('login.store'), [
+        'email' => $candidate->email,
+        'password' => 'password',
+        'account_type' => 'candidate',
+    ]);
+
+    $candidateLoginResponse->assertRedirect(route('dashboard', absolute: false));
+    $this->assertAuthenticatedAs($candidate);
+
+    $this->post(route('logout'))->assertRedirect(route('home'));
+    $this->assertGuest();
+
+    $recruiterLoginResponse = $this->post(route('login.store'), [
+        'email' => $recruiter->email,
+        'password' => 'password',
+        'account_type' => 'recruiter',
+    ]);
+
+    $recruiterLoginResponse->assertRedirect(route('recruiter.dashboard'));
+    $this->assertAuthenticatedAs($recruiter);
+});
+
+test('users cannot authenticate with a mismatched account type', function () {
+    $recruiter = User::factory()->create([
+        'email' => 'recruiter.mismatch@example.com',
+        'role' => Role::Admin,
+    ]);
+
+    $this->post(route('login.store'), [
+        'email' => $recruiter->email,
+        'password' => 'password',
+        'account_type' => 'candidate',
+    ]);
+
+    $this->assertGuest();
 });
 
 test('users are rate limited', function () {

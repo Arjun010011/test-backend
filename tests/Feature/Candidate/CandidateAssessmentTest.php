@@ -465,7 +465,7 @@ it('shows onboarding message when candidate has no college set', function () {
         );
 });
 
-it('blocks candidate access when assigned assessment window has ended', function () {
+it('allows candidate access even when assignment rules exist', function () {
     $admin = User::factory()->admin()->create();
     $candidate = User::factory()->candidate()->create();
 
@@ -511,8 +511,11 @@ it('blocks candidate access when assigned assessment window has ended', function
 
     actingAs($candidate)
         ->get(route('candidate.assessments.show', $assessment))
-        ->assertRedirect(route('candidate.assessments.index'))
-        ->assertSessionHas('status', 'assessment-no-longer-available');
+        ->assertSuccessful()
+        ->assertInertia(fn ($page) => $page
+            ->component('candidate/assessments/show')
+            ->where('assessment.id', $assessment->id)
+        );
 });
 
 it('redirects candidate with friendly message when starting a private assessment', function () {

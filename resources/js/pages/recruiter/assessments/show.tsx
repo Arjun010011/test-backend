@@ -1,17 +1,7 @@
 import { Head, Link, router } from '@inertiajs/react';
-import { BarChart3, CheckCircle2, Clock3, Timer } from 'lucide-react';
+import { BarChart3, Timer } from 'lucide-react';
 import RecruiterLayout from '@/layouts/recruiter-layout';
 import { analytics, destroy, index, toggleStatus } from '@/routes/recruiter/assessments';
-import { create as createAssignment } from '@/routes/recruiter/assessments/assign';
-
-type Assignment = {
-    id: number;
-    college_name: string;
-    starts_at: string | null;
-    ends_at: string | null;
-    max_attempts: number;
-    is_active: boolean;
-};
 
 type Props = {
     assessment: {
@@ -24,7 +14,6 @@ type Props = {
         total_questions: number;
         passing_score: number | null;
         status: 'draft' | 'active' | 'private' | string;
-        assignments: Assignment[];
     };
     analytics: {
         total_attempts: number;
@@ -76,13 +65,6 @@ export default function RecruiterAssessmentsShow({ assessment, analytics: stats 
                                 <option value="active">Active</option>
                                 <option value="private">Private</option>
                             </select>
-                            <Link
-                                href={createAssignment({ assessment: assessment.id }).url}
-                                className="inline-flex items-center gap-2 rounded-lg border border-border/70 bg-background px-3 py-2 text-sm font-semibold hover:bg-accent/50"
-                            >
-                                <CheckCircle2 className="size-4" />
-                                Assign Test
-                            </Link>
                             <Link
                                 href={analytics({ assessment: assessment.id }).url}
                                 className="inline-flex items-center gap-2 rounded-lg border border-border/70 bg-background px-3 py-2 text-sm font-semibold hover:bg-accent/50"
@@ -136,49 +118,6 @@ export default function RecruiterAssessmentsShow({ assessment, analytics: stats 
                     </article>
                 </section>
 
-                <section className="rounded-2xl border border-border/70 bg-card/90 p-5 shadow-sm">
-                    <div className="mb-3 flex items-center justify-between">
-                        <h3 className="text-base font-semibold">Assignments</h3>
-                        <span className="text-xs text-muted-foreground">{assessment.assignments.length} total</span>
-                    </div>
-
-                    {assessment.assignments.length === 0 ? (
-                        <p className="rounded-lg border border-dashed border-border/70 bg-muted/20 p-4 text-sm text-muted-foreground">
-                            No assignment rules configured. This assessment behaves as a global test when published.
-                        </p>
-                    ) : (
-                        <div className="space-y-2">
-                            {assessment.assignments.map((assignment) => (
-                                <article
-                                    key={assignment.id}
-                                    className="rounded-xl border border-border/60 bg-background/60 p-3"
-                                >
-                                    <div className="flex flex-wrap items-center justify-between gap-2">
-                                        <div>
-                                            <p className="font-medium">{assignment.college_name}</p>
-                                            <p className="text-xs text-muted-foreground">
-                                                Max attempts: {assignment.max_attempts}
-                                            </p>
-                                        </div>
-                                        <span className="rounded-full border border-border/70 px-2 py-1 text-xs">
-                                            {assignment.is_active ? 'Enabled' : 'Disabled'}
-                                        </span>
-                                    </div>
-                                    <div className="mt-2 grid gap-2 text-xs text-muted-foreground sm:grid-cols-2">
-                                        <p className="inline-flex items-center gap-1">
-                                            <Clock3 className="size-3.5" />
-                                            Starts: {assignment.starts_at ?? 'Immediately'}
-                                        </p>
-                                        <p className="inline-flex items-center gap-1">
-                                            <Clock3 className="size-3.5" />
-                                            Ends: {assignment.ends_at ?? 'No deadline'}
-                                        </p>
-                                    </div>
-                                </article>
-                            ))}
-                        </div>
-                    )}
-                </section>
             </div>
         </RecruiterLayout>
     );

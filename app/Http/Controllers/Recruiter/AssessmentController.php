@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Recruiter;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\Recruiter\StoreAssessmentAssignmentRequest;
 use App\Http\Requests\Recruiter\StoreAssessmentRequest;
 use App\Models\Assessment;
 use App\Services\QuestionProviderService;
@@ -22,26 +21,12 @@ class AssessmentController extends Controller
 
     public function index(): Response
     {
-        $now = now();
-
         $assessments = Assessment::query()
             ->with('creator:id,name')
             ->withCount([
                 'questions',
                 'attempts',
-                'assignments',
                 'attempts as completed_attempts_count' => fn ($query) => $query->where('status', 'submitted'),
-                'assignments as live_assignments_count' => fn ($query) => $query
-                    ->where('is_active', true)
-                    ->where(function ($innerQuery) use ($now): void {
-                        $innerQuery->whereNull('starts_at')->orWhere('starts_at', '<=', $now);
-                    })
-                    ->where(function ($innerQuery) use ($now): void {
-                        $innerQuery->whereNull('ends_at')->orWhere('ends_at', '>=', $now);
-                    }),
-                'assignments as upcoming_assignments_count' => fn ($query) => $query
-                    ->where('is_active', true)
-                    ->where('starts_at', '>', $now),
             ])
             ->latest()
             ->paginate(20)
@@ -57,9 +42,6 @@ class AssessmentController extends Controller
                     'questions_count' => $assessment->questions_count,
                     'attempts_count' => $assessment->attempts_count,
                     'completed_attempts_count' => $assessment->completed_attempts_count,
-                    'assignments_count' => $assessment->assignments_count,
-                    'live_assignments_count' => $assessment->live_assignments_count,
-                    'upcoming_assignments_count' => $assessment->upcoming_assignments_count,
                     'created_at' => $assessment->created_at?->toDateTimeString(),
                 ];
             });
@@ -149,7 +131,6 @@ class AssessmentController extends Controller
         $assessment->load([
             'creator:id,name',
             'questions.options',
-            'assignments',
         ]);
 
         return Inertia::render('recruiter/assessments/show', [
@@ -161,38 +142,6 @@ class AssessmentController extends Controller
                 'pass_rate' => $this->calculatePassRate($assessment),
             ],
         ]);
-    }
-
-    public function createAssignment(Assessment $assessment): Response
-    {
-        $assessment->load('assignments');
-
-        return Inertia::render('recruiter/assessments/create-assignment', [
-            'assessment' => [
-                'id' => $assessment->id,
-                'title' => $assessment->title,
-                'category' => $assessment->category,
-                'difficulty' => $assessment->difficulty,
-                'assignments' => $assessment->assignments
-                    ->map(fn ($assignment): array => [
-                        'id' => $assignment->id,
-                        'college_name' => $assignment->college_name,
-                        'starts_at' => $assignment->starts_at?->toDateTimeString(),
-                        'ends_at' => $assignment->ends_at?->toDateTimeString(),
-                        'max_attempts' => $assignment->max_attempts,
-                        'is_active' => $assignment->is_active,
-                    ])
-                    ->values(),
-            ],
-        ]);
-    }
-
-    public function storeAssignment(StoreAssessmentAssignmentRequest $request, Assessment $assessment): RedirectResponse
-    {
-        $assessment->assignments()->create($request->validated());
-
-        return to_route('recruiter.assessments.show', $assessment)
-            ->with('status', 'assessment-assigned');
     }
 
     public function toggleStatus(Assessment $assessment): RedirectResponse

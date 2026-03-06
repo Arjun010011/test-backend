@@ -136,6 +136,7 @@ export default function CandidateAssessmentsTake({
     const detectionFailureCountRef = useRef(0);
     const previousNosePositionRef = useRef<{ x: number; y: number } | null>(null);
     const lastMovementWarningAtRef = useRef(0);
+    const mediaPipeIssueStrikesRef = useRef<Record<string, number>>({});
     const answerAbortControllersRef = useRef(new Map<number, AbortController>());
     const answerRequestVersionRef = useRef(new Map<number, number>());
     const failedSaveQuestionIdsRef = useRef<number[]>([]);
@@ -298,6 +299,33 @@ export default function CandidateAssessmentsTake({
                 },
             },
         );
+    };
+
+    const resetMediaPipeIssueStrike = (issueKey: string): void => {
+        if (mediaPipeIssueStrikesRef.current[issueKey] !== undefined) {
+            delete mediaPipeIssueStrikesRef.current[issueKey];
+        }
+    };
+
+    const registerMediaPipeIssue = (
+        issueKey: string,
+        firstWarning: string,
+        persistWarning: string,
+        eventType: string,
+        metadata: Record<string, unknown> = {},
+    ): void => {
+        const nextStrike = (mediaPipeIssueStrikesRef.current[issueKey] ?? 0) + 1;
+        mediaPipeIssueStrikesRef.current[issueKey] = nextStrike;
+
+        if (nextStrike === 1) {
+            addWarning(firstWarning);
+            void logProctoringEvent(eventType, 'high', { strike: nextStrike, ...metadata });
+            return;
+        }
+
+        addWarning(persistWarning);
+        void logProctoringEvent(`${eventType}_persistent`, 'high', { strike: nextStrike, ...metadata });
+        void submitAssessment();
     };
 
     useEffect(() => {
@@ -529,6 +557,7 @@ export default function CandidateAssessmentsTake({
                     detectionFailureCountRef.current = 0;
                     setPersonState('detected');
                     void logProctoringEvent('person_detected', 'low');
+                    mediaPipeIssueStrikesRef.current = {};
 
                     if (landmarker !== null) {
                         const landmarkResult = landmarker.detectForVideo(videoPreviewRef.current, timestamp);
@@ -541,10 +570,20 @@ export default function CandidateAssessmentsTake({
                                 const movementDelta = Math.hypot(nose.x - previousNose.x, nose.y - previousNose.y);
                                 const now = Date.now();
 
-                                if (movementDelta > 0.12 && now - lastMovementWarningAtRef.current > 10000) {
+                                if (movementDelta > 0.12 && now - lastMovementWarningAtRef.current > 2500) {
                                     lastMovementWarningAtRef.current = now;
-                                    addWarning('Excessive camera movement detected. Keep your face centered.');
-                                    void logProctoringEvent('head_movement_detected', 'medium', {
+                                    registerMediaPipeIssue(
+                                        'excessive_movement',
+                                        'Excessive camera movement detected. Keep your face centered.',
+                                        'Excessive camera movement persisted. Auto-submitting your test.',
+                                        'head_movement_detected',
+                                        {
+                                            movement_delta: Number(movementDelta.toFixed(4)),
+                                        },
+                                    );
+                                } else if (movementDelta <= 0.12) {
+                                    resetMediaPipeIssueStrike('excessive_movement');
+                                    void logProctoringEvent('head_stable', 'low', {
                                         movement_delta: Number(movementDelta.toFixed(4)),
                                     });
                                 }
@@ -560,15 +599,24 @@ export default function CandidateAssessmentsTake({
                 if (faces.length === 0) {
                     setPersonState('not_detected');
                     previousNosePositionRef.current = null;
-                    addWarning('No person detected on camera. Test is locked until one person is visible.');
-                    void logProctoringEvent('no_person_detected', 'high');
+                    registerMediaPipeIssue(
+                        'no_person_detected',
+                        'No person detected on camera. Warning issued.',
+                        'No person still detected. Auto-submitting your test.',
+                        'no_person_detected',
+                    );
                     return;
                 }
 
                 setPersonState('not_detected');
                 previousNosePositionRef.current = null;
-                addWarning('Multiple people detected on camera. Only one person is allowed.');
-                void logProctoringEvent('multiple_people_detected', 'high', { detected_faces: faces.length });
+                registerMediaPipeIssue(
+                    'multiple_people_detected',
+                    'Multiple people detected on camera. Warning issued.',
+                    'Multiple people still detected. Auto-submitting your test.',
+                    'multiple_people_detected',
+                    { detected_faces: faces.length },
+                );
             } catch {
                 detectionFailureCountRef.current += 1;
 
@@ -580,8 +628,12 @@ export default function CandidateAssessmentsTake({
                 }
 
                 setPersonState('not_detected');
-                addWarning('Person detection failed. Keep camera visible and try again.');
-                void logProctoringEvent('person_detection_failed', 'high');
+                registerMediaPipeIssue(
+                    'person_detection_failed',
+                    'Person detection failed. Warning issued; keep camera visible.',
+                    'Person detection continues to fail. Auto-submitting your test.',
+                    'person_detection_failed',
+                );
             }
         };
 

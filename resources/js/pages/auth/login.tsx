@@ -59,7 +59,7 @@ export default function Login({
                                         <TextLink
                                             href={request()}
                                             className="ml-auto text-sm"
-                                            tabIndex={5}
+                                            tabIndex={6}
                                         >
                                             Forgot password?
                                         </TextLink>
@@ -77,11 +77,28 @@ export default function Login({
                                 <InputError message={errors.password} />
                             </div>
 
+                            <div className="grid gap-2">
+                                <Label htmlFor="account_type">Account type</Label>
+                                <select
+                                    id="account_type"
+                                    name="account_type"
+                                    defaultValue="any"
+                                    tabIndex={3}
+                                    className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+                                >
+                                    <option value="any">Any</option>
+                                    <option value="candidate">Candidate</option>
+                                    <option value="company">Company</option>
+                                    <option value="recruiter">Recruiter</option>
+                                </select>
+                                <InputError message={errors.account_type} />
+                            </div>
+
                             <div className="flex items-center space-x-3">
                                 <Checkbox
                                     id="remember"
                                     name="remember"
-                                    tabIndex={3}
+                                    tabIndex={4}
                                 />
                                 <Label htmlFor="remember">Remember me</Label>
                             </div>
@@ -89,7 +106,7 @@ export default function Login({
                             <Button
                                 type="submit"
                                 className="mt-4 w-full"
-                                tabIndex={4}
+                                tabIndex={5}
                                 disabled={processing}
                                 data-test="login-button"
                             >
@@ -101,7 +118,7 @@ export default function Login({
                         {canRegister && (
                             <div className="text-center text-sm text-muted-foreground">
                                 Don't have an account?{' '}
-                                <TextLink href={register()} tabIndex={5}>
+                                <TextLink href={register()} tabIndex={7}>
                                     Sign up
                                 </TextLink>
                             </div>

@@ -85,10 +85,6 @@ Route::middleware(['auth', 'role:admin'])->prefix('recruiter')->name('recruiter.
         ->only(['index', 'create', 'store', 'show', 'destroy']);
     Route::post('assessments/{assessment}/toggle-status', [RecruiterAssessmentController::class, 'toggleStatus'])
         ->name('assessments.toggle-status');
-    Route::get('assessments/{assessment}/assign', [RecruiterAssessmentController::class, 'createAssignment'])
-        ->name('assessments.assign.create');
-    Route::post('assessments/{assessment}/assign', [RecruiterAssessmentController::class, 'storeAssignment'])
-        ->name('assessments.assign.store');
     Route::get('assessments/{assessment}/analytics', [AssessmentAnalyticsController::class, 'show'])
         ->name('assessments.analytics');
 });
