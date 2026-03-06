@@ -34,10 +34,16 @@ type Props = {
 
 type CameraState = 'live' | 'blocked' | 'unsupported' | 'initializing';
 type PersonState = 'checking' | 'detected' | 'not_detected' | 'unsupported';
-type FaceDetectorLike = {
-    detect: (input: HTMLVideoElement) => Promise<Array<unknown>>;
+type MediaPipeFaceDetector = {
+    detectForVideo: (video: HTMLVideoElement, timestampMs: number) => { detections?: Array<unknown> };
+    close?: () => void;
 };
-type FaceDetectorCtor = new (options?: { fastMode?: boolean; maxDetectedFaces?: number }) => FaceDetectorLike;
+type MediaPipeFaceLandmarker = {
+    detectForVideo: (video: HTMLVideoElement, timestampMs: number) => {
+        faceLandmarks?: Array<Array<{ x: number; y: number }>>;
+    };
+    close?: () => void;
+};
 type FullscreenDocument = Document & {
     webkitFullscreenElement?: Element | null;
     msFullscreenElement?: Element | null;
@@ -128,6 +134,8 @@ export default function CandidateAssessmentsTake({
     const isSubmittingRef = useRef(false);
     const detectionIntervalRef = useRef<number | null>(null);
     const detectionFailureCountRef = useRef(0);
+    const previousNosePositionRef = useRef<{ x: number; y: number } | null>(null);
+    const lastMovementWarningAtRef = useRef(0);
     const answerAbortControllersRef = useRef(new Map<number, AbortController>());
     const answerRequestVersionRef = useRef(new Map<number, number>());
     const failedSaveQuestionIdsRef = useRef<number[]>([]);
@@ -503,40 +511,62 @@ export default function CandidateAssessmentsTake({
             return;
         }
 
-        const FaceDetectorImpl = (window as Window & { FaceDetector?: FaceDetectorCtor }).FaceDetector;
-
-        if (!FaceDetectorImpl) {
-            setPersonState('unsupported');
-            addWarning('Person detection is unsupported in this browser. You can continue, but proctoring checks are limited.');
-            void logProctoringEvent('person_detection_unsupported', 'medium');
-            return;
-        }
-
-        const detector = new FaceDetectorImpl({ fastMode: true, maxDetectedFaces: 2 });
+        let detector: MediaPipeFaceDetector | null = null;
+        let landmarker: MediaPipeFaceLandmarker | null = null;
+        let cancelled = false;
 
         const detectPerson = async () => {
-            if (videoPreviewRef.current === null || videoPreviewRef.current.readyState < 2) {
+            if (videoPreviewRef.current === null || videoPreviewRef.current.readyState < 2 || detector === null) {
                 return;
             }
 
             try {
-                const faces = await detector.detect(videoPreviewRef.current);
+                const timestamp = performance.now();
+                const detectionResult = detector.detectForVideo(videoPreviewRef.current, timestamp);
+                const faces = detectionResult.detections ?? [];
 
                 if (faces.length === 1) {
                     detectionFailureCountRef.current = 0;
                     setPersonState('detected');
                     void logProctoringEvent('person_detected', 'low');
+
+                    if (landmarker !== null) {
+                        const landmarkResult = landmarker.detectForVideo(videoPreviewRef.current, timestamp);
+                        const nose = landmarkResult.faceLandmarks?.[0]?.[1];
+
+                        if (nose) {
+                            const previousNose = previousNosePositionRef.current;
+
+                            if (previousNose !== null) {
+                                const movementDelta = Math.hypot(nose.x - previousNose.x, nose.y - previousNose.y);
+                                const now = Date.now();
+
+                                if (movementDelta > 0.12 && now - lastMovementWarningAtRef.current > 10000) {
+                                    lastMovementWarningAtRef.current = now;
+                                    addWarning('Excessive camera movement detected. Keep your face centered.');
+                                    void logProctoringEvent('head_movement_detected', 'medium', {
+                                        movement_delta: Number(movementDelta.toFixed(4)),
+                                    });
+                                }
+                            }
+
+                            previousNosePositionRef.current = { x: nose.x, y: nose.y };
+                        }
+                    }
+
                     return;
                 }
 
                 if (faces.length === 0) {
                     setPersonState('not_detected');
+                    previousNosePositionRef.current = null;
                     addWarning('No person detected on camera. Test is locked until one person is visible.');
                     void logProctoringEvent('no_person_detected', 'high');
                     return;
                 }
 
                 setPersonState('not_detected');
+                previousNosePositionRef.current = null;
                 addWarning('Multiple people detected on camera. Only one person is allowed.');
                 void logProctoringEvent('multiple_people_detected', 'high', { detected_faces: faces.length });
             } catch {
@@ -555,18 +585,68 @@ export default function CandidateAssessmentsTake({
             }
         };
 
-        setPersonState('checking');
-        void detectPerson();
+        const initializeMediaPipe = async () => {
+            try {
+                const vision = await import('@mediapipe/tasks-vision');
+                const fileset = await vision.FilesetResolver.forVisionTasks(
+                    'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.32/wasm',
+                );
 
-        detectionIntervalRef.current = window.setInterval(() => {
-            void detectPerson();
-        }, 1800);
+                detector = await vision.FaceDetector.createFromOptions(fileset, {
+                    baseOptions: {
+                        modelAssetPath:
+                            'https://storage.googleapis.com/mediapipe-models/face_detector/blaze_face_short_range/float16/1/blaze_face_short_range.tflite',
+                    },
+                    runningMode: 'VIDEO',
+                    minDetectionConfidence: 0.5,
+                });
+
+                landmarker = await vision.FaceLandmarker.createFromOptions(fileset, {
+                    baseOptions: {
+                        modelAssetPath:
+                            'https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task',
+                    },
+                    runningMode: 'VIDEO',
+                    numFaces: 1,
+                    minFaceDetectionConfidence: 0.5,
+                    minFacePresenceConfidence: 0.5,
+                    minTrackingConfidence: 0.5,
+                });
+
+                if (cancelled) {
+                    detector.close?.();
+                    landmarker.close?.();
+                    return;
+                }
+
+                setPersonState('checking');
+                void detectPerson();
+
+                detectionIntervalRef.current = window.setInterval(() => {
+                    void detectPerson();
+                }, 1200);
+            } catch {
+                if (!cancelled) {
+                    setPersonState('unsupported');
+                    addWarning('Person detection is unsupported in this browser. You can continue, but proctoring checks are limited.');
+                    void logProctoringEvent('person_detection_unsupported', 'medium');
+                }
+            }
+        };
+
+        void initializeMediaPipe();
 
         return () => {
+            cancelled = true;
+
             if (detectionIntervalRef.current !== null) {
                 window.clearInterval(detectionIntervalRef.current);
                 detectionIntervalRef.current = null;
             }
+
+            previousNosePositionRef.current = null;
+            detector?.close?.();
+            landmarker?.close?.();
         };
     }, [cameraState]);
 
