@@ -37,8 +37,14 @@ class AssessmentController extends Controller
                     ->where('candidate_id', $user->id)
                     ->count();
 
-                $maxAttempts = 1;
-                $canAttempt = $attemptCount < $maxAttempts;
+                $personDetectionAutoCloseCount = $this->personDetectionAutoCloseCount($assessment, $user->id);
+                $maxAttemptNumber = $this->maxAttemptNumber($assessment, $user->id);
+                $maxAttempts = $personDetectionAutoCloseCount > 0 || $maxAttemptNumber >= 2 ? 2 : 1;
+                $canAttempt = $this->canStartAssessmentAttempt(
+                    $attemptCount,
+                    $personDetectionAutoCloseCount,
+                    $maxAttemptNumber,
+                );
                 $state = $this->candidateAssessmentState($assessment, $canAttempt);
 
                 return [
@@ -87,8 +93,14 @@ class AssessmentController extends Controller
             ->latest()
             ->get();
 
-        $maxAttempts = 1;
-        $canAttempt = $attempts->count() < $maxAttempts;
+        $personDetectionAutoCloseCount = $this->personDetectionAutoCloseCount($assessment, $user->id);
+        $maxAttemptNumber = $this->maxAttemptNumber($assessment, $user->id);
+        $maxAttempts = $personDetectionAutoCloseCount > 0 || $maxAttemptNumber >= 2 ? 2 : 1;
+        $canAttempt = $this->canStartAssessmentAttempt(
+            $attempts->count(),
+            $personDetectionAutoCloseCount,
+            $maxAttemptNumber,
+        );
         $state = $this->candidateAssessmentState($assessment, $canAttempt);
 
         return Inertia::render('candidate/assessments/show', [
@@ -117,10 +129,22 @@ class AssessmentController extends Controller
             ->where('candidate_id', $user->id)
             ->count();
 
-        $maxAttempts = 1;
+        $personDetectionAutoCloseCount = $this->personDetectionAutoCloseCount($assessment, $user->id);
+        $maxAttemptNumber = $this->maxAttemptNumber($assessment, $user->id);
 
-        if ($attemptCount >= $maxAttempts) {
+        if (! $this->canStartAssessmentAttempt($attemptCount, $personDetectionAutoCloseCount, $maxAttemptNumber)) {
             return back()->with('status', 'assessment-attempt-limit-reached');
+        }
+
+        $nextAttemptNumber = $maxAttemptNumber + 1;
+
+        if ($attemptCount === 1 && $personDetectionAutoCloseCount === 1 && $maxAttemptNumber === 1) {
+            AssessmentAttempt::query()
+                ->where('assessment_id', $assessment->id)
+                ->where('candidate_id', $user->id)
+                ->delete();
+
+            $attemptCount = 0;
         }
 
         $existingAttempt = AssessmentAttempt::query()
@@ -142,7 +166,7 @@ class AssessmentController extends Controller
             'assessment_id' => $assessment->id,
             'candidate_id' => $user->id,
             'assignment_id' => null,
-            'attempt_number' => $attemptCount + 1,
+            'attempt_number' => $nextAttemptNumber,
             'started_at' => now(),
             'max_score' => (int) $assessment->questions()->sum('points'),
             'status' => 'in_progress',
@@ -337,5 +361,40 @@ class AssessmentController extends Controller
         }
 
         return 'active';
+    }
+
+    private function personDetectionAutoCloseCount(Assessment $assessment, int $candidateId): int
+    {
+        return AssessmentAttempt::query()
+            ->where('assessment_id', $assessment->id)
+            ->where('candidate_id', $candidateId)
+            ->whereHas('proctoringEvents', function ($query): void {
+                $query->where('event_type', 'no_person_detected_limit_exceeded');
+            })
+            ->count();
+    }
+
+    private function canStartAssessmentAttempt(
+        int $attemptCount,
+        int $personDetectionAutoCloseCount,
+        int $maxAttemptNumber,
+    ): bool {
+        if ($maxAttemptNumber >= 2) {
+            return false;
+        }
+
+        if ($attemptCount === 0) {
+            return true;
+        }
+
+        return $attemptCount === 1 && $personDetectionAutoCloseCount === 1 && $maxAttemptNumber === 1;
+    }
+
+    private function maxAttemptNumber(Assessment $assessment, int $candidateId): int
+    {
+        return (int) (AssessmentAttempt::query()
+            ->where('assessment_id', $assessment->id)
+            ->where('candidate_id', $candidateId)
+            ->max('attempt_number') ?? 0);
     }
 }

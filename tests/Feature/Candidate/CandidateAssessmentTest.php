@@ -614,6 +614,172 @@ it('stores proctoring events for in-progress attempts', function () {
         ->and($event->severity)->toBe('high');
 });
 
+it('allows a second attempt after a no-person auto-close on first attempt', function () {
+    $admin = User::factory()->admin()->create();
+    $candidate = User::factory()->candidate()->create();
+
+    CandidateProfile::factory()->create([
+        'user_id' => $candidate->id,
+        'university' => 'ABC Engineering College',
+        'profile_completed_at' => now(),
+    ]);
+
+    $assessment = Assessment::query()->create([
+        'created_by' => $admin->id,
+        'title' => 'Retry After No Person',
+        'description' => null,
+        'category' => 'aptitude',
+        'difficulty' => 'easy',
+        'duration_minutes' => 60,
+        'total_questions' => 1,
+        'passing_score' => 50,
+        'randomize_questions' => false,
+        'show_results_immediately' => true,
+        'is_active' => true,
+        'published_at' => now(),
+    ]);
+
+    AssessmentAssignment::query()->create([
+        'assessment_id' => $assessment->id,
+        'college_name' => 'ABC Engineering College',
+        'starts_at' => now()->subHour(),
+        'ends_at' => now()->addHour(),
+        'max_attempts' => 1,
+        'is_active' => true,
+    ]);
+
+    $firstAttempt = AssessmentAttempt::query()->create([
+        'assessment_id' => $assessment->id,
+        'candidate_id' => $candidate->id,
+        'assignment_id' => null,
+        'attempt_number' => 1,
+        'started_at' => now()->subMinutes(20),
+        'submitted_at' => now()->subMinutes(10),
+        'time_taken_seconds' => 600,
+        'max_score' => 10,
+        'status' => 'submitted',
+    ]);
+
+    $question = AssessmentQuestion::query()->create([
+        'assessment_id' => $assessment->id,
+        'question_text' => '1 + 1 = ?',
+        'question_type' => 'multiple_choice',
+        'category' => 'aptitude',
+        'difficulty' => 'easy',
+        'points' => 5,
+        'source' => 'template',
+    ]);
+
+    $option = AssessmentQuestionOption::query()->create([
+        'question_id' => $question->id,
+        'option_text' => '2',
+        'is_correct' => true,
+        'display_order' => 1,
+    ]);
+
+    AssessmentResponse::query()->create([
+        'attempt_id' => $firstAttempt->id,
+        'question_id' => $question->id,
+        'selected_option_id' => $option->id,
+        'is_correct' => true,
+        'points_earned' => 5,
+    ]);
+
+    AssessmentProctoringEvent::query()->create([
+        'assessment_id' => $assessment->id,
+        'attempt_id' => $firstAttempt->id,
+        'candidate_id' => $candidate->id,
+        'event_type' => 'no_person_detected_limit_exceeded',
+        'severity' => 'high',
+        'metadata' => ['strike' => 4],
+        'occurred_at' => now()->subMinutes(10),
+    ]);
+
+    actingAs($candidate)
+        ->post(route('candidate.assessments.start', $assessment))
+        ->assertRedirect(route('candidate.assessments.take', $assessment));
+
+    $attempts = AssessmentAttempt::query()
+        ->where('assessment_id', $assessment->id)
+        ->where('candidate_id', $candidate->id)
+        ->get();
+
+    expect($attempts)->toHaveCount(1)
+        ->and($attempts->first()->attempt_number)->toBe(2)
+        ->and($attempts->first()->status)->toBe('in_progress')
+        ->and(AssessmentAttempt::query()->find($firstAttempt->id))->toBeNull()
+        ->and(AssessmentResponse::query()->count())->toBe(0)
+        ->and(AssessmentProctoringEvent::query()->count())->toBe(0);
+});
+
+it('blocks any further attempts after two no-person auto-closes', function () {
+    $admin = User::factory()->admin()->create();
+    $candidate = User::factory()->candidate()->create();
+
+    CandidateProfile::factory()->create([
+        'user_id' => $candidate->id,
+        'university' => 'ABC Engineering College',
+        'profile_completed_at' => now(),
+    ]);
+
+    $assessment = Assessment::query()->create([
+        'created_by' => $admin->id,
+        'title' => 'Block After Two No Person Auto Closes',
+        'description' => null,
+        'category' => 'aptitude',
+        'difficulty' => 'easy',
+        'duration_minutes' => 60,
+        'total_questions' => 1,
+        'passing_score' => 50,
+        'randomize_questions' => false,
+        'show_results_immediately' => true,
+        'is_active' => true,
+        'published_at' => now(),
+    ]);
+
+    AssessmentAssignment::query()->create([
+        'assessment_id' => $assessment->id,
+        'college_name' => 'ABC Engineering College',
+        'starts_at' => now()->subHour(),
+        'ends_at' => now()->addHour(),
+        'max_attempts' => 1,
+        'is_active' => true,
+    ]);
+
+    $secondAttempt = AssessmentAttempt::query()->create([
+        'assessment_id' => $assessment->id,
+        'candidate_id' => $candidate->id,
+        'assignment_id' => null,
+        'attempt_number' => 2,
+        'started_at' => now()->subMinutes(15),
+        'submitted_at' => now()->subMinutes(5),
+        'time_taken_seconds' => 600,
+        'max_score' => 10,
+        'status' => 'submitted',
+    ]);
+
+    AssessmentProctoringEvent::query()->create([
+        'assessment_id' => $assessment->id,
+        'attempt_id' => $secondAttempt->id,
+        'candidate_id' => $candidate->id,
+        'event_type' => 'no_person_detected_limit_exceeded',
+        'severity' => 'high',
+        'metadata' => ['strike' => 4],
+        'occurred_at' => now()->subMinutes(5),
+    ]);
+
+    actingAs($candidate)
+        ->post(route('candidate.assessments.start', $assessment))
+        ->assertSessionHas('status', 'assessment-attempt-limit-reached');
+
+    expect(
+        AssessmentAttempt::query()
+            ->where('assessment_id', $assessment->id)
+            ->where('candidate_id', $candidate->id)
+            ->count()
+    )->toBe(1);
+});
+
 it('hides draft and private assessments from candidates', function () {
     $admin = User::factory()->admin()->create();
     $candidate = User::factory()->candidate()->create();

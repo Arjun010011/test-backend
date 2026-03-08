@@ -205,6 +205,7 @@ export default function CandidateAssessmentsTake({
                     ...(xsrfToken ? { 'X-XSRF-TOKEN': xsrfToken } : {}),
                 },
                 credentials: 'same-origin',
+                keepalive: true,
                 body: JSON.stringify({
                     event_type: eventType,
                     severity,
@@ -599,12 +600,33 @@ export default function CandidateAssessmentsTake({
                 if (faces.length === 0) {
                     setPersonState('not_detected');
                     previousNosePositionRef.current = null;
-                    registerMediaPipeIssue(
-                        'no_person_detected',
-                        'No person detected on camera. Warning issued.',
-                        'No person still detected. Auto-submitting your test.',
-                        'no_person_detected',
-                    );
+                    const issueKey = 'no_person_detected';
+                    const nextStrike = (mediaPipeIssueStrikesRef.current[issueKey] ?? 0) + 1;
+                    mediaPipeIssueStrikesRef.current[issueKey] = nextStrike;
+
+                    const warningLimit = 3;
+
+                    if (nextStrike === 1) {
+                        addWarning('Warning: No person detected on camera. More than 3 warnings will auto-submit your test.');
+                    } else if (nextStrike <= warningLimit) {
+                        addWarning(`No person detected warning (${nextStrike}/${warningLimit}).`);
+                    } else {
+                        addWarning('No person detection warning limit exceeded. Auto-submitting your test.');
+                    }
+
+                    void logProctoringEvent('no_person_detected', 'high', {
+                        strike: nextStrike,
+                        warning_limit: warningLimit,
+                    });
+
+                    if (nextStrike > warningLimit && !isSubmittingRef.current) {
+                        void logProctoringEvent('no_person_detected_limit_exceeded', 'high', {
+                            strike: nextStrike,
+                            warning_limit: warningLimit,
+                        });
+                        void submitAssessment();
+                    }
+
                     return;
                 }
 
