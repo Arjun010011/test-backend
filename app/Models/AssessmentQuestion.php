@@ -47,6 +47,11 @@ class AssessmentQuestion extends Model
         return $this->hasMany(AssessmentResponse::class, 'question_id');
     }
 
+    public function testCases(): HasMany
+    {
+        return $this->hasMany(AssessmentQuestionTestCase::class, 'question_id')->orderBy('display_order');
+    }
+
     public function correctOption(): HasOne
     {
         return $this->hasOne(AssessmentQuestionOption::class, 'question_id')->where('is_correct', true);

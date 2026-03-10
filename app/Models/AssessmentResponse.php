@@ -15,6 +15,7 @@ class AssessmentResponse extends Model
         'question_id',
         'selected_option_id',
         'answer_text',
+        'answer_language',
         'is_correct',
         'points_earned',
         'time_spent_seconds',

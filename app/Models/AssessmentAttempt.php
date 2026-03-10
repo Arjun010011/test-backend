@@ -65,6 +65,11 @@ class AssessmentAttempt extends Model
         return $this->hasMany(AssessmentProctoringEvent::class, 'attempt_id');
     }
 
+    public function codeSubmissions(): HasMany
+    {
+        return $this->hasMany(AssessmentCodeSubmission::class, 'attempt_id');
+    }
+
     public function hasExpired(): bool
     {
         if ($this->status !== 'in_progress') {
@@ -90,9 +95,14 @@ class AssessmentAttempt extends Model
 
     public function calculateScore(): void
     {
+        $codingSubmissions = $this->codeSubmissions()
+            ->where('status', 'completed')
+            ->get()
+            ->groupBy('question_id');
+
         $responses = $this->responses()
             ->with([
-                'question:id,points',
+                'question:id,points,question_type',
                 'selectedOption:id,is_correct',
             ])
             ->get();
@@ -101,8 +111,25 @@ class AssessmentAttempt extends Model
         $score = 0;
 
         foreach ($responses as $response) {
-            $isCorrect = (bool) $response->selectedOption?->is_correct;
-            $pointsEarned = $isCorrect ? (int) ($response->question?->points ?? 0) : 0;
+            $question = $response->question;
+            $questionPoints = (int) ($question?->points ?? 0);
+
+            if ($question?->question_type === 'coding') {
+                $bestSubmission = $codingSubmissions
+                    ->get($response->question_id, collect())
+                    ->sortByDesc(fn (AssessmentCodeSubmission $submission): int => $submission->passedHidden() ? 1 : 0)
+                    ->first();
+
+                $isCorrect = $bestSubmission instanceof AssessmentCodeSubmission ? $bestSubmission->passedHidden() : false;
+                $pointsEarned = $isCorrect ? $questionPoints : 0;
+
+                if ($response->selected_option_id !== null) {
+                    $response->forceFill(['selected_option_id' => null])->save();
+                }
+            } else {
+                $isCorrect = (bool) $response->selectedOption?->is_correct;
+                $pointsEarned = $isCorrect ? $questionPoints : 0;
+            }
 
             if ($response->is_correct !== $isCorrect || (int) $response->points_earned !== $pointsEarned) {
                 $response->forceFill([

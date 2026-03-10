@@ -98,6 +98,12 @@ Route::middleware(['auth', 'verified', 'candidate.onboarding', 'role:candidate']
         Route::post('assessments/{assessment}/start', [CandidateAssessmentController::class, 'start'])->name('assessments.start');
         Route::get('assessments/{assessment}/take', [CandidateAssessmentController::class, 'take'])->name('assessments.take');
         Route::post('assessments/{assessment}/answer', [CandidateAssessmentController::class, 'saveAnswer'])->name('assessments.answer');
+        Route::post('assessments/{assessment}/questions/{question}/run-samples', [CandidateAssessmentController::class, 'runCodingSamples'])
+            ->name('assessments.questions.run-samples');
+        Route::post('assessments/{assessment}/questions/{question}/submit-solution', [CandidateAssessmentController::class, 'submitCodingSolution'])
+            ->name('assessments.questions.submit-solution');
+        Route::get('assessments/{assessment}/questions/{question}/submissions/{submission}', [CandidateAssessmentController::class, 'codingSubmissionStatus'])
+            ->name('assessments.questions.submissions.show');
         Route::post('assessments/{assessment}/proctor-events', [CandidateAssessmentController::class, 'storeProctoringEvent'])->name('assessments.proctor-events.store');
         Route::post('assessments/{assessment}/submit', [CandidateAssessmentController::class, 'submit'])->name('assessments.submit');
         Route::get('assessments/{assessment}/result', [CandidateAssessmentController::class, 'result'])->name('assessments.result');

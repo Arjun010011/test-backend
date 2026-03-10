@@ -18,8 +18,8 @@ class ResumeFactory extends Factory
     {
         return [
             'user_id' => \App\Models\User::factory()->candidate(),
-            'file_path' => 'resumes/' . fake()->uuid() . '.pdf',
-            'original_name' => fake()->word() . '.pdf',
+            'file_path' => 'resumes/'.fake()->uuid().'.pdf',
+            'original_name' => fake()->word().'.pdf',
             'mime_type' => 'application/pdf',
             'file_size' => fake()->numberBetween(10_000, 500_000),
             'is_primary' => false,

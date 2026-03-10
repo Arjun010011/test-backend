@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Recruiter;
 
+use App\Services\MultiLanguageCodingProblemProviderService;
 use App\Services\QuestionProviderService;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -20,13 +21,24 @@ class StoreAssessmentRequest extends FormRequest
      */
     public function rules(): array
     {
-        $availableTopics = array_keys(app(QuestionProviderService::class)->getAvailableTopics());
+        $assessmentType = (string) $this->input('assessment_type', 'aptitude');
+
+        $availableTopics = match ($assessmentType) {
+            'coding' => array_keys(app(MultiLanguageCodingProblemProviderService::class)->getAvailableTopics()),
+            default => array_keys(app(QuestionProviderService::class)->getAvailableTopics()),
+        };
 
         return [
+            'assessment_type' => ['required', Rule::in(['aptitude', 'coding'])],
             'title' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
             'duration_minutes' => ['required', 'integer', 'min:5', 'max:180'],
-            'total_questions' => ['required', 'integer', 'min:5', 'max:100'],
+            'total_questions' => [
+                'required',
+                'integer',
+                $assessmentType === 'coding' ? 'min:1' : 'min:5',
+                'max:100',
+            ],
             'passing_score' => ['nullable', 'integer', 'min:0', 'max:100'],
             'randomize_questions' => ['sometimes', 'boolean'],
             'show_results_immediately' => ['sometimes', 'boolean'],
@@ -45,9 +57,12 @@ class StoreAssessmentRequest extends FormRequest
     public function messages(): array
     {
         return [
+            'assessment_type.required' => 'Assessment type is required.',
             'title.required' => 'Assessment title is required.',
             'duration_minutes.min' => 'Assessment duration must be at least 5 minutes.',
-            'total_questions.min' => 'At least 5 questions are required to create an assessment.',
+            'total_questions.min' => $this->input('assessment_type') === 'coding'
+                ? 'Select at least 1 coding problem to create an assessment.'
+                : 'At least 5 questions are required to create an assessment.',
             'question_blueprint.required' => 'Select at least one topic with question counts.',
             'question_blueprint.min' => 'Select at least one topic with question counts.',
             'question_blueprint.*.topic.distinct' => 'Each topic can only be selected once.',
@@ -56,6 +71,8 @@ class StoreAssessmentRequest extends FormRequest
 
     protected function prepareForValidation(): void
     {
+        $assessmentType = (string) ($this->input('assessment_type') ?? 'aptitude');
+
         $questionBlueprint = collect($this->input('question_blueprint', []))
             ->map(function (mixed $selection): ?array {
                 if (! is_array($selection)) {
@@ -87,6 +104,7 @@ class StoreAssessmentRequest extends FormRequest
         $categories = $questionBlueprint->pluck('topic')->implode(', ');
 
         $this->merge([
+            'assessment_type' => $assessmentType,
             'question_blueprint' => $questionBlueprint->all(),
             'total_questions' => $totalQuestions,
             'category' => $categories === '' ? 'custom' : $categories,
