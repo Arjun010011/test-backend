@@ -6,14 +6,18 @@ import {
     ShieldAlert,
     Video,
 } from 'lucide-react';
-import type { KeyboardEventHandler } from 'react';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { answer, submit } from '@/routes/candidate/assessments';
 import {
     runSamples,
     submitSolution,
 } from '@/routes/candidate/assessments/questions';
 import { show as submissionShow } from '@/routes/candidate/assessments/questions/submissions';
+import MonacoCodeEditor, {
+    type MonacoLanguage,
+} from '@/components/monaco-code-editor';
 
 type Option = {
     id: number;
@@ -146,456 +150,6 @@ type CodingSubmissionSummary = {
     created_at: string | null;
 };
 
-const escapeHtml = (value: string): string => {
-    return value
-        .replaceAll('&', '&amp;')
-        .replaceAll('<', '&lt;')
-        .replaceAll('>', '&gt;')
-        .replaceAll('"', '&quot;')
-        .replaceAll("'", '&#39;');
-};
-
-type TokenStyle =
-    | 'keyword'
-    | 'type'
-    | 'string'
-    | 'comment'
-    | 'number'
-    | 'plain';
-
-const tokenClassName = (style: TokenStyle): string => {
-    return (
-        {
-            keyword: 'text-fuchsia-300',
-            type: 'text-cyan-300',
-            string: 'text-amber-200',
-            comment: 'text-slate-400 italic',
-            number: 'text-emerald-200',
-            plain: 'text-slate-100',
-        }[style] ?? 'text-slate-100'
-    );
-};
-
-type LanguageKey = 'java' | 'python' | 'javascript';
-
-const highlightCode = (source: string, language: LanguageKey): string => {
-    const javaKeywords = new Set([
-        'abstract',
-        'assert',
-        'boolean',
-        'break',
-        'byte',
-        'case',
-        'catch',
-        'char',
-        'class',
-        'const',
-        'continue',
-        'default',
-        'do',
-        'double',
-        'else',
-        'enum',
-        'extends',
-        'final',
-        'finally',
-        'float',
-        'for',
-        'goto',
-        'if',
-        'implements',
-        'import',
-        'instanceof',
-        'int',
-        'interface',
-        'long',
-        'native',
-        'new',
-        'package',
-        'private',
-        'protected',
-        'public',
-        'return',
-        'short',
-        'static',
-        'strictfp',
-        'super',
-        'switch',
-        'synchronized',
-        'this',
-        'throw',
-        'throws',
-        'transient',
-        'try',
-        'void',
-        'volatile',
-        'while',
-        'true',
-        'false',
-        'null',
-    ]);
-
-    const jsKeywords = new Set([
-        'await',
-        'break',
-        'case',
-        'catch',
-        'class',
-        'const',
-        'continue',
-        'debugger',
-        'default',
-        'delete',
-        'do',
-        'else',
-        'export',
-        'extends',
-        'false',
-        'finally',
-        'for',
-        'function',
-        'if',
-        'import',
-        'in',
-        'instanceof',
-        'let',
-        'new',
-        'null',
-        'return',
-        'super',
-        'switch',
-        'this',
-        'throw',
-        'true',
-        'try',
-        'typeof',
-        'var',
-        'void',
-        'while',
-        'with',
-        'yield',
-    ]);
-
-    const pyKeywords = new Set([
-        'and',
-        'as',
-        'assert',
-        'break',
-        'class',
-        'continue',
-        'def',
-        'del',
-        'elif',
-        'else',
-        'except',
-        'False',
-        'finally',
-        'for',
-        'from',
-        'global',
-        'if',
-        'import',
-        'in',
-        'is',
-        'lambda',
-        'None',
-        'nonlocal',
-        'not',
-        'or',
-        'pass',
-        'raise',
-        'return',
-        'True',
-        'try',
-        'while',
-        'with',
-        'yield',
-    ]);
-
-    const typeWords = new Set([
-        'String',
-        'Integer',
-        'Long',
-        'Double',
-        'Float',
-        'Boolean',
-        'Character',
-        'Object',
-        'List',
-        'ArrayList',
-        'Map',
-        'HashMap',
-        'Set',
-        'HashSet',
-        'Queue',
-        'Deque',
-        'LinkedList',
-        'Math',
-        'System',
-        'console',
-        'Number',
-        'Array',
-        'Set',
-        'str',
-        'int',
-        'float',
-        'bool',
-        'list',
-        'dict',
-        'set',
-        'tuple',
-    ]);
-
-    const keywords =
-        language === 'python'
-            ? pyKeywords
-            : language === 'javascript'
-              ? jsKeywords
-              : javaKeywords;
-
-    const normalized = source.replaceAll('\t', '    ');
-
-    const out: string[] = [];
-
-    const push = (text: string, style: TokenStyle) => {
-        const escaped = escapeHtml(text);
-        if (style === 'plain') {
-            out.push(escaped);
-            return;
-        }
-
-        out.push(`<span class="${tokenClassName(style)}">${escaped}</span>`);
-    };
-
-    const isWordStart = (ch: string) => /[A-Za-z_]/.test(ch);
-    const isWord = (ch: string) => /[A-Za-z0-9_]/.test(ch);
-    const isDigit = (ch: string) => /[0-9]/.test(ch);
-
-    let i = 0;
-    let state:
-        | 'normal'
-        | 'string_single'
-        | 'string_double'
-        | 'string_backtick'
-        | 'py_triple_single'
-        | 'py_triple_double'
-        | 'line_comment'
-        | 'block_comment' = 'normal';
-    let buffer = '';
-
-    const flushBuffer = () => {
-        if (buffer === '') {
-            return;
-        }
-
-        if (keywords.has(buffer)) {
-            push(buffer, 'keyword');
-        } else if (typeWords.has(buffer)) {
-            push(buffer, 'type');
-        } else if (/^(0|[1-9][0-9]*)$/.test(buffer)) {
-            push(buffer, 'number');
-        } else {
-            push(buffer, 'plain');
-        }
-
-        buffer = '';
-    };
-
-    while (i < normalized.length) {
-        const ch = normalized[i] ?? '';
-        const next = normalized[i + 1] ?? '';
-        const next2 = normalized[i + 2] ?? '';
-
-        if (state === 'normal') {
-            if (language === 'python') {
-                if (ch === '#') {
-                    flushBuffer();
-                    state = 'line_comment';
-                    buffer = '#';
-                    i += 1;
-                    continue;
-                }
-
-                if (ch === "'" && next === "'" && next2 === "'") {
-                    flushBuffer();
-                    state = 'py_triple_single';
-                    buffer = "'''";
-                    i += 3;
-                    continue;
-                }
-
-                if (ch === '"' && next === '"' && next2 === '"') {
-                    flushBuffer();
-                    state = 'py_triple_double';
-                    buffer = '"""';
-                    i += 3;
-                    continue;
-                }
-            } else {
-                if (ch === '/' && next === '/') {
-                    flushBuffer();
-                    state = 'line_comment';
-                    buffer = '//';
-                    i += 2;
-                    continue;
-                }
-
-                if (ch === '/' && next === '*') {
-                    flushBuffer();
-                    state = 'block_comment';
-                    buffer = '/*';
-                    i += 2;
-                    continue;
-                }
-            }
-
-            if (ch === "'") {
-                flushBuffer();
-                state = 'string_single';
-                buffer = "'";
-                i += 1;
-                continue;
-            }
-
-            if (ch === '"') {
-                flushBuffer();
-                state = 'string_double';
-                buffer = '"';
-                i += 1;
-                continue;
-            }
-
-            if (language === 'javascript' && ch === '`') {
-                flushBuffer();
-                state = 'string_backtick';
-                buffer = '`';
-                i += 1;
-                continue;
-            }
-
-            if (isWordStart(ch)) {
-                buffer += ch;
-                i += 1;
-                while (i < normalized.length && isWord(normalized[i] ?? '')) {
-                    buffer += normalized[i] ?? '';
-                    i += 1;
-                }
-                flushBuffer();
-                continue;
-            }
-
-            if (isDigit(ch)) {
-                buffer += ch;
-                i += 1;
-                while (i < normalized.length && isDigit(normalized[i] ?? '')) {
-                    buffer += normalized[i] ?? '';
-                    i += 1;
-                }
-                flushBuffer();
-                continue;
-            }
-
-            push(ch, 'plain');
-            i += 1;
-            continue;
-        }
-
-        if (state === 'line_comment') {
-            if (ch === '\n') {
-                push(buffer, 'comment');
-                buffer = '';
-                state = 'normal';
-                push('\n', 'plain');
-                i += 1;
-                continue;
-            }
-
-            buffer += ch;
-            i += 1;
-            continue;
-        }
-
-        if (state === 'block_comment') {
-            if (ch === '*' && next === '/') {
-                buffer += '*/';
-                push(buffer, 'comment');
-                buffer = '';
-                state = 'normal';
-                i += 2;
-                continue;
-            }
-
-            buffer += ch;
-            i += 1;
-            continue;
-        }
-
-        if (state === 'py_triple_single') {
-            if (ch === "'" && next === "'" && next2 === "'") {
-                buffer += "'''";
-                push(buffer, 'string');
-                buffer = '';
-                state = 'normal';
-                i += 3;
-                continue;
-            }
-
-            buffer += ch;
-            i += 1;
-            continue;
-        }
-
-        if (state === 'py_triple_double') {
-            if (ch === '"' && next === '"' && next2 === '"') {
-                buffer += '"""';
-                push(buffer, 'string');
-                buffer = '';
-                state = 'normal';
-                i += 3;
-                continue;
-            }
-
-            buffer += ch;
-            i += 1;
-            continue;
-        }
-
-        const isEscaped = ch === '\\';
-        const isStringEnd =
-            (state === 'string_single' && ch === "'") ||
-            (state === 'string_double' && ch === '"') ||
-            (state === 'string_backtick' && ch === '`');
-
-        buffer += ch;
-        i += 1;
-
-        if (isEscaped && i < normalized.length) {
-            buffer += normalized[i] ?? '';
-            i += 1;
-            continue;
-        }
-
-        if (isStringEnd) {
-            push(buffer, 'string');
-            buffer = '';
-            state = 'normal';
-        }
-    }
-
-    if (buffer !== '') {
-        const tailStyle: TokenStyle =
-            state === 'line_comment' || state === 'block_comment'
-                ? 'comment'
-                : state.startsWith('string') ||
-                    state.startsWith('py_triple')
-                  ? 'string'
-                  : 'plain';
-        push(buffer, tailStyle);
-    }
-
-    return out.join('');
-};
-
 const verdictLabel = (verdict: string | null): string => {
     switch (verdict) {
         case 'AC':
@@ -645,68 +199,6 @@ const tonePillClass = (
         }[tone] ?? 'border-slate-300 bg-slate-500/10 text-slate-700'
     );
 };
-
-function HighlightedCodeEditor({
-    value,
-    language,
-    disabled,
-    onChange,
-    onKeyDown,
-}: {
-    value: string;
-    language: LanguageKey;
-    disabled: boolean;
-    onChange: (nextValue: string) => void;
-    onKeyDown: KeyboardEventHandler<HTMLTextAreaElement>;
-}) {
-    const textareaRef = useRef<HTMLTextAreaElement | null>(null);
-    const preRef = useRef<HTMLPreElement | null>(null);
-
-    const highlighted = useMemo(() => {
-        return highlightCode(value, language);
-    }, [value, language]);
-
-    const syncScroll = () => {
-        if (!textareaRef.current || !preRef.current) {
-            return;
-        }
-
-        preRef.current.scrollTop = textareaRef.current.scrollTop;
-        preRef.current.scrollLeft = textareaRef.current.scrollLeft;
-    };
-
-    return (
-        <div className="mt-3 w-full">
-            <div className="relative w-full overflow-hidden rounded-lg border border-border/70 bg-slate-950/95 shadow-inner">
-                <pre
-                    ref={preRef}
-                    aria-hidden={true}
-                    className="pointer-events-none absolute inset-0 overflow-auto p-3 font-mono text-xs leading-relaxed text-slate-100"
-                    style={{ tabSize: 4 }}
-                >
-                    <code
-                        dangerouslySetInnerHTML={{
-                            __html: highlighted + '\n',
-                        }}
-                    />
-                </pre>
-
-                <textarea
-                    ref={textareaRef}
-                    value={value}
-                    disabled={disabled}
-                    onChange={(event) => onChange(event.target.value)}
-                    onKeyDown={onKeyDown}
-                    onScroll={syncScroll}
-                    rows={18}
-                    spellCheck={false}
-                    className="relative z-10 w-full resize-y bg-transparent p-3 font-mono text-xs leading-relaxed text-transparent caret-slate-100 selection:bg-cyan-500/30 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-60"
-                    style={{ tabSize: 4 }}
-                />
-            </div>
-        </div>
-    );
-}
 
 const getFullscreenElement = (): Element | null => {
     if (typeof document === 'undefined') {
@@ -763,6 +255,38 @@ export default function CandidateAssessmentsTake({
     coding_submissions,
     remaining_time,
 }: Props) {
+    const initialCodeDrafts = useMemo<Record<number, string>>(() => {
+        return Object.entries(existing_code_drafts).reduce<Record<number, string>>(
+            (carry, [questionId, entry]) => {
+                const parsedQuestionId = Number(questionId);
+                if (Number.isFinite(parsedQuestionId)) {
+                    if (entry.code) {
+                        carry[parsedQuestionId] = entry.code;
+                    }
+                }
+
+                return carry;
+            },
+            {},
+        );
+    }, [existing_code_drafts]);
+
+    const initialSelectedLanguages = useMemo<Record<number, string>>(() => {
+        return Object.entries(existing_code_drafts).reduce<Record<number, string>>(
+            (carry, [questionId, entry]) => {
+                const parsedQuestionId = Number(questionId);
+                if (Number.isFinite(parsedQuestionId)) {
+                    if (entry.language) {
+                        carry[parsedQuestionId] = entry.language;
+                    }
+                }
+
+                return carry;
+            },
+            {},
+        );
+    }, [existing_code_drafts]);
+
     const [activeQuestionIndex, setActiveQuestionIndex] = useState(0);
     const [remainingSeconds, setRemainingSeconds] = useState(remaining_time);
     const [selectedOptions, setSelectedOptions] = useState<
@@ -780,37 +304,15 @@ export default function CandidateAssessmentsTake({
             {},
         ),
     );
-    const [codeDrafts, setCodeDrafts] = useState<Record<number, string>>(
-        Object.entries(existing_code_drafts).reduce<Record<number, string>>(
-            (carry, [questionId, entry]) => {
-                const parsedQuestionId = Number(questionId);
-                if (Number.isFinite(parsedQuestionId)) {
-                    if (entry.code) {
-                        carry[parsedQuestionId] = entry.code;
-                    }
-                }
+    const [codeDrafts, setCodeDrafts] =
+        useState<Record<number, string>>(initialCodeDrafts);
+    const codeDraftsRef = useRef<Record<number, string>>(initialCodeDrafts);
 
-                return carry;
-            },
-            {},
-        ),
-    );
     const [selectedLanguages, setSelectedLanguages] = useState<
         Record<number, string>
-    >(
-        Object.entries(existing_code_drafts).reduce<Record<number, string>>(
-            (carry, [questionId, entry]) => {
-                const parsedQuestionId = Number(questionId);
-                if (Number.isFinite(parsedQuestionId)) {
-                    if (entry.language) {
-                        carry[parsedQuestionId] = entry.language;
-                    }
-                }
-
-                return carry;
-            },
-            {},
-        ),
+    >(initialSelectedLanguages);
+    const selectedLanguagesRef = useRef<Record<number, string>>(
+        initialSelectedLanguages,
     );
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [pendingSaveCount, setPendingSaveCount] = useState(0);
@@ -860,6 +362,10 @@ export default function CandidateAssessmentsTake({
         const language = selectedLanguageForQuestion(currentQuestion);
 
         if (selectedLanguages[questionId] === undefined) {
+            selectedLanguagesRef.current = {
+                ...selectedLanguagesRef.current,
+                [questionId]: language,
+            };
             setSelectedLanguages((current) => ({
                 ...current,
                 [questionId]: language,
@@ -872,6 +378,10 @@ export default function CandidateAssessmentsTake({
             );
 
             if (stored !== null) {
+                codeDraftsRef.current = {
+                    ...codeDraftsRef.current,
+                    [questionId]: stored,
+                };
                 setCodeDrafts((current) => ({
                     ...current,
                     [questionId]: stored,
@@ -881,6 +391,10 @@ export default function CandidateAssessmentsTake({
                     currentQuestion.metadata?.starter_code_by_language?.[
                         language
                     ] ?? '';
+                codeDraftsRef.current = {
+                    ...codeDraftsRef.current,
+                    [questionId]: starter,
+                };
                 setCodeDrafts((current) => ({
                     ...current,
                     [questionId]: starter,
@@ -1787,12 +1301,17 @@ export default function CandidateAssessmentsTake({
             return;
         }
 
+        codeDraftsRef.current = {
+            ...codeDraftsRef.current,
+            [questionId]: nextCode,
+        };
+
         setCodeDrafts((currentDrafts) => ({
             ...currentDrafts,
             [questionId]: nextCode,
         }));
 
-        const language = selectedLanguages[questionId] ?? 'java';
+        const language = selectedLanguagesRef.current[questionId] ?? 'java';
         try {
             window.localStorage.setItem(
                 `coding_draft:${attempt.id}:${questionId}:${language}`,
@@ -1818,7 +1337,7 @@ export default function CandidateAssessmentsTake({
                 questionId,
                 {
                     answer_text: nextCode,
-                    language: selectedLanguages[questionId] ?? 'java',
+                    language: selectedLanguagesRef.current[questionId] ?? 'java',
                 },
                 nextRequestVersion,
             );
@@ -1841,6 +1360,7 @@ export default function CandidateAssessmentsTake({
         }
 
         return (
+            selectedLanguagesRef.current[question.id] ??
             selectedLanguages[question.id] ??
             question.metadata?.default_language ??
             question.metadata?.languages?.[0] ??
@@ -1849,7 +1369,7 @@ export default function CandidateAssessmentsTake({
     };
 
     const resolveSourceCode = (question: Question): string => {
-        const draft = codeDrafts[question.id];
+        const draft = codeDraftsRef.current[question.id] ?? codeDrafts[question.id];
 
         if (typeof draft === 'string' && draft.trim() !== '') {
             return draft;
@@ -1891,6 +1411,7 @@ export default function CandidateAssessmentsTake({
                     credentials: 'same-origin',
                     body: JSON.stringify({
                         language:
+                            selectedLanguagesRef.current[question.id] ??
                             selectedLanguages[question.id] ??
                             question.metadata?.default_language ??
                             'java',
@@ -2027,6 +1548,7 @@ export default function CandidateAssessmentsTake({
             {
                 answer_text: sourceCode,
                 language:
+                    selectedLanguagesRef.current[question.id] ??
                     selectedLanguages[question.id] ??
                     question.metadata?.default_language ??
                     'java',
@@ -2062,6 +1584,7 @@ export default function CandidateAssessmentsTake({
                     credentials: 'same-origin',
                     body: JSON.stringify({
                         language:
+                            selectedLanguagesRef.current[question.id] ??
                             selectedLanguages[question.id] ??
                             question.metadata?.default_language ??
                             'java',
@@ -2352,10 +1875,106 @@ export default function CandidateAssessmentsTake({
                                                 <p className="text-xs font-semibold text-muted-foreground">
                                                     Problem
                                                 </p>
-                                                <div className="mt-2 text-sm leading-relaxed whitespace-pre-wrap text-foreground">
-                                                    {currentQuestion.metadata
-                                                        ?.statement_md ??
-                                                        'Problem statement missing.'}
+                                                <div className="mt-2 text-sm leading-relaxed text-foreground">
+                                                    <ReactMarkdown
+                                                        remarkPlugins={[
+                                                            remarkGfm,
+                                                        ]}
+                                                        components={{
+                                                            p: (props) => (
+                                                                <p
+                                                                    className="mt-2 whitespace-pre-wrap"
+                                                                    {...props}
+                                                                />
+                                                            ),
+                                                            strong: (props) => (
+                                                                <strong
+                                                                    className="font-semibold text-foreground"
+                                                                    {...props}
+                                                                />
+                                                            ),
+                                                            em: (props) => (
+                                                                <em
+                                                                    className="italic"
+                                                                    {...props}
+                                                                />
+                                                            ),
+                                                            ul: (props) => (
+                                                                <ul
+                                                                    className="mt-2 list-disc space-y-1 pl-5"
+                                                                    {...props}
+                                                                />
+                                                            ),
+                                                            ol: (props) => (
+                                                                <ol
+                                                                    className="mt-2 list-decimal space-y-1 pl-5"
+                                                                    {...props}
+                                                                />
+                                                            ),
+                                                            li: (props) => (
+                                                                <li
+                                                                    className="leading-relaxed"
+                                                                    {...props}
+                                                                />
+                                                            ),
+                                                            code: (props) => {
+                                                                const cast =
+                                                                    props as unknown as {
+                                                                        inline?: boolean;
+                                                                        className?: string;
+                                                                        children?: unknown;
+                                                                        [key: string]: unknown;
+                                                                    };
+
+                                                                const isInline =
+                                                                    Boolean(
+                                                                        cast.inline,
+                                                                    );
+
+                                                                const {
+                                                                    inline:
+                                                                        _inline,
+                                                                    children,
+                                                                    ...rest
+                                                                } = cast;
+
+                                                                return (
+                                                                    <code
+                                                                        className={
+                                                                            isInline
+                                                                                ? 'rounded bg-slate-950/50 px-1 py-0.5 font-mono text-[12px] text-slate-100'
+                                                                                : 'font-mono text-slate-100'
+                                                                        }
+                                                                        {...(rest as Record<
+                                                                            string,
+                                                                            unknown
+                                                                        >)}
+                                                                    >
+                                                                        {children as never}
+                                                                    </code>
+                                                                );
+                                                            },
+                                                            pre: (props) => (
+                                                                <pre
+                                                                    className="mt-2 max-h-72 overflow-auto rounded-md border border-border/70 bg-slate-950/70 p-3 text-xs text-slate-100"
+                                                                    {...props}
+                                                                />
+                                                            ),
+                                                            a: (props) => (
+                                                                <a
+                                                                    className="font-semibold text-cyan-700 underline underline-offset-2 hover:text-cyan-800 dark:text-cyan-200 dark:hover:text-cyan-100"
+                                                                    target="_blank"
+                                                                    rel="noreferrer"
+                                                                    {...props}
+                                                                />
+                                                            ),
+                                                        }}
+                                                    >
+                                                        {currentQuestion
+                                                            .metadata
+                                                            ?.statement_md ??
+                                                            'Problem statement missing.'}
+                                                    </ReactMarkdown>
                                                 </div>
                                                 <div className="mt-3 flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
                                                     <span className="rounded-full border border-border px-2 py-1">
@@ -2788,6 +2407,12 @@ export default function CandidateAssessmentsTake({
                                                                 event.target
                                                                     .value;
 
+                                                            selectedLanguagesRef.current =
+                                                                {
+                                                                    ...selectedLanguagesRef.current,
+                                                                    [currentQuestion.id]:
+                                                                        nextLanguage,
+                                                                };
                                                             setSelectedLanguages(
                                                                 (current) => ({
                                                                     ...current,
@@ -2811,6 +2436,12 @@ export default function CandidateAssessmentsTake({
                                                                     ] ??
                                                                     '';
 
+                                                                codeDraftsRef.current =
+                                                                    {
+                                                                        ...codeDraftsRef.current,
+                                                                        [currentQuestion.id]:
+                                                                            nextCode,
+                                                                    };
                                                                 setCodeDrafts(
                                                                     (
                                                                         current,
@@ -2828,6 +2459,12 @@ export default function CandidateAssessmentsTake({
                                                                         nextLanguage
                                                                     ] ?? '';
 
+                                                                codeDraftsRef.current =
+                                                                    {
+                                                                        ...codeDraftsRef.current,
+                                                                        [currentQuestion.id]:
+                                                                            nextCode,
+                                                                    };
                                                                 setCodeDrafts(
                                                                     (
                                                                         current,
@@ -2857,7 +2494,7 @@ export default function CandidateAssessmentsTake({
                                                     </select>
                                                 </div>
 
-                                                <HighlightedCodeEditor
+                                                <MonacoCodeEditor
                                                     value={
                                                         codeDrafts[
                                                             currentQuestion.id
@@ -2866,52 +2503,24 @@ export default function CandidateAssessmentsTake({
                                                             currentQuestion,
                                                         )
                                                     }
-                                                    language={selectedLanguageForQuestion(
-                                                        currentQuestion,
-                                                    ) as LanguageKey}
-                                                    disabled={
-                                                        !canAccessQuestions ||
-                                                        isSubmitting
-                                                    }
+                                                    language={(() => {
+                                                        const language =
+                                                            selectedLanguageForQuestion(
+                                                                currentQuestion,
+                                                            );
+
+                                                        return (language ===
+                                                        'js'
+                                                            ? 'javascript'
+                                                            : language) as MonacoLanguage;
+                                                    })()}
+                                                    disabled={isSubmitting}
                                                     onChange={(nextValue) =>
                                                         updateCodeDraft(
                                                             currentQuestion.id,
                                                             nextValue,
                                                         )
                                                     }
-                                                    onKeyDown={(event) => {
-                                                        if (
-                                                            event.key !== 'Tab'
-                                                        ) {
-                                                            return;
-                                                        }
-
-                                                        event.preventDefault();
-
-                                                        const textarea =
-                                                            event.currentTarget;
-                                                        const start =
-                                                            textarea.selectionStart;
-                                                        const end =
-                                                            textarea.selectionEnd;
-                                                        const value =
-                                                            textarea.value;
-                                                        const next = `${value.slice(0, start)}\t${value.slice(end)}`;
-
-                                                        updateCodeDraft(
-                                                            currentQuestion.id,
-                                                            next,
-                                                        );
-
-                                                        window.requestAnimationFrame(
-                                                            () => {
-                                                                textarea.selectionStart =
-                                                                    textarea.selectionEnd =
-                                                                        start +
-                                                                        1;
-                                                            },
-                                                        );
-                                                    }}
                                                 />
 
                                                 <div className="mt-3 flex flex-wrap items-center gap-2">
