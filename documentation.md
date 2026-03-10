@@ -1,6 +1,6 @@
 # Project Documentation
 
-Last updated: March 6, 2026
+Last updated: March 10, 2026
 
 ## 1. Product Summary
 
@@ -346,3 +346,68 @@ Recommended order for larger feature work:
 - Expanded and adjusted seed data for local development in `DatabaseSeeder`.
 - Added/updated test coverage for assessment behavior, appearance cookie behavior, auth flow, candidate assessment flow, and settings profile updates.
 - Removed an accidental `host` gitlink from the repository history.
+
+## 18. Coding Assessments (March 10, 2026)
+
+The platform now supports LeetCode-style coding assessments alongside MCQ aptitude tests.
+
+### Assessment Types
+
+- `aptitude`: MCQ-only assessment using the aptitude dataset.
+- `coding`: Multi-language coding assessment where the candidate chooses the compiler at runtime.
+
+### Problem Banks
+
+Coding questions are sourced from JSON banks under `storage/app/datasets/`:
+
+- `java_coding_problem_bank.json`
+- `python_coding_problem_bank.json`
+- `javascript_coding_problem_bank.json`
+
+Problems are matched across languages by a shared `slug`. The assessment builder selects a problem set from the Java bank (topics + difficulty blueprint) and attaches per-language variants (starter code + runner source) for Java, Python, and JavaScript.
+
+Each coding problem includes:
+
+- Exactly 3 sample test cases (candidate can run these during the test).
+- Additional hidden grading test cases (run on submit).
+
+### Recruiter Experience
+
+- Recruiters choose topic and difficulty counts (easy/medium/hard) and must select a minimum number of questions.
+- Recruiters do not choose a language. Language is chosen by the candidate per question.
+
+### Candidate Experience
+
+- Candidate can switch the compiler per coding question (Java, Python, JavaScript).
+- "Run samples" executes the 3 sample cases and shows per-case pass/fail.
+- "Submit solution" executes hidden grading cases and shows a LeetCode-style verdict.
+- Verdict behavior: Accepted when all hidden tests pass; otherwise Wrong Answer, Compilation Error, Runtime Error, or Time Limit Exceeded.
+- Candidates may submit multiple times within the attempt time window; the UI tracks submission count and best hidden pass state.
+
+### Editor and Rendering
+
+- Problem statements (`statement_md`) are rendered as Markdown (bold, lists, code).
+- The code editor uses Monaco (`@monaco-editor/react`) with:
+    - Java/Python basic language tokenization registration
+    - JavaScript native language support
+    - Auto-closing brackets and quotes
+    - Bracket pair colorization and guides
+
+### Judge Layer (Current Implementation)
+
+Judging is currently handled by a local judge client that compiles/runs code using the host toolchain:
+
+- Java: `javac` + `java`
+- Python: `python3`
+- JavaScript: `node`
+
+Important note:
+
+- This local judge is a functional MVP and is not a hardened sandbox. For production, replace it with an isolated runner (container/VM jail) with strict CPU, memory, and filesystem/network limits.
+
+### Key Tables
+
+- `assessment_questions` stores coding questions and metadata (including language variants, time/memory limits).
+- `assessment_question_test_cases` stores sample/hidden test cases.
+- `assessment_code_submissions` stores code submissions, verdicts, and per-case results.
+- `assessment_responses.answer_language` stores the selected compiler/language for the saved draft/submission.
