@@ -364,6 +364,19 @@ Coding questions are sourced from JSON banks under `storage/app/datasets/`:
 - `python_coding_problem_bank.json`
 - `javascript_coding_problem_bank.json`
 
+These banks can be (re)generated using the Artisan command:
+
+```bash
+php artisan datasets:generate-coding-bank --count=20
+```
+
+Dataset storage is configured via `config/datasets.php` and written to `config('datasets.disk')` (defaults to the `datasets` filesystem disk which points at `storage/app`). Environment overrides:
+
+- `DATASETS_DISK` (e.g. `s3` in production)
+- `JAVA_CODING_DATASET_PATH`
+- `PYTHON_CODING_DATASET_PATH`
+- `JAVASCRIPT_CODING_DATASET_PATH`
+
 Problems are matched across languages by a shared `slug`. The assessment builder selects a problem set from the Java bank (topics + difficulty blueprint) and attaches per-language variants (starter code + runner source) for Java, Python, and JavaScript.
 
 Each coding problem includes:
@@ -411,3 +424,14 @@ Important note:
 - `assessment_question_test_cases` stores sample/hidden test cases.
 - `assessment_code_submissions` stores code submissions, verdicts, and per-case results.
 - `assessment_responses.answer_language` stores the selected compiler/language for the saved draft/submission.
+
+## 19. Work Completed Today (March 11, 2026)
+
+- Added `config/datasets.php` to centralize dataset disk + paths (aptitude + coding).
+- Added the `datasets` filesystem disk (local default points at `storage/app`) and support for writing datasets to other disks (e.g. S3).
+- Added `php artisan datasets:generate-coding-bank` to generate/refresh the multi-language coding problem banks.
+- Expanded local development datasets under `storage/app/datasets/` (aptitude CSV/JSON + language problem banks).
+- Added/updated Pest feature tests covering:
+    - dataset structure/validity for the coding problem banks
+    - provider services returning consistent per-language slugs/metadata
+    - the new dataset generation Artisan command
