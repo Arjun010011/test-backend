@@ -1,0 +1,1589 @@
+{
+    "problems": [
+        {
+            "id": 1,
+            "slug": "two_sum",
+            "title": "Two Sum",
+            "topic_key": "arrays_hashmap",
+            "topic_label": "Arrays + HashMap",
+            "difficulty": "easy",
+            "time_limit_ms": 2000,
+            "memory_limit_mb": 256,
+            "statement_md": "Given an integer array `nums` and an integer `target`, return indices of the two numbers such that they add up to `target`.\n\nYou may assume that each input would have exactly one solution, and you may not use the same element twice.\n\nReturn the answer as an array of two integers.\n\n**Input format**\n- First line: `n`\n- Second line: `n` space-separated integers\n- Third line: `target`\n\n**Output format**\n- Two indices `i j` (0-based) separated by a space.\n\nThe order does not matter.",
+            "starter_code": "import java.util.*;\n\nclass Solution {\n    public int[] twoSum(int[] nums, int target) {\n        // TODO\n        return new int[] {0, 0};\n    }\n}\n",
+            "runner_source": "import java.io.*;\nimport java.util.*;\n\npublic class Runner {\n    private static int[] readIntArray(BufferedReader br, int n) throws IOException {\n        String line = br.readLine();\n        if (line == null) {\n            return new int[0];\n        }\n        StringTokenizer st = new StringTokenizer(line);\n        int[] arr = new int[n];\n        for (int i = 0; i < n; i++) {\n            arr[i] = Integer.parseInt(st.nextToken());\n        }\n        return arr;\n    }\n\n    public static void main(String[] args) throws Exception {\n        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));\n        String nLine = br.readLine();\n        int n = Integer.parseInt(nLine.trim());\n        int[] nums = readIntArray(br, n);\n        int target = Integer.parseInt(br.readLine().trim());\n\n        Solution sol = new Solution();\n        int[] result = sol.twoSum(nums, target);\n        if (result == null || result.length != 2) {\n            System.out.print(\"invalid\");\n            return;\n        }\n\n        int a = result[0];\n        int b = result[1];\n        if (a > b) {\n            int t = a;\n            a = b;\n            b = t;\n        }\n\n        System.out.print(a + \" \" + b);\n    }\n}\n",
+            "sample_cases": [
+                {
+                    "stdin": "4\n2 7 11 15\n9\n",
+                    "expected_stdout": "0 1",
+                    "points": 1
+                },
+                {
+                    "stdin": "3\n3 2 4\n6\n",
+                    "expected_stdout": "1 2",
+                    "points": 1
+                },
+                {
+                    "stdin": "2\n3 3\n6\n",
+                    "expected_stdout": "0 1",
+                    "points": 1
+                }
+            ],
+            "hidden_cases": [
+                {
+                    "stdin": "5\n-1 -2 -3 -4 -5\n-8\n",
+                    "expected_stdout": "2 4",
+                    "points": 1
+                },
+                {
+                    "stdin": "6\n1 5 1 5 0 10\n10\n",
+                    "expected_stdout": "0 1",
+                    "points": 1
+                }
+            ]
+        },
+        {
+            "id": 2,
+            "slug": "contains_duplicate",
+            "title": "Contains Duplicate",
+            "topic_key": "hashmap",
+            "topic_label": "HashMap / Counting",
+            "difficulty": "easy",
+            "time_limit_ms": 2000,
+            "memory_limit_mb": 256,
+            "statement_md": "Given an integer array `nums`, return `true` if any value appears at least twice in the array, and return `false` if every element is distinct.\n\n**Input format**\n- First line: `n`\n- Second line: `n` space-separated integers\n\n**Output format**\n- `true` or `false`",
+            "starter_code": "import java.util.*;\n\nclass Solution {\n    public boolean containsDuplicate(int[] nums) {\n        // TODO\n        return false;\n    }\n}\n",
+            "runner_source": "import java.io.*;\nimport java.util.*;\n\npublic class Runner {\n    public static void main(String[] args) throws Exception {\n        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));\n        int n = Integer.parseInt(br.readLine().trim());\n        StringTokenizer st = new StringTokenizer(br.readLine());\n        int[] nums = new int[n];\n        for (int i = 0; i < n; i++) {\n            nums[i] = Integer.parseInt(st.nextToken());\n        }\n\n        Solution sol = new Solution();\n        System.out.print(sol.containsDuplicate(nums) ? \"true\" : \"false\");\n    }\n}\n",
+            "sample_cases": [
+                {
+                    "stdin": "4\n1 2 3 1\n",
+                    "expected_stdout": "true",
+                    "points": 1
+                },
+                {
+                    "stdin": "4\n1 2 3 4\n",
+                    "expected_stdout": "false",
+                    "points": 1
+                },
+                {
+                    "stdin": "1\n99\n",
+                    "expected_stdout": "false",
+                    "points": 1
+                }
+            ],
+            "hidden_cases": [
+                {
+                    "stdin": "6\n5 5 5 5 5 5\n",
+                    "expected_stdout": "true",
+                    "points": 1
+                },
+                {
+                    "stdin": "5\n-1 -2 -3 -4 -5\n",
+                    "expected_stdout": "false",
+                    "points": 1
+                },
+                {
+                    "stdin": "7\n1 2 3 4 5 6 1\n",
+                    "expected_stdout": "true",
+                    "points": 1
+                }
+            ]
+        },
+        {
+            "id": 3,
+            "slug": "valid_anagram",
+            "title": "Valid Anagram",
+            "topic_key": "hashmap",
+            "topic_label": "HashMap / Counting",
+            "difficulty": "easy",
+            "time_limit_ms": 2000,
+            "memory_limit_mb": 256,
+            "statement_md": "Given two strings `s` and `t`, return `true` if `t` is an anagram of `s`, and `false` otherwise.\n\n**Input format**\n- Line 1: `s`\n- Line 2: `t`\n\n**Output format**\n- `true` or `false`",
+            "starter_code": "import java.util.*;\n\nclass Solution {\n    public boolean isAnagram(String s, String t) {\n        // TODO\n        return false;\n    }\n}\n",
+            "runner_source": "import java.io.*;\n\npublic class Runner {\n    public static void main(String[] args) throws Exception {\n        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));\n        String s = br.readLine();\n        String t = br.readLine();\n        if (s == null) s = \"\";\n        if (t == null) t = \"\";\n\n        Solution sol = new Solution();\n        System.out.print(sol.isAnagram(s, t) ? \"true\" : \"false\");\n    }\n}\n",
+            "sample_cases": [
+                {
+                    "stdin": "anagram\nnagaram\n",
+                    "expected_stdout": "true",
+                    "points": 1
+                },
+                {
+                    "stdin": "rat\ncar\n",
+                    "expected_stdout": "false",
+                    "points": 1
+                },
+                {
+                    "stdin": "a\n\n",
+                    "expected_stdout": "false",
+                    "points": 1
+                }
+            ],
+            "hidden_cases": [
+                {
+                    "stdin": "\n\n",
+                    "expected_stdout": "true",
+                    "points": 1
+                },
+                {
+                    "stdin": "aacc\nccac\n",
+                    "expected_stdout": "false",
+                    "points": 1
+                },
+                {
+                    "stdin": "listen\nsilent\n",
+                    "expected_stdout": "true",
+                    "points": 1
+                }
+            ]
+        },
+        {
+            "id": 4,
+            "slug": "maximum_subarray",
+            "title": "Maximum Subarray",
+            "topic_key": "arrays",
+            "topic_label": "Arrays",
+            "difficulty": "medium",
+            "time_limit_ms": 2000,
+            "memory_limit_mb": 256,
+            "statement_md": "Given an integer array `nums`, find the contiguous subarray (containing at least one number) which has the largest sum and return its sum.\n\n**Input format**\n- First line: `n`\n- Second line: `n` space-separated integers\n\n**Output format**\n- Maximum subarray sum (integer)",
+            "starter_code": "import java.util.*;\n\nclass Solution {\n    public int maxSubArray(int[] nums) {\n        // TODO\n        return 0;\n    }\n}\n",
+            "runner_source": "import java.io.*;\nimport java.util.*;\n\npublic class Runner {\n    public static void main(String[] args) throws Exception {\n        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));\n        int n = Integer.parseInt(br.readLine().trim());\n        StringTokenizer st = new StringTokenizer(br.readLine());\n        int[] nums = new int[n];\n        for (int i = 0; i < n; i++) {\n            nums[i] = Integer.parseInt(st.nextToken());\n        }\n\n        Solution sol = new Solution();\n        System.out.print(sol.maxSubArray(nums));\n    }\n}\n",
+            "sample_cases": [
+                {
+                    "stdin": "9\n-2 1 -3 4 -1 2 1 -5 4\n",
+                    "expected_stdout": "6",
+                    "points": 1
+                },
+                {
+                    "stdin": "1\n1\n",
+                    "expected_stdout": "1",
+                    "points": 1
+                },
+                {
+                    "stdin": "5\n5 4 -1 7 8\n",
+                    "expected_stdout": "23",
+                    "points": 1
+                }
+            ],
+            "hidden_cases": [
+                {
+                    "stdin": "4\n-1 -2 -3 -4\n",
+                    "expected_stdout": "-1",
+                    "points": 1
+                },
+                {
+                    "stdin": "6\n0 0 0 0 0 0\n",
+                    "expected_stdout": "0",
+                    "points": 1
+                }
+            ]
+        },
+        {
+            "id": 5,
+            "slug": "subarray_sum_equals_k",
+            "title": "Subarray Sum Equals K",
+            "topic_key": "arrays_hashmap",
+            "topic_label": "Arrays + HashMap",
+            "difficulty": "medium",
+            "time_limit_ms": 2000,
+            "memory_limit_mb": 256,
+            "statement_md": "Given an integer array `nums` and an integer `k`, return the total number of continuous subarrays whose sum equals `k`.\n\n**Input format**\n- First line: `n`\n- Second line: `n` space-separated integers\n- Third line: `k`\n\n**Output format**\n- Count of subarrays (integer)",
+            "starter_code": "import java.util.*;\n\nclass Solution {\n    public int subarraySum(int[] nums, int k) {\n        // TODO\n        return 0;\n    }\n}\n",
+            "runner_source": "import java.io.*;\nimport java.util.*;\n\npublic class Runner {\n    public static void main(String[] args) throws Exception {\n        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));\n        int n = Integer.parseInt(br.readLine().trim());\n        StringTokenizer st = new StringTokenizer(br.readLine());\n        int[] nums = new int[n];\n        for (int i = 0; i < n; i++) {\n            nums[i] = Integer.parseInt(st.nextToken());\n        }\n        int k = Integer.parseInt(br.readLine().trim());\n\n        Solution sol = new Solution();\n        System.out.print(sol.subarraySum(nums, k));\n    }\n}\n",
+            "sample_cases": [
+                {
+                    "stdin": "3\n1 1 1\n2\n",
+                    "expected_stdout": "2",
+                    "points": 1
+                },
+                {
+                    "stdin": "2\n1 2\n3\n",
+                    "expected_stdout": "1",
+                    "points": 1
+                },
+                {
+                    "stdin": "3\n1 2 3\n3\n",
+                    "expected_stdout": "2",
+                    "points": 1
+                }
+            ],
+            "hidden_cases": [
+                {
+                    "stdin": "4\n1 -1 0 1\n1\n",
+                    "expected_stdout": "5",
+                    "points": 1
+                },
+                {
+                    "stdin": "5\n0 0 0 0 0\n0\n",
+                    "expected_stdout": "15",
+                    "points": 1
+                },
+                {
+                    "stdin": "5\n1 2 1 2 1\n3\n",
+                    "expected_stdout": "4",
+                    "points": 1
+                }
+            ]
+        },
+        {
+            "id": 6,
+            "slug": "move_zeroes",
+            "title": "Move Zeroes",
+            "topic_key": "arrays",
+            "topic_label": "Arrays",
+            "difficulty": "easy",
+            "time_limit_ms": 2000,
+            "memory_limit_mb": 256,
+            "statement_md": "Given an integer array `nums`, move all `0` values to the end of it while maintaining the relative order of the non-zero elements.\n\nYou must do this **in-place**.\n\n**Input format**\n- First line: `n`\n- Second line: `n` space-separated integers\n\n**Output format**\n- The resulting array as `n` space-separated integers",
+            "starter_code": "import java.util.*;\n\nclass Solution {\n    public void moveZeroes(int[] nums) {\n        // TODO\n    }\n}\n",
+            "runner_source": "import java.io.*;\nimport java.util.*;\n\npublic class Runner {\n    public static void main(String[] args) throws Exception {\n        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));\n        int n = Integer.parseInt(br.readLine().trim());\n        StringTokenizer st = new StringTokenizer(br.readLine());\n        int[] nums = new int[n];\n        for (int i = 0; i < n; i++) {\n            nums[i] = Integer.parseInt(st.nextToken());\n        }\n\n        Solution sol = new Solution();\n        sol.moveZeroes(nums);\n\n        StringBuilder out = new StringBuilder();\n        for (int i = 0; i < nums.length; i++) {\n            if (i > 0) out.append(' ');\n            out.append(nums[i]);\n        }\n        System.out.print(out.toString());\n    }\n}\n",
+            "sample_cases": [
+                {
+                    "stdin": "5\n0 1 0 3 12\n",
+                    "expected_stdout": "1 3 12 0 0",
+                    "points": 1
+                },
+                {
+                    "stdin": "1\n0\n",
+                    "expected_stdout": "0",
+                    "points": 1
+                },
+                {
+                    "stdin": "4\n1 2 3 4\n",
+                    "expected_stdout": "1 2 3 4",
+                    "points": 1
+                }
+            ],
+            "hidden_cases": [
+                {
+                    "stdin": "7\n0 0 0 1 0 2 0\n",
+                    "expected_stdout": "1 2 0 0 0 0 0",
+                    "points": 1
+                },
+                {
+                    "stdin": "6\n4 0 5 0 0 3\n",
+                    "expected_stdout": "4 5 3 0 0 0",
+                    "points": 1
+                },
+                {
+                    "stdin": "5\n1 0 0 0 2\n",
+                    "expected_stdout": "1 2 0 0 0",
+                    "points": 1
+                }
+            ]
+        },
+        {
+            "id": 7,
+            "slug": "best_time_to_buy_and_sell_stock",
+            "title": "Best Time to Buy and Sell Stock",
+            "topic_key": "arrays",
+            "topic_label": "Arrays",
+            "difficulty": "easy",
+            "time_limit_ms": 2000,
+            "memory_limit_mb": 256,
+            "statement_md": "You are given an array `prices` where `prices[i]` is the price of a stock on day `i`.\n\nReturn the maximum profit you can achieve from a single buy and a single sell. If you cannot achieve any profit, return `0`.\n\n**Input format**\n- First line: `n`\n- Second line: `n` space-separated integers\n\n**Output format**\n- Maximum profit (integer)",
+            "starter_code": "import java.util.*;\n\nclass Solution {\n    public int maxProfit(int[] prices) {\n        // TODO\n        return 0;\n    }\n}\n",
+            "runner_source": "import java.io.*;\nimport java.util.*;\n\npublic class Runner {\n    public static void main(String[] args) throws Exception {\n        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));\n        int n = Integer.parseInt(br.readLine().trim());\n        StringTokenizer st = new StringTokenizer(br.readLine());\n        int[] prices = new int[n];\n        for (int i = 0; i < n; i++) {\n            prices[i] = Integer.parseInt(st.nextToken());\n        }\n\n        Solution sol = new Solution();\n        System.out.print(sol.maxProfit(prices));\n    }\n}\n",
+            "sample_cases": [
+                {
+                    "stdin": "6\n7 1 5 3 6 4\n",
+                    "expected_stdout": "5",
+                    "points": 1
+                },
+                {
+                    "stdin": "5\n7 6 4 3 1\n",
+                    "expected_stdout": "0",
+                    "points": 1
+                },
+                {
+                    "stdin": "2\n1 2\n",
+                    "expected_stdout": "1",
+                    "points": 1
+                }
+            ],
+            "hidden_cases": [
+                {
+                    "stdin": "6\n3 3 5 0 0 3\n",
+                    "expected_stdout": "3",
+                    "points": 1
+                },
+                {
+                    "stdin": "1\n5\n",
+                    "expected_stdout": "0",
+                    "points": 1
+                },
+                {
+                    "stdin": "6\n1 2 3 4 5 6\n",
+                    "expected_stdout": "5",
+                    "points": 1
+                }
+            ]
+        },
+        {
+            "id": 8,
+            "slug": "product_of_array_except_self",
+            "title": "Product of Array Except Self",
+            "topic_key": "arrays",
+            "topic_label": "Arrays",
+            "difficulty": "medium",
+            "time_limit_ms": 2000,
+            "memory_limit_mb": 256,
+            "statement_md": "Given an integer array `nums` of length `n` (where `n >= 2`), return an array `answer` such that `answer[i]` is the product of all the elements of `nums` except `nums[i]`.\n\nYou must write an algorithm that runs in `O(n)` time.\n\n**Input format**\n- First line: `n`\n- Second line: `n` space-separated integers\n\n**Output format**\n- `n` space-separated integers representing `answer`",
+            "starter_code": "import java.util.*;\n\nclass Solution {\n    public int[] productExceptSelf(int[] nums) {\n        // TODO\n        return new int[0];\n    }\n}\n",
+            "runner_source": "import java.io.*;\nimport java.util.*;\n\npublic class Runner {\n    public static void main(String[] args) throws Exception {\n        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));\n        int n = Integer.parseInt(br.readLine().trim());\n        StringTokenizer st = new StringTokenizer(br.readLine());\n        int[] nums = new int[n];\n        for (int i = 0; i < n; i++) {\n            nums[i] = Integer.parseInt(st.nextToken());\n        }\n\n        Solution sol = new Solution();\n        int[] ans = sol.productExceptSelf(nums);\n        if (ans == null || ans.length != n) {\n            System.out.print(\"invalid\");\n            return;\n        }\n\n        StringBuilder out = new StringBuilder();\n        for (int i = 0; i < ans.length; i++) {\n            if (i > 0) out.append(' ');\n            out.append(ans[i]);\n        }\n        System.out.print(out.toString());\n    }\n}\n",
+            "sample_cases": [
+                {
+                    "stdin": "4\n1 2 3 4\n",
+                    "expected_stdout": "24 12 8 6",
+                    "points": 1
+                },
+                {
+                    "stdin": "5\n-1 1 0 -3 3\n",
+                    "expected_stdout": "0 0 9 0 0",
+                    "points": 1
+                },
+                {
+                    "stdin": "3\n1 1 1\n",
+                    "expected_stdout": "1 1 1",
+                    "points": 1
+                }
+            ],
+            "hidden_cases": [
+                {
+                    "stdin": "2\n2 3\n",
+                    "expected_stdout": "3 2",
+                    "points": 1
+                },
+                {
+                    "stdin": "4\n0 0 2 3\n",
+                    "expected_stdout": "0 0 0 0",
+                    "points": 1
+                },
+                {
+                    "stdin": "4\n2 -2 3 -3\n",
+                    "expected_stdout": "18 -18 12 -12",
+                    "points": 1
+                },
+                {
+                    "stdin": "5\n1 2 0 4 5\n",
+                    "expected_stdout": "0 0 40 0 0",
+                    "points": 1
+                }
+            ]
+        },
+        {
+            "id": 9,
+            "slug": "intersection_of_two_arrays_ii",
+            "title": "Intersection of Two Arrays II",
+            "topic_key": "arrays_hashmap",
+            "topic_label": "Arrays + HashMap",
+            "difficulty": "easy",
+            "time_limit_ms": 2000,
+            "memory_limit_mb": 256,
+            "statement_md": "Given two integer arrays `nums1` and `nums2`, return an array of their intersection. Each element in the result must appear as many times as it shows in both arrays.\n\nThe output will be judged after sorting.\n\n**Input format**\n- First line: `n`\n- Second line: `n` space-separated integers (`nums1`)\n- Third line: `m`\n- Fourth line: `m` space-separated integers (`nums2`)\n\n**Output format**\n- The intersection elements as space-separated integers (may be empty)",
+            "starter_code": "import java.util.*;\n\nclass Solution {\n    public int[] intersect(int[] nums1, int[] nums2) {\n        // TODO\n        return new int[0];\n    }\n}\n",
+            "runner_source": "import java.io.*;\nimport java.util.*;\n\npublic class Runner {\n    private static int[] readArray(BufferedReader br, int n) throws IOException {\n        String line = br.readLine();\n        if (line == null) {\n            return new int[0];\n        }\n        line = line.trim();\n        if (line.isEmpty()) {\n            return new int[0];\n        }\n        StringTokenizer st = new StringTokenizer(line);\n        int[] arr = new int[n];\n        for (int i = 0; i < n; i++) {\n            arr[i] = Integer.parseInt(st.nextToken());\n        }\n        return arr;\n    }\n\n    public static void main(String[] args) throws Exception {\n        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));\n        int n = Integer.parseInt(br.readLine().trim());\n        int[] nums1 = readArray(br, n);\n        int m = Integer.parseInt(br.readLine().trim());\n        int[] nums2 = readArray(br, m);\n\n        Solution sol = new Solution();\n        int[] result = sol.intersect(nums1, nums2);\n        if (result == null) {\n            result = new int[0];\n        }\n        Arrays.sort(result);\n\n        StringBuilder out = new StringBuilder();\n        for (int i = 0; i < result.length; i++) {\n            if (i > 0) out.append(' ');\n            out.append(result[i]);\n        }\n        System.out.print(out.toString());\n    }\n}\n",
+            "sample_cases": [
+                {
+                    "stdin": "4\n1 2 2 1\n2\n2 2\n",
+                    "expected_stdout": "2 2",
+                    "points": 1
+                },
+                {
+                    "stdin": "3\n4 9 5\n5\n9 4 9 8 4\n",
+                    "expected_stdout": "4 9",
+                    "points": 1
+                },
+                {
+                    "stdin": "1\n1\n1\n2\n",
+                    "expected_stdout": "",
+                    "points": 1
+                }
+            ],
+            "hidden_cases": [
+                {
+                    "stdin": "5\n1 1 1 2 2\n3\n1 2 2\n",
+                    "expected_stdout": "1 2 2",
+                    "points": 1
+                },
+                {
+                    "stdin": "6\n2 2 2 2 2 2\n4\n2 2 2 2\n",
+                    "expected_stdout": "2 2 2 2",
+                    "points": 1
+                },
+                {
+                    "stdin": "5\n1 2 3 4 5\n5\n6 7 8 9 10\n",
+                    "expected_stdout": "",
+                    "points": 1
+                }
+            ]
+        },
+        {
+            "id": 10,
+            "slug": "longest_consecutive_sequence",
+            "title": "Longest Consecutive Sequence",
+            "topic_key": "arrays_hashmap",
+            "topic_label": "Arrays + HashMap",
+            "difficulty": "medium",
+            "time_limit_ms": 2000,
+            "memory_limit_mb": 256,
+            "statement_md": "Given an unsorted array of integers `nums`, return the length of the longest consecutive elements sequence.\n\nYou must write an algorithm that runs in `O(n)` time.\n\n**Input format**\n- First line: `n`\n- Second line: `n` space-separated integers\n\n**Output format**\n- Length of the longest consecutive sequence (integer)",
+            "starter_code": "import java.util.*;\n\nclass Solution {\n    public int longestConsecutive(int[] nums) {\n        // TODO\n        return 0;\n    }\n}\n",
+            "runner_source": "import java.io.*;\nimport java.util.*;\n\npublic class Runner {\n    public static void main(String[] args) throws Exception {\n        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));\n        int n = Integer.parseInt(br.readLine().trim());\n        StringTokenizer st = new StringTokenizer(br.readLine());\n        int[] nums = new int[n];\n        for (int i = 0; i < n; i++) {\n            nums[i] = Integer.parseInt(st.nextToken());\n        }\n\n        Solution sol = new Solution();\n        System.out.print(sol.longestConsecutive(nums));\n    }\n}\n",
+            "sample_cases": [
+                {
+                    "stdin": "6\n100 4 200 1 3 2\n",
+                    "expected_stdout": "4",
+                    "points": 1
+                },
+                {
+                    "stdin": "10\n0 3 7 2 5 8 4 6 0 1\n",
+                    "expected_stdout": "9",
+                    "points": 1
+                },
+                {
+                    "stdin": "1\n1\n",
+                    "expected_stdout": "1",
+                    "points": 1
+                }
+            ],
+            "hidden_cases": [
+                {
+                    "stdin": "5\n1 2 0 1 -1\n",
+                    "expected_stdout": "4",
+                    "points": 1
+                },
+                {
+                    "stdin": "6\n9 1 -3 2 4 8\n",
+                    "expected_stdout": "2",
+                    "points": 1
+                },
+                {
+                    "stdin": "8\n1 2 3 4 5 6 7 8\n",
+                    "expected_stdout": "8",
+                    "points": 1
+                }
+            ]
+        },
+        {
+            "id": 11,
+            "slug": "ransom_note",
+            "title": "Ransom Note",
+            "topic_key": "hashmap",
+            "topic_label": "HashMap / Counting",
+            "difficulty": "easy",
+            "time_limit_ms": 2000,
+            "memory_limit_mb": 256,
+            "statement_md": "Given two strings `ransomNote` and `magazine`, return `true` if `ransomNote` can be constructed by using the letters from `magazine` and `false` otherwise.\n\nEach letter in `magazine` can only be used once.\n\n**Input format**\n- Line 1: `ransomNote`\n- Line 2: `magazine`\n\n**Output format**\n- `true` or `false`",
+            "starter_code": "import java.util.*;\n\nclass Solution {\n    public boolean canConstruct(String ransomNote, String magazine) {\n        // TODO\n        return false;\n    }\n}\n",
+            "runner_source": "import java.io.*;\n\npublic class Runner {\n    public static void main(String[] args) throws Exception {\n        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));\n        String ransom = br.readLine();\n        String magazine = br.readLine();\n        if (ransom == null) ransom = \"\";\n        if (magazine == null) magazine = \"\";\n\n        Solution sol = new Solution();\n        System.out.print(sol.canConstruct(ransom, magazine) ? \"true\" : \"false\");\n    }\n}\n",
+            "sample_cases": [
+                {
+                    "stdin": "a\nb\n",
+                    "expected_stdout": "false",
+                    "points": 1
+                },
+                {
+                    "stdin": "aa\naab\n",
+                    "expected_stdout": "true",
+                    "points": 1
+                },
+                {
+                    "stdin": "abc\nbcaa\n",
+                    "expected_stdout": "true",
+                    "points": 1
+                }
+            ],
+            "hidden_cases": [
+                {
+                    "stdin": "aaaa\naaab\n",
+                    "expected_stdout": "false",
+                    "points": 1
+                },
+                {
+                    "stdin": "\nanything\n",
+                    "expected_stdout": "true",
+                    "points": 1
+                },
+                {
+                    "stdin": "zz\nz\n",
+                    "expected_stdout": "false",
+                    "points": 1
+                }
+            ]
+        },
+        {
+            "id": 12,
+            "slug": "top_k_frequent_elements",
+            "title": "Top K Frequent Elements",
+            "topic_key": "hashmap",
+            "topic_label": "HashMap / Counting",
+            "difficulty": "medium",
+            "time_limit_ms": 2000,
+            "memory_limit_mb": 256,
+            "statement_md": "Given an integer array `nums` and an integer `k`, return the `k` most frequent elements.\n\nThe output will be judged after sorting by frequency descending, and by value ascending for ties.\n\n**Input format**\n- First line: `n`\n- Second line: `n` space-separated integers\n- Third line: `k`\n\n**Output format**\n- `k` integers separated by spaces",
+            "starter_code": "import java.util.*;\n\nclass Solution {\n    public int[] topKFrequent(int[] nums, int k) {\n        // TODO\n        return new int[0];\n    }\n}\n",
+            "runner_source": "import java.io.*;\nimport java.util.*;\n\npublic class Runner {\n    public static void main(String[] args) throws Exception {\n        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));\n        int n = Integer.parseInt(br.readLine().trim());\n        StringTokenizer st = new StringTokenizer(br.readLine());\n        int[] nums = new int[n];\n        Map<Integer, Integer> freq = new HashMap<>();\n        for (int i = 0; i < n; i++) {\n            nums[i] = Integer.parseInt(st.nextToken());\n            freq.put(nums[i], freq.getOrDefault(nums[i], 0) + 1);\n        }\n        int k = Integer.parseInt(br.readLine().trim());\n\n        Solution sol = new Solution();\n        int[] result = sol.topKFrequent(nums, k);\n        if (result == null || result.length != k) {\n            System.out.print(\"invalid\");\n            return;\n        }\n\n        Set<Integer> seen = new HashSet<>();\n        Integer[] boxed = new Integer[result.length];\n        for (int i = 0; i < result.length; i++) {\n            boxed[i] = result[i];\n            if (!seen.add(boxed[i])) {\n                System.out.print(\"invalid\");\n                return;\n            }\n        }\n\n        Arrays.sort(boxed, (a, b) -> {\n            int fa = freq.getOrDefault(a, 0);\n            int fb = freq.getOrDefault(b, 0);\n            if (fa != fb) {\n                return Integer.compare(fb, fa);\n            }\n            return Integer.compare(a, b);\n        });\n\n        StringBuilder out = new StringBuilder();\n        for (int i = 0; i < boxed.length; i++) {\n            if (i > 0) out.append(' ');\n            out.append(boxed[i]);\n        }\n        System.out.print(out.toString());\n    }\n}\n",
+            "sample_cases": [
+                {
+                    "stdin": "6\n1 1 1 2 2 3\n2\n",
+                    "expected_stdout": "1 2",
+                    "points": 1
+                },
+                {
+                    "stdin": "4\n4 4 4 4\n1\n",
+                    "expected_stdout": "4",
+                    "points": 1
+                },
+                {
+                    "stdin": "8\n1 2 3 4 5 6 7 8\n3\n",
+                    "expected_stdout": "1 2 3",
+                    "points": 1
+                }
+            ],
+            "hidden_cases": [
+                {
+                    "stdin": "10\n1 1 2 2 3 3 4 4 5 5\n2\n",
+                    "expected_stdout": "1 2",
+                    "points": 1
+                },
+                {
+                    "stdin": "7\n-1 -1 -1 2 2 3 3\n2\n",
+                    "expected_stdout": "-1 2",
+                    "points": 1
+                },
+                {
+                    "stdin": "6\n5 5 4 4 3 3\n1\n",
+                    "expected_stdout": "3",
+                    "points": 1
+                }
+            ]
+        },
+        {
+            "id": 13,
+            "slug": "valid_parentheses",
+            "title": "Valid Parentheses",
+            "topic_key": "stack_queue",
+            "topic_label": "Stack + Queue",
+            "difficulty": "easy",
+            "time_limit_ms": 2000,
+            "memory_limit_mb": 256,
+            "statement_md": "Given a string `s` containing only the characters `(`, `)`, `{`, `}`, `[` and `]`, return `true` if the input string is valid, and `false` otherwise.\n\nA string is valid if:\n- Open brackets are closed by the same type of brackets.\n- Open brackets are closed in the correct order.\n- Every close bracket has a corresponding open bracket.\n\n**Input format**\n- Line 1: `s`\n\n**Output format**\n- `true` or `false`",
+            "sample_cases": [
+                {
+                    "stdin": "()[]{}\n",
+                    "expected_stdout": "true",
+                    "points": 1
+                },
+                {
+                    "stdin": "(]\n",
+                    "expected_stdout": "false",
+                    "points": 1
+                },
+                {
+                    "stdin": "([)]\n",
+                    "expected_stdout": "false",
+                    "points": 1
+                }
+            ],
+            "hidden_cases": [
+                {
+                    "stdin": "\n",
+                    "expected_stdout": "true",
+                    "points": 1
+                },
+                {
+                    "stdin": "{[]}\n",
+                    "expected_stdout": "true",
+                    "points": 1
+                },
+                {
+                    "stdin": "((((\n",
+                    "expected_stdout": "false",
+                    "points": 1
+                },
+                {
+                    "stdin": ")\n",
+                    "expected_stdout": "false",
+                    "points": 1
+                },
+                {
+                    "stdin": "(([]){})\n",
+                    "expected_stdout": "true",
+                    "points": 1
+                }
+            ],
+            "starter_code": "import java.util.*;\n\nclass Solution {\n    public boolean isValid(String s) {\n        // TODO\n        return false;\n    }\n}\n",
+            "runner_source": "import java.io.*;\nimport java.util.*;\n\npublic class Runner {\n    public static void main(String[] args) throws Exception {\n        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));\n        String s = br.readLine();\n        if (s == null) {\n            s = \"\";\n        }\n\n        Solution sol = new Solution();\n        System.out.print(sol.isValid(s) ? \"true\" : \"false\");\n    }\n}\n"
+        },
+        {
+            "id": 14,
+            "slug": "binary_search",
+            "title": "Binary Search",
+            "topic_key": "sorting_search",
+            "topic_label": "Sorting + Searching",
+            "difficulty": "easy",
+            "time_limit_ms": 2000,
+            "memory_limit_mb": 256,
+            "statement_md": "Given a sorted integer array `nums` and an integer `target`, return the index of `target` in `nums`. If `target` does not exist, return `-1`.\n\n**Input format**\n- First line: `n`\n- Second line: `n` space-separated integers (sorted)\n- Third line: `target`\n\n**Output format**\n- Index of `target` or `-1`",
+            "sample_cases": [
+                {
+                    "stdin": "5\n-1 0 3 5 9\n9\n",
+                    "expected_stdout": "4",
+                    "points": 1
+                },
+                {
+                    "stdin": "5\n-1 0 3 5 9\n2\n",
+                    "expected_stdout": "-1",
+                    "points": 1
+                },
+                {
+                    "stdin": "1\n5\n5\n",
+                    "expected_stdout": "0",
+                    "points": 1
+                }
+            ],
+            "hidden_cases": [
+                {
+                    "stdin": "2\n1 3\n1\n",
+                    "expected_stdout": "0",
+                    "points": 1
+                },
+                {
+                    "stdin": "2\n1 3\n3\n",
+                    "expected_stdout": "1",
+                    "points": 1
+                },
+                {
+                    "stdin": "6\n2 4 6 8 10 12\n7\n",
+                    "expected_stdout": "-1",
+                    "points": 1
+                },
+                {
+                    "stdin": "7\n-10 -3 0 1 2 9 20\n-10\n",
+                    "expected_stdout": "0",
+                    "points": 1
+                },
+                {
+                    "stdin": "7\n-10 -3 0 1 2 9 20\n20\n",
+                    "expected_stdout": "6",
+                    "points": 1
+                }
+            ],
+            "starter_code": "import java.util.*;\n\nclass Solution {\n    public int search(int[] nums, int target) {\n        // TODO\n        return -1;\n    }\n}\n",
+            "runner_source": "import java.io.*;\nimport java.util.*;\n\npublic class Runner {\n    private static int[] readIntArray(BufferedReader br, int n) throws IOException {\n        String line = br.readLine();\n        if (line == null) {\n            return new int[0];\n        }\n        StringTokenizer st = new StringTokenizer(line);\n        int[] arr = new int[n];\n        for (int i = 0; i < n; i++) {\n            arr[i] = Integer.parseInt(st.nextToken());\n        }\n        return arr;\n    }\n\n    public static void main(String[] args) throws Exception {\n        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));\n        int n = Integer.parseInt(br.readLine().trim());\n        int[] nums = readIntArray(br, n);\n        int target = Integer.parseInt(br.readLine().trim());\n\n        Solution sol = new Solution();\n        System.out.print(sol.search(nums, target));\n    }\n}\n"
+        },
+        {
+            "id": 15,
+            "slug": "reverse_string",
+            "title": "Reverse String",
+            "topic_key": "strings",
+            "topic_label": "Strings",
+            "difficulty": "easy",
+            "time_limit_ms": 2000,
+            "memory_limit_mb": 256,
+            "statement_md": "Given a string `s`, return the string reversed.\n\n**Input format**\n- Line 1: `s`\n\n**Output format**\n- The reversed string",
+            "sample_cases": [
+                {
+                    "stdin": "hello\n",
+                    "expected_stdout": "olleh",
+                    "points": 1
+                },
+                {
+                    "stdin": "abcd\n",
+                    "expected_stdout": "dcba",
+                    "points": 1
+                },
+                {
+                    "stdin": "a\n",
+                    "expected_stdout": "a",
+                    "points": 1
+                }
+            ],
+            "hidden_cases": [
+                {
+                    "stdin": "racecar\n",
+                    "expected_stdout": "racecar",
+                    "points": 1
+                },
+                {
+                    "stdin": "OpenAI\n",
+                    "expected_stdout": "IAnepO",
+                    "points": 1
+                },
+                {
+                    "stdin": "a b\n",
+                    "expected_stdout": "b a",
+                    "points": 1
+                },
+                {
+                    "stdin": "  lead\n",
+                    "expected_stdout": "dael  ",
+                    "points": 1
+                },
+                {
+                    "stdin": "trail  \n",
+                    "expected_stdout": "  liart",
+                    "points": 1
+                }
+            ],
+            "starter_code": "class Solution {\n    public String reverseString(String s) {\n        // TODO\n        return \"\";\n    }\n}\n",
+            "runner_source": "import java.io.*;\n\npublic class Runner {\n    public static void main(String[] args) throws Exception {\n        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));\n        String s = br.readLine();\n        if (s == null) {\n            s = \"\";\n        }\n\n        Solution sol = new Solution();\n        System.out.print(sol.reverseString(s));\n    }\n}\n"
+        },
+        {
+            "id": 16,
+            "slug": "palindrome_number",
+            "title": "Palindrome Number",
+            "topic_key": "math",
+            "topic_label": "Math",
+            "difficulty": "easy",
+            "time_limit_ms": 2000,
+            "memory_limit_mb": 256,
+            "statement_md": "Given an integer `x`, return `true` if `x` is a palindrome, and `false` otherwise.\n\nAn integer is a palindrome when it reads the same backward as forward.\n\n**Input format**\n- Line 1: `x`\n\n**Output format**\n- `true` or `false`",
+            "sample_cases": [
+                {
+                    "stdin": "121\n",
+                    "expected_stdout": "true",
+                    "points": 1
+                },
+                {
+                    "stdin": "-121\n",
+                    "expected_stdout": "false",
+                    "points": 1
+                },
+                {
+                    "stdin": "10\n",
+                    "expected_stdout": "false",
+                    "points": 1
+                }
+            ],
+            "hidden_cases": [
+                {
+                    "stdin": "0\n",
+                    "expected_stdout": "true",
+                    "points": 1
+                },
+                {
+                    "stdin": "1\n",
+                    "expected_stdout": "true",
+                    "points": 1
+                },
+                {
+                    "stdin": "12321\n",
+                    "expected_stdout": "true",
+                    "points": 1
+                },
+                {
+                    "stdin": "1001\n",
+                    "expected_stdout": "true",
+                    "points": 1
+                },
+                {
+                    "stdin": "100\n",
+                    "expected_stdout": "false",
+                    "points": 1
+                }
+            ],
+            "starter_code": "class Solution {\n    public boolean isPalindrome(int x) {\n        // TODO\n        return false;\n    }\n}\n",
+            "runner_source": "import java.io.*;\n\npublic class Runner {\n    public static void main(String[] args) throws Exception {\n        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));\n        String line = br.readLine();\n        int x = 0;\n        if (line != null && !line.trim().isEmpty()) {\n            x = Integer.parseInt(line.trim());\n        }\n\n        Solution sol = new Solution();\n        System.out.print(sol.isPalindrome(x) ? \"true\" : \"false\");\n    }\n}\n"
+        },
+        {
+            "id": 17,
+            "slug": "climbing_stairs",
+            "title": "Climbing Stairs",
+            "topic_key": "dynamic_programming",
+            "topic_label": "Dynamic Programming",
+            "difficulty": "easy",
+            "time_limit_ms": 2000,
+            "memory_limit_mb": 256,
+            "statement_md": "You are climbing a staircase. It takes `n` steps to reach the top.\n\nEach time you can either climb 1 or 2 steps. In how many distinct ways can you climb to the top?\n\n**Input format**\n- Line 1: `n`\n\n**Output format**\n- Number of distinct ways",
+            "sample_cases": [
+                {
+                    "stdin": "2\n",
+                    "expected_stdout": "2",
+                    "points": 1
+                },
+                {
+                    "stdin": "3\n",
+                    "expected_stdout": "3",
+                    "points": 1
+                },
+                {
+                    "stdin": "5\n",
+                    "expected_stdout": "8",
+                    "points": 1
+                }
+            ],
+            "hidden_cases": [
+                {
+                    "stdin": "1\n",
+                    "expected_stdout": "1",
+                    "points": 1
+                },
+                {
+                    "stdin": "4\n",
+                    "expected_stdout": "5",
+                    "points": 1
+                },
+                {
+                    "stdin": "10\n",
+                    "expected_stdout": "89",
+                    "points": 1
+                },
+                {
+                    "stdin": "20\n",
+                    "expected_stdout": "10946",
+                    "points": 1
+                },
+                {
+                    "stdin": "45\n",
+                    "expected_stdout": "1836311903",
+                    "points": 1
+                }
+            ],
+            "starter_code": "class Solution {\n    public int climbStairs(int n) {\n        // TODO\n        return 0;\n    }\n}\n",
+            "runner_source": "import java.io.*;\n\npublic class Runner {\n    public static void main(String[] args) throws Exception {\n        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));\n        String line = br.readLine();\n        int n = 0;\n        if (line != null && !line.trim().isEmpty()) {\n            n = Integer.parseInt(line.trim());\n        }\n\n        Solution sol = new Solution();\n        System.out.print(sol.climbStairs(n));\n    }\n}\n"
+        },
+        {
+            "id": 18,
+            "slug": "merge_two_sorted_arrays",
+            "title": "Merge Two Sorted Arrays",
+            "topic_key": "two_pointers",
+            "topic_label": "Two Pointers",
+            "difficulty": "easy",
+            "time_limit_ms": 2000,
+            "memory_limit_mb": 256,
+            "statement_md": "Given two sorted integer arrays `a` and `b`, return a new sorted array that contains all elements of `a` and `b`.\n\n**Input format**\n- First line: `n`\n- Second line: `n` space-separated integers (sorted)\n\n- Third line: `m`\n- Fourth line: `m` space-separated integers (sorted)\n\n(If `n` or `m` is 0, the corresponding line will be empty.)\n\n**Output format**\n- `n + m` integers separated by spaces",
+            "sample_cases": [
+                {
+                    "stdin": "3\n1 3 5\n3\n2 4 6\n",
+                    "expected_stdout": "1 2 3 4 5 6",
+                    "points": 1
+                },
+                {
+                    "stdin": "0\n\n4\n1 2 3 4\n",
+                    "expected_stdout": "1 2 3 4",
+                    "points": 1
+                },
+                {
+                    "stdin": "2\n-5 10\n1\n0\n",
+                    "expected_stdout": "-5 0 10",
+                    "points": 1
+                }
+            ],
+            "hidden_cases": [
+                {
+                    "stdin": "1\n1\n0\n\n",
+                    "expected_stdout": "1",
+                    "points": 1
+                },
+                {
+                    "stdin": "0\n\n0\n\n",
+                    "expected_stdout": "",
+                    "points": 1
+                },
+                {
+                    "stdin": "4\n1 2 2 3\n3\n2 2 4\n",
+                    "expected_stdout": "1 2 2 2 2 3 4",
+                    "points": 1
+                },
+                {
+                    "stdin": "3\n-3 -2 -1\n3\n-6 -5 -4\n",
+                    "expected_stdout": "-6 -5 -4 -3 -2 -1",
+                    "points": 1
+                },
+                {
+                    "stdin": "3\n1 1 1\n2\n1 1\n",
+                    "expected_stdout": "1 1 1 1 1",
+                    "points": 1
+                }
+            ],
+            "starter_code": "class Solution {\n    public int[] mergeSorted(int[] a, int[] b) {\n        // TODO\n        return new int[0];\n    }\n}\n",
+            "runner_source": "import java.io.*;\nimport java.util.*;\n\npublic class Runner {\n    private static int[] readIntArray(BufferedReader br, int n) throws IOException {\n        String line = br.readLine();\n        if (line == null) {\n            return new int[0];\n        }\n        line = line.trim();\n        if (line.isEmpty()) {\n            return new int[0];\n        }\n        StringTokenizer st = new StringTokenizer(line);\n        int[] arr = new int[n];\n        for (int i = 0; i < n; i++) {\n            arr[i] = Integer.parseInt(st.nextToken());\n        }\n        return arr;\n    }\n\n    public static void main(String[] args) throws Exception {\n        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));\n        int n = Integer.parseInt(br.readLine().trim());\n        int[] a = readIntArray(br, n);\n        int m = Integer.parseInt(br.readLine().trim());\n        int[] b = readIntArray(br, m);\n\n        Solution sol = new Solution();\n        int[] result = sol.mergeSorted(a, b);\n        if (result == null) {\n            System.out.print(\"invalid\");\n            return;\n        }\n\n        StringBuilder out = new StringBuilder();\n        for (int i = 0; i < result.length; i++) {\n            if (i > 0) out.append(' ');\n            out.append(result[i]);\n        }\n        System.out.print(out.toString());\n    }\n}\n"
+        },
+        {
+            "id": 19,
+            "slug": "longest_substring_without_repeating_characters",
+            "title": "Longest Substring Without Repeating Characters",
+            "topic_key": "strings",
+            "topic_label": "Strings",
+            "difficulty": "medium",
+            "time_limit_ms": 2000,
+            "memory_limit_mb": 256,
+            "statement_md": "Given a string `s`, find the length of the longest substring without repeating characters.\n\n**Input format**\n- Line 1: `s`\n\n**Output format**\n- Length of the longest substring without repeating characters",
+            "sample_cases": [
+                {
+                    "stdin": "abcabcbb\n",
+                    "expected_stdout": "3",
+                    "points": 1
+                },
+                {
+                    "stdin": "bbbbb\n",
+                    "expected_stdout": "1",
+                    "points": 1
+                },
+                {
+                    "stdin": "pwwkew\n",
+                    "expected_stdout": "3",
+                    "points": 1
+                }
+            ],
+            "hidden_cases": [
+                {
+                    "stdin": "\n",
+                    "expected_stdout": "0",
+                    "points": 1
+                },
+                {
+                    "stdin": " \n",
+                    "expected_stdout": "1",
+                    "points": 1
+                },
+                {
+                    "stdin": "dvdf\n",
+                    "expected_stdout": "3",
+                    "points": 1
+                },
+                {
+                    "stdin": "anviaj\n",
+                    "expected_stdout": "5",
+                    "points": 1
+                },
+                {
+                    "stdin": "tmmzuxt\n",
+                    "expected_stdout": "5",
+                    "points": 1
+                }
+            ],
+            "starter_code": "import java.util.*;\n\nclass Solution {\n    public int lengthOfLongestSubstring(String s) {\n        // TODO\n        return 0;\n    }\n}\n",
+            "runner_source": "import java.io.*;\n\npublic class Runner {\n    public static void main(String[] args) throws Exception {\n        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));\n        String s = br.readLine();\n        if (s == null) {\n            s = \"\";\n        }\n\n        Solution sol = new Solution();\n        System.out.print(sol.lengthOfLongestSubstring(s));\n    }\n}\n"
+        },
+        {
+            "id": 20,
+            "slug": "evaluate_reverse_polish_notation",
+            "title": "Evaluate Reverse Polish Notation",
+            "topic_key": "stack_queue",
+            "topic_label": "Stack + Queue",
+            "difficulty": "medium",
+            "time_limit_ms": 2000,
+            "memory_limit_mb": 256,
+            "statement_md": "You are given an array of tokens that represents an arithmetic expression in Reverse Polish Notation.\n\nReturn the integer result of the expression.\n\nValid operators are `+`, `-`, `*`, and `/`.\n\nNote:\n- Division between two integers should truncate toward zero.\n\n**Input format**\n- First line: `n` (number of tokens)\n- Second line: `n` tokens separated by spaces\n\n**Output format**\n- The integer result",
+            "sample_cases": [
+                {
+                    "stdin": "5\n2 1 + 3 *\n",
+                    "expected_stdout": "9",
+                    "points": 1
+                },
+                {
+                    "stdin": "4\n4 13 5 /\n",
+                    "expected_stdout": "6",
+                    "points": 1
+                },
+                {
+                    "stdin": "6\n3 4 + 2 * 7 /\n",
+                    "expected_stdout": "2",
+                    "points": 1
+                }
+            ],
+            "hidden_cases": [
+                {
+                    "stdin": "1\n42\n",
+                    "expected_stdout": "42",
+                    "points": 1
+                },
+                {
+                    "stdin": "9\n5 1 2 + 4 * + 3 -\n",
+                    "expected_stdout": "14",
+                    "points": 1
+                },
+                {
+                    "stdin": "5\n-2 3 * 4 +\n",
+                    "expected_stdout": "-2",
+                    "points": 1
+                },
+                {
+                    "stdin": "7\n8 3 / 2 * 1 +\n",
+                    "expected_stdout": "5",
+                    "points": 1
+                },
+                {
+                    "stdin": "7\n7 2 - 3 4 + *\n",
+                    "expected_stdout": "25",
+                    "points": 1
+                }
+            ],
+            "starter_code": "import java.util.*;\n\nclass Solution {\n    public int evalRPN(String[] tokens) {\n        // TODO\n        return 0;\n    }\n}\n",
+            "runner_source": "import java.io.*;\nimport java.util.*;\n\npublic class Runner {\n    public static void main(String[] args) throws Exception {\n        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));\n        int n = Integer.parseInt(br.readLine().trim());\n        String line = br.readLine();\n        if (line == null) {\n            line = \"\";\n        }\n\n        StringTokenizer st = new StringTokenizer(line);\n        String[] tokens = new String[n];\n        for (int i = 0; i < n; i++) {\n            tokens[i] = st.nextToken();\n        }\n\n        Solution sol = new Solution();\n        System.out.print(sol.evalRPN(tokens));\n    }\n}\n"
+        },
+        {
+            "id": 21,
+            "slug": "number_of_islands",
+            "title": "Number of Islands",
+            "topic_key": "graphs",
+            "topic_label": "Graphs / DFS / BFS",
+            "difficulty": "medium",
+            "time_limit_ms": 2000,
+            "memory_limit_mb": 256,
+            "statement_md": "Given an `r × c` grid of characters where `'1'` represents land and `'0'` represents water, return the number of islands.\n\nAn island is surrounded by water and is formed by connecting adjacent lands horizontally or vertically.\n\n**Input format**\n- First line: `r c`\n- Next `r` lines: a string of length `c` containing only `0` and `1`\n\n**Output format**\n- Number of islands",
+            "sample_cases": [
+                {
+                    "stdin": "3 3\n111\n010\n111\n",
+                    "expected_stdout": "1",
+                    "points": 1
+                },
+                {
+                    "stdin": "4 5\n11000\n11000\n00100\n00011\n",
+                    "expected_stdout": "3",
+                    "points": 1
+                },
+                {
+                    "stdin": "1 1\n0\n",
+                    "expected_stdout": "0",
+                    "points": 1
+                }
+            ],
+            "hidden_cases": [
+                {
+                    "stdin": "1 1\n1\n",
+                    "expected_stdout": "1",
+                    "points": 1
+                },
+                {
+                    "stdin": "2 2\n11\n11\n",
+                    "expected_stdout": "1",
+                    "points": 1
+                },
+                {
+                    "stdin": "2 3\n101\n010\n",
+                    "expected_stdout": "3",
+                    "points": 1
+                },
+                {
+                    "stdin": "3 4\n0000\n0000\n0000\n",
+                    "expected_stdout": "0",
+                    "points": 1
+                },
+                {
+                    "stdin": "3 4\n1001\n0010\n0100\n",
+                    "expected_stdout": "4",
+                    "points": 1
+                }
+            ],
+            "starter_code": "class Solution {\n    public int numIslands(char[][] grid) {\n        // TODO\n        return 0;\n    }\n}\n",
+            "runner_source": "import java.io.*;\nimport java.util.*;\n\npublic class Runner {\n    public static void main(String[] args) throws Exception {\n        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));\n        String first = br.readLine();\n        if (first == null || first.trim().isEmpty()) {\n            System.out.print(0);\n            return;\n        }\n        StringTokenizer st = new StringTokenizer(first);\n        int r = Integer.parseInt(st.nextToken());\n        int c = Integer.parseInt(st.nextToken());\n\n        char[][] grid = new char[r][c];\n        for (int i = 0; i < r; i++) {\n            String line = br.readLine();\n            if (line == null) {\n                line = \"\";\n            }\n            for (int j = 0; j < c; j++) {\n                grid[i][j] = j < line.length() ? line.charAt(j) : '0';\n            }\n        }\n\n        Solution sol = new Solution();\n        System.out.print(sol.numIslands(grid));\n    }\n}\n"
+        },
+        {
+            "id": 22,
+            "slug": "kth_largest_element_in_array",
+            "title": "Kth Largest Element in an Array",
+            "topic_key": "sorting_search",
+            "topic_label": "Sorting + Searching",
+            "difficulty": "medium",
+            "time_limit_ms": 2000,
+            "memory_limit_mb": 256,
+            "statement_md": "Given an integer array `nums` and an integer `k`, return the `k`th largest element in the array.\n\n**Input format**\n- First line: `n`\n- Second line: `n` space-separated integers\n- Third line: `k`\n\n**Output format**\n- The `k`th largest element",
+            "sample_cases": [
+                {
+                    "stdin": "6\n3 2 1 5 6 4\n2\n",
+                    "expected_stdout": "5",
+                    "points": 1
+                },
+                {
+                    "stdin": "5\n3 2 3 1 2\n4\n",
+                    "expected_stdout": "2",
+                    "points": 1
+                },
+                {
+                    "stdin": "1\n-1\n1\n",
+                    "expected_stdout": "-1",
+                    "points": 1
+                }
+            ],
+            "hidden_cases": [
+                {
+                    "stdin": "2\n1 2\n1\n",
+                    "expected_stdout": "2",
+                    "points": 1
+                },
+                {
+                    "stdin": "2\n1 2\n2\n",
+                    "expected_stdout": "1",
+                    "points": 1
+                },
+                {
+                    "stdin": "10\n10 9 8 7 6 5 4 3 2 1\n5\n",
+                    "expected_stdout": "6",
+                    "points": 1
+                },
+                {
+                    "stdin": "6\n5 5 5 5 5 5\n3\n",
+                    "expected_stdout": "5",
+                    "points": 1
+                },
+                {
+                    "stdin": "7\n-5 -1 -3 -2 -4 -6 0\n2\n",
+                    "expected_stdout": "-1",
+                    "points": 1
+                }
+            ],
+            "starter_code": "import java.util.*;\n\nclass Solution {\n    public int findKthLargest(int[] nums, int k) {\n        // TODO\n        return 0;\n    }\n}\n",
+            "runner_source": "import java.io.*;\nimport java.util.*;\n\npublic class Runner {\n    private static int[] readIntArray(BufferedReader br, int n) throws IOException {\n        String line = br.readLine();\n        if (line == null) {\n            return new int[0];\n        }\n        StringTokenizer st = new StringTokenizer(line);\n        int[] arr = new int[n];\n        for (int i = 0; i < n; i++) {\n            arr[i] = Integer.parseInt(st.nextToken());\n        }\n        return arr;\n    }\n\n    public static void main(String[] args) throws Exception {\n        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));\n        int n = Integer.parseInt(br.readLine().trim());\n        int[] nums = readIntArray(br, n);\n        int k = Integer.parseInt(br.readLine().trim());\n\n        Solution sol = new Solution();\n        System.out.print(sol.findKthLargest(nums, k));\n    }\n}\n"
+        },
+        {
+            "id": 23,
+            "slug": "coin_change",
+            "title": "Coin Change",
+            "topic_key": "dynamic_programming",
+            "topic_label": "Dynamic Programming",
+            "difficulty": "medium",
+            "time_limit_ms": 2000,
+            "memory_limit_mb": 256,
+            "statement_md": "You are given an integer array `coins` representing coins of different denominations and an integer `amount`.\n\nReturn the fewest number of coins that you need to make up that amount. If that amount cannot be made up by any combination of the coins, return `-1`.\n\nYou may assume you have an infinite number of each kind of coin.\n\n**Input format**\n- First line: `n`\n- Second line: `n` space-separated integers (coin denominations)\n- Third line: `amount`\n\n**Output format**\n- Minimum number of coins, or `-1`",
+            "sample_cases": [
+                {
+                    "stdin": "3\n1 2 5\n11\n",
+                    "expected_stdout": "3",
+                    "points": 1
+                },
+                {
+                    "stdin": "1\n2\n3\n",
+                    "expected_stdout": "-1",
+                    "points": 1
+                },
+                {
+                    "stdin": "2\n1 3\n0\n",
+                    "expected_stdout": "0",
+                    "points": 1
+                }
+            ],
+            "hidden_cases": [
+                {
+                    "stdin": "3\n2 5 10\n27\n",
+                    "expected_stdout": "4",
+                    "points": 1
+                },
+                {
+                    "stdin": "2\n2 4\n7\n",
+                    "expected_stdout": "-1",
+                    "points": 1
+                },
+                {
+                    "stdin": "3\n1 7 10\n14\n",
+                    "expected_stdout": "2",
+                    "points": 1
+                },
+                {
+                    "stdin": "3\n3 4 5\n7\n",
+                    "expected_stdout": "2",
+                    "points": 1
+                },
+                {
+                    "stdin": "4\n186 419 83 408\n6249\n",
+                    "expected_stdout": "20",
+                    "points": 1
+                }
+            ],
+            "starter_code": "import java.util.*;\n\nclass Solution {\n    public int coinChange(int[] coins, int amount) {\n        // TODO\n        return -1;\n    }\n}\n",
+            "runner_source": "import java.io.*;\nimport java.util.*;\n\npublic class Runner {\n    private static int[] readIntArray(BufferedReader br, int n) throws IOException {\n        String line = br.readLine();\n        if (line == null) {\n            return new int[0];\n        }\n        StringTokenizer st = new StringTokenizer(line);\n        int[] arr = new int[n];\n        for (int i = 0; i < n; i++) {\n            arr[i] = Integer.parseInt(st.nextToken());\n        }\n        return arr;\n    }\n\n    public static void main(String[] args) throws Exception {\n        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));\n        int n = Integer.parseInt(br.readLine().trim());\n        int[] coins = readIntArray(br, n);\n        int amount = Integer.parseInt(br.readLine().trim());\n\n        Solution sol = new Solution();\n        System.out.print(sol.coinChange(coins, amount));\n    }\n}\n"
+        },
+        {
+            "id": 24,
+            "slug": "merge_intervals",
+            "title": "Merge Intervals",
+            "topic_key": "greedy",
+            "topic_label": "Greedy / Intervals",
+            "difficulty": "medium",
+            "time_limit_ms": 2000,
+            "memory_limit_mb": 256,
+            "statement_md": "Given an array of intervals where `intervals[i] = [start_i, end_i]`, merge all overlapping intervals and return the merged intervals.\n\n**Input format**\n- First line: `m` (number of intervals)\n- Next `m` lines: `start end`\n\n**Output format**\n- First line: `k` (number of merged intervals)\n- Next `k` lines: `start end`",
+            "sample_cases": [
+                {
+                    "stdin": "4\n1 3\n2 6\n8 10\n15 18\n",
+                    "expected_stdout": "3\n1 6\n8 10\n15 18",
+                    "points": 1
+                },
+                {
+                    "stdin": "2\n1 4\n4 5\n",
+                    "expected_stdout": "1\n1 5",
+                    "points": 1
+                },
+                {
+                    "stdin": "1\n5 7\n",
+                    "expected_stdout": "1\n5 7",
+                    "points": 1
+                }
+            ],
+            "hidden_cases": [
+                {
+                    "stdin": "5\n1 10\n2 3\n4 8\n11 12\n9 10\n",
+                    "expected_stdout": "2\n1 10\n11 12",
+                    "points": 1
+                },
+                {
+                    "stdin": "3\n-5 -1\n-3 0\n2 2\n",
+                    "expected_stdout": "2\n-5 0\n2 2",
+                    "points": 1
+                },
+                {
+                    "stdin": "4\n8 10\n1 3\n15 18\n2 6\n",
+                    "expected_stdout": "3\n1 6\n8 10\n15 18",
+                    "points": 1
+                },
+                {
+                    "stdin": "3\n1 2\n3 4\n5 6\n",
+                    "expected_stdout": "3\n1 2\n3 4\n5 6",
+                    "points": 1
+                },
+                {
+                    "stdin": "4\n1 5\n2 3\n4 4\n6 7\n",
+                    "expected_stdout": "2\n1 5\n6 7",
+                    "points": 1
+                }
+            ],
+            "starter_code": "import java.util.*;\n\nclass Solution {\n    public int[][] merge(int[][] intervals) {\n        // TODO\n        return new int[0][0];\n    }\n}\n",
+            "runner_source": "import java.io.*;\nimport java.util.*;\n\npublic class Runner {\n    public static void main(String[] args) throws Exception {\n        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));\n        String first = br.readLine();\n        int m = first == null || first.trim().isEmpty() ? 0 : Integer.parseInt(first.trim());\n\n        int[][] intervals = new int[m][2];\n        for (int i = 0; i < m; i++) {\n            String line = br.readLine();\n            if (line == null) {\n                line = \"\";\n            }\n            StringTokenizer st = new StringTokenizer(line);\n            intervals[i][0] = Integer.parseInt(st.nextToken());\n            intervals[i][1] = Integer.parseInt(st.nextToken());\n        }\n\n        Solution sol = new Solution();\n        int[][] merged = sol.merge(intervals);\n        if (merged == null) {\n            System.out.print(\"invalid\");\n            return;\n        }\n\n        StringBuilder out = new StringBuilder();\n        out.append(merged.length);\n        for (int i = 0; i < merged.length; i++) {\n            out.append('\n');\n            out.append(merged[i][0]).append(' ').append(merged[i][1]);\n        }\n        System.out.print(out.toString());\n    }\n}\n"
+        },
+        {
+            "id": 25,
+            "slug": "course_schedule",
+            "title": "Course Schedule",
+            "topic_key": "graphs",
+            "topic_label": "Graphs / DFS / BFS",
+            "difficulty": "medium",
+            "time_limit_ms": 2000,
+            "memory_limit_mb": 256,
+            "statement_md": "There are `n` courses labeled from `0` to `n - 1`.\n\nYou are given prerequisites where each pair `a b` indicates that to take course `a` you must first take course `b`.\n\nReturn `true` if you can finish all courses, otherwise return `false`.\n\n**Input format**\n- First line: `n m`\n- Next `m` lines: `a b`\n\n**Output format**\n- `true` or `false`",
+            "sample_cases": [
+                {
+                    "stdin": "2 1\n1 0\n",
+                    "expected_stdout": "true",
+                    "points": 1
+                },
+                {
+                    "stdin": "2 2\n1 0\n0 1\n",
+                    "expected_stdout": "false",
+                    "points": 1
+                },
+                {
+                    "stdin": "3 3\n1 0\n2 1\n2 0\n",
+                    "expected_stdout": "true",
+                    "points": 1
+                }
+            ],
+            "hidden_cases": [
+                {
+                    "stdin": "1 0\n",
+                    "expected_stdout": "true",
+                    "points": 1
+                },
+                {
+                    "stdin": "4 4\n1 0\n2 1\n3 2\n1 3\n",
+                    "expected_stdout": "false",
+                    "points": 1
+                },
+                {
+                    "stdin": "5 5\n1 0\n2 0\n3 1\n3 2\n4 3\n",
+                    "expected_stdout": "true",
+                    "points": 1
+                },
+                {
+                    "stdin": "3 2\n0 1\n1 2\n",
+                    "expected_stdout": "true",
+                    "points": 1
+                },
+                {
+                    "stdin": "3 3\n0 1\n1 2\n2 0\n",
+                    "expected_stdout": "false",
+                    "points": 1
+                }
+            ],
+            "starter_code": "class Solution {\n    public boolean canFinish(int numCourses, int[][] prerequisites) {\n        // TODO\n        return false;\n    }\n}\n",
+            "runner_source": "import java.io.*;\nimport java.util.*;\n\npublic class Runner {\n    public static void main(String[] args) throws Exception {\n        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));\n        String first = br.readLine();\n        if (first == null || first.trim().isEmpty()) {\n            System.out.print(\"true\");\n            return;\n        }\n\n        StringTokenizer st = new StringTokenizer(first);\n        int n = Integer.parseInt(st.nextToken());\n        int m = Integer.parseInt(st.nextToken());\n\n        int[][] prereq = new int[m][2];\n        for (int i = 0; i < m; i++) {\n            String line = br.readLine();\n            if (line == null) {\n                line = \"\";\n            }\n            StringTokenizer p = new StringTokenizer(line);\n            prereq[i][0] = Integer.parseInt(p.nextToken());\n            prereq[i][1] = Integer.parseInt(p.nextToken());\n        }\n\n        Solution sol = new Solution();\n        System.out.print(sol.canFinish(n, prereq) ? \"true\" : \"false\");\n    }\n}\n"
+        },
+        {
+            "id": 26,
+            "slug": "minimum_window_substring",
+            "title": "Minimum Window Substring",
+            "topic_key": "strings",
+            "topic_label": "Strings",
+            "difficulty": "hard",
+            "time_limit_ms": 2000,
+            "memory_limit_mb": 256,
+            "statement_md": "Given two strings `s` and `t`, return the minimum window substring of `s` such that every character in `t` (including duplicates) is included in the window.\n\nIf there is no such substring, print `EMPTY`.\n\n**Input format**\n- Line 1: `s`\n- Line 2: `t`\n\n**Output format**\n- The minimum window substring, or `EMPTY`",
+            "sample_cases": [
+                {
+                    "stdin": "ADOBECODEBANC\nABC\n",
+                    "expected_stdout": "BANC",
+                    "points": 1
+                },
+                {
+                    "stdin": "a\na\n",
+                    "expected_stdout": "a",
+                    "points": 1
+                },
+                {
+                    "stdin": "a\naa\n",
+                    "expected_stdout": "EMPTY",
+                    "points": 1
+                }
+            ],
+            "hidden_cases": [
+                {
+                    "stdin": "ab\nb\n",
+                    "expected_stdout": "b",
+                    "points": 1
+                },
+                {
+                    "stdin": "bba\nab\n",
+                    "expected_stdout": "ba",
+                    "points": 1
+                },
+                {
+                    "stdin": "cabwefgewcwaefgcf\ncae\n",
+                    "expected_stdout": "cwae",
+                    "points": 1
+                },
+                {
+                    "stdin": "aaflslflsldkalskaaa\naaa\n",
+                    "expected_stdout": "aaa",
+                    "points": 1
+                },
+                {
+                    "stdin": "xyz\na\n",
+                    "expected_stdout": "EMPTY",
+                    "points": 1
+                }
+            ],
+            "starter_code": "import java.util.*;\n\nclass Solution {\n    public String minWindow(String s, String t) {\n        // TODO\n        return \"\";\n    }\n}\n",
+            "runner_source": "import java.io.*;\n\npublic class Runner {\n    public static void main(String[] args) throws Exception {\n        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));\n        String s = br.readLine();\n        String t = br.readLine();\n        if (s == null) s = \"\";\n        if (t == null) t = \"\";\n\n        Solution sol = new Solution();\n        String result = sol.minWindow(s, t);\n        if (result == null || result.isEmpty()) {\n            System.out.print(\"EMPTY\");\n            return;\n        }\n        System.out.print(result);\n    }\n}\n"
+        },
+        {
+            "id": 27,
+            "slug": "trapping_rain_water",
+            "title": "Trapping Rain Water",
+            "topic_key": "two_pointers",
+            "topic_label": "Two Pointers",
+            "difficulty": "hard",
+            "time_limit_ms": 2000,
+            "memory_limit_mb": 256,
+            "statement_md": "Given `n` non-negative integers representing an elevation map where the width of each bar is 1, compute how much water it can trap after raining.\n\n**Input format**\n- First line: `n`\n- Second line: `n` space-separated integers\n\n**Output format**\n- Total trapped water",
+            "sample_cases": [
+                {
+                    "stdin": "12\n0 1 0 2 1 0 1 3 2 1 2 1\n",
+                    "expected_stdout": "6",
+                    "points": 1
+                },
+                {
+                    "stdin": "3\n2 0 2\n",
+                    "expected_stdout": "2",
+                    "points": 1
+                },
+                {
+                    "stdin": "1\n5\n",
+                    "expected_stdout": "0",
+                    "points": 1
+                }
+            ],
+            "hidden_cases": [
+                {
+                    "stdin": "6\n4 2 0 3 2 5\n",
+                    "expected_stdout": "9",
+                    "points": 1
+                },
+                {
+                    "stdin": "4\n4 3 2 1\n",
+                    "expected_stdout": "0",
+                    "points": 1
+                },
+                {
+                    "stdin": "4\n0 0 0 0\n",
+                    "expected_stdout": "0",
+                    "points": 1
+                },
+                {
+                    "stdin": "5\n5 4 1 2 1\n",
+                    "expected_stdout": "1",
+                    "points": 1
+                },
+                {
+                    "stdin": "6\n1 0 2 0 1 0\n",
+                    "expected_stdout": "2",
+                    "points": 1
+                }
+            ],
+            "starter_code": "class Solution {\n    public int trap(int[] height) {\n        // TODO\n        return 0;\n    }\n}\n",
+            "runner_source": "import java.io.*;\nimport java.util.*;\n\npublic class Runner {\n    private static int[] readIntArray(BufferedReader br, int n) throws IOException {\n        String line = br.readLine();\n        if (line == null) {\n            return new int[0];\n        }\n        StringTokenizer st = new StringTokenizer(line);\n        int[] arr = new int[n];\n        for (int i = 0; i < n; i++) {\n            arr[i] = Integer.parseInt(st.nextToken());\n        }\n        return arr;\n    }\n\n    public static void main(String[] args) throws Exception {\n        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));\n        int n = Integer.parseInt(br.readLine().trim());\n        int[] height = readIntArray(br, n);\n\n        Solution sol = new Solution();\n        System.out.print(sol.trap(height));\n    }\n}\n"
+        },
+        {
+            "id": 28,
+            "slug": "word_ladder",
+            "title": "Word Ladder",
+            "topic_key": "graphs",
+            "topic_label": "Graphs / DFS / BFS",
+            "difficulty": "hard",
+            "time_limit_ms": 2000,
+            "memory_limit_mb": 256,
+            "statement_md": "A transformation sequence from word `beginWord` to word `endWord` using a dictionary `wordList` is a sequence of words such that:\n- The first word in the sequence is `beginWord`.\n- The last word in the sequence is `endWord`.\n- Only one letter can be changed at a time.\n- Each transformed word must exist in `wordList`.\n\nReturn the length of the shortest transformation sequence, or 0 if no such sequence exists.\n\n**Input format**\n- Line 1: `beginWord`\n- Line 2: `endWord`\n- Line 3: `n` (number of words in the list)\n- Next `n` lines: one word per line\n\n**Output format**\n- Shortest transformation length, or 0",
+            "sample_cases": [
+                {
+                    "stdin": "hit\ncog\n6\nhot\ndot\ndog\nlot\nlog\ncog\n",
+                    "expected_stdout": "5",
+                    "points": 1
+                },
+                {
+                    "stdin": "a\nc\n2\na\nb\n",
+                    "expected_stdout": "0",
+                    "points": 1
+                },
+                {
+                    "stdin": "lost\ncost\n5\nmost\nfost\ncost\nlost\nlast\n",
+                    "expected_stdout": "2",
+                    "points": 1
+                }
+            ],
+            "hidden_cases": [
+                {
+                    "stdin": "talk\ntail\n6\ntalk\ntall\ntail\nfall\nfail\nfoil\n",
+                    "expected_stdout": "3",
+                    "points": 1
+                },
+                {
+                    "stdin": "game\nthe\n5\nname\ngame\nsame\ntame\nteam\n",
+                    "expected_stdout": "0",
+                    "points": 1
+                },
+                {
+                    "stdin": "red\ntax\n6\nred\nrex\ntex\ntax\ntad\nrad\n",
+                    "expected_stdout": "4",
+                    "points": 1
+                },
+                {
+                    "stdin": "aa\nbb\n4\naa\nab\nbb\nba\n",
+                    "expected_stdout": "3",
+                    "points": 1
+                },
+                {
+                    "stdin": "abc\nabc\n1\nabc\n",
+                    "expected_stdout": "1",
+                    "points": 1
+                }
+            ],
+            "starter_code": "import java.util.*;\n\nclass Solution {\n    public int ladderLength(String beginWord, String endWord, List<String> wordList) {\n        // TODO\n        return 0;\n    }\n}\n",
+            "runner_source": "import java.io.*;\nimport java.util.*;\n\npublic class Runner {\n    public static void main(String[] args) throws Exception {\n        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));\n        String begin = br.readLine();\n        String end = br.readLine();\n        String nLine = br.readLine();\n        if (begin == null) begin = \"\";\n        if (end == null) end = \"\";\n        int n = nLine == null || nLine.trim().isEmpty() ? 0 : Integer.parseInt(nLine.trim());\n\n        List<String> words = new ArrayList<>();\n        for (int i = 0; i < n; i++) {\n            String w = br.readLine();\n            if (w == null) w = \"\";\n            words.add(w);\n        }\n\n        Solution sol = new Solution();\n        System.out.print(sol.ladderLength(begin, end, words));\n    }\n}\n"
+        },
+        {
+            "id": 29,
+            "slug": "longest_valid_parentheses",
+            "title": "Longest Valid Parentheses",
+            "topic_key": "stack_queue",
+            "topic_label": "Stack + Queue",
+            "difficulty": "hard",
+            "time_limit_ms": 2000,
+            "memory_limit_mb": 256,
+            "statement_md": "Given a string `s` containing only `(` and `)`, return the length of the longest valid (well-formed) parentheses substring.\n\n**Input format**\n- Line 1: `s`\n\n**Output format**\n- Length of the longest valid parentheses substring",
+            "sample_cases": [
+                {
+                    "stdin": ")()())\n",
+                    "expected_stdout": "4",
+                    "points": 1
+                },
+                {
+                    "stdin": "(()\n",
+                    "expected_stdout": "2",
+                    "points": 1
+                },
+                {
+                    "stdin": "\n",
+                    "expected_stdout": "0",
+                    "points": 1
+                }
+            ],
+            "hidden_cases": [
+                {
+                    "stdin": "()(())\n",
+                    "expected_stdout": "6",
+                    "points": 1
+                },
+                {
+                    "stdin": "()(()\n",
+                    "expected_stdout": "2",
+                    "points": 1
+                },
+                {
+                    "stdin": "(((((\n",
+                    "expected_stdout": "0",
+                    "points": 1
+                },
+                {
+                    "stdin": ")))))\n",
+                    "expected_stdout": "0",
+                    "points": 1
+                },
+                {
+                    "stdin": "(()())\n",
+                    "expected_stdout": "6",
+                    "points": 1
+                }
+            ],
+            "starter_code": "import java.util.*;\n\nclass Solution {\n    public int longestValidParentheses(String s) {\n        // TODO\n        return 0;\n    }\n}\n",
+            "runner_source": "import java.io.*;\n\npublic class Runner {\n    public static void main(String[] args) throws Exception {\n        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));\n        String s = br.readLine();\n        if (s == null) {\n            s = \"\";\n        }\n\n        Solution sol = new Solution();\n        System.out.print(sol.longestValidParentheses(s));\n    }\n}\n"
+        },
+        {
+            "id": 30,
+            "slug": "daily_temperatures",
+            "title": "Daily Temperatures",
+            "topic_key": "stack_queue",
+            "topic_label": "Stack + Queue",
+            "difficulty": "medium",
+            "time_limit_ms": 2000,
+            "memory_limit_mb": 256,
+            "statement_md": "Given a list of daily temperatures `temperatures`, return an array `answer` such that `answer[i]` is the number of days you have to wait after the `i`th day to get a warmer temperature.\n\nIf there is no future day for which this is possible, keep `answer[i] = 0`.\n\n**Input format**\n- First line: `n`\n- Second line: `n` space-separated integers\n\n**Output format**\n- `n` integers separated by spaces",
+            "sample_cases": [
+                {
+                    "stdin": "8\n73 74 75 71 69 72 76 73\n",
+                    "expected_stdout": "1 1 4 2 1 1 0 0",
+                    "points": 1
+                },
+                {
+                    "stdin": "1\n30\n",
+                    "expected_stdout": "0",
+                    "points": 1
+                },
+                {
+                    "stdin": "4\n30 40 50 60\n",
+                    "expected_stdout": "1 1 1 0",
+                    "points": 1
+                }
+            ],
+            "hidden_cases": [
+                {
+                    "stdin": "4\n60 50 40 30\n",
+                    "expected_stdout": "0 0 0 0",
+                    "points": 1
+                },
+                {
+                    "stdin": "5\n30 60 90 60 30\n",
+                    "expected_stdout": "1 1 0 0 0",
+                    "points": 1
+                },
+                {
+                    "stdin": "6\n70 70 70 71 70 72\n",
+                    "expected_stdout": "3 2 1 2 1 0",
+                    "points": 1
+                },
+                {
+                    "stdin": "6\n30 31 30 31 30 31\n",
+                    "expected_stdout": "1 0 1 0 1 0",
+                    "points": 1
+                },
+                {
+                    "stdin": "3\n100 90 110\n",
+                    "expected_stdout": "2 1 0",
+                    "points": 1
+                }
+            ],
+            "starter_code": "class Solution {\n    public int[] dailyTemperatures(int[] temperatures) {\n        // TODO\n        return new int[0];\n    }\n}\n",
+            "runner_source": "import java.io.*;\nimport java.util.*;\n\npublic class Runner {\n    private static int[] readIntArray(BufferedReader br, int n) throws IOException {\n        String line = br.readLine();\n        if (line == null) {\n            return new int[0];\n        }\n        StringTokenizer st = new StringTokenizer(line);\n        int[] arr = new int[n];\n        for (int i = 0; i < n; i++) {\n            arr[i] = Integer.parseInt(st.nextToken());\n        }\n        return arr;\n    }\n\n    public static void main(String[] args) throws Exception {\n        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));\n        int n = Integer.parseInt(br.readLine().trim());\n        int[] temps = readIntArray(br, n);\n\n        Solution sol = new Solution();\n        int[] result = sol.dailyTemperatures(temps);\n        if (result == null || result.length != n) {\n            System.out.print(\"invalid\");\n            return;\n        }\n\n        StringBuilder out = new StringBuilder();\n        for (int i = 0; i < result.length; i++) {\n            if (i > 0) out.append(' ');\n            out.append(result[i]);\n        }\n        System.out.print(out.toString());\n    }\n}\n"
+        }
+    ]
+}

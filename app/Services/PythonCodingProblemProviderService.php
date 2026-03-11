@@ -4,7 +4,7 @@ namespace App\Services;
 
 use Illuminate\Support\Arr;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Storage;
 use InvalidArgumentException;
 
 class PythonCodingProblemProviderService
@@ -88,14 +88,15 @@ class PythonCodingProblemProviderService
             return collect($this->problems);
         }
 
-        $path = storage_path('app/datasets/python_coding_problem_bank.json');
+        $disk = (string) config('datasets.disk', 'datasets');
+        $path = (string) config('datasets.paths.coding.python', 'datasets/python_coding_problem_bank.json');
 
-        if (! File::exists($path)) {
+        if (! Storage::disk($disk)->exists($path)) {
             throw new InvalidArgumentException('Python coding dataset file was not found.');
         }
 
         /** @var array{problems:array<int, array<string, mixed>>}|null $payload */
-        $payload = json_decode((string) File::get($path), true);
+        $payload = json_decode((string) Storage::disk($disk)->get($path), true);
 
         if (! is_array($payload) || ! isset($payload['problems']) || ! is_array($payload['problems'])) {
             throw new InvalidArgumentException('Python coding dataset file is invalid.');

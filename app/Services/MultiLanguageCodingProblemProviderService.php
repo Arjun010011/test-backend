@@ -3,7 +3,7 @@
 namespace App\Services;
 
 use Illuminate\Support\Arr;
-use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Storage;
 use InvalidArgumentException;
 
 class MultiLanguageCodingProblemProviderService
@@ -32,8 +32,8 @@ class MultiLanguageCodingProblemProviderService
     {
         $javaSelected = $this->javaBank->generateProblemsFromBlueprint($questionBlueprint);
 
-        $pythonBySlug = $this->indexBySlug(storage_path('app/datasets/python_coding_problem_bank.json'));
-        $javascriptBySlug = $this->indexBySlug(storage_path('app/datasets/javascript_coding_problem_bank.json'));
+        $pythonBySlug = $this->indexBySlug((string) config('datasets.paths.coding.python', 'datasets/python_coding_problem_bank.json'));
+        $javascriptBySlug = $this->indexBySlug((string) config('datasets.paths.coding.javascript', 'datasets/javascript_coding_problem_bank.json'));
 
         return collect($javaSelected)
             ->map(function (array $javaProblem) use ($pythonBySlug, $javascriptBySlug): array {
@@ -78,12 +78,14 @@ class MultiLanguageCodingProblemProviderService
      */
     private function indexBySlug(string $path): array
     {
-        if (! File::exists($path)) {
+        $disk = (string) config('datasets.disk', 'datasets');
+
+        if (! Storage::disk($disk)->exists($path)) {
             return [];
         }
 
         /** @var array{problems:array<int, array<string, mixed>>}|null $payload */
-        $payload = json_decode((string) File::get($path), true);
+        $payload = json_decode((string) Storage::disk($disk)->get($path), true);
 
         if (! is_array($payload) || ! isset($payload['problems']) || ! is_array($payload['problems'])) {
             return [];

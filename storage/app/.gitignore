@@ -1,4 +1,7 @@
 *
+!datasets/
+!datasets/*.json
+!datasets/*.csv
 !private/
 !public/
 !.gitignore
