@@ -415,11 +415,17 @@ class RecruiterService
     /**
      * @param  array<int>  $collectionIds
      */
-    public function globalCandidateUpdate(User $recruiter, User $candidate, string $status, ?string $comment, array $collectionIds): void
-    {
+    public function globalCandidateUpdate(
+        User $recruiter,
+        User $candidate,
+        string $status,
+        ?string $comment,
+        array $collectionIds,
+        ?string $recentActivity,
+    ): void {
         $this->assertCandidateIsVisible($recruiter, $candidate);
 
-        DB::transaction(function () use ($recruiter, $candidate, $status, $comment, $collectionIds): void {
+        DB::transaction(function () use ($recruiter, $candidate, $status, $comment, $collectionIds, $recentActivity): void {
             // Update Candidate Status if changed
             $profile = CandidateProfile::query()->firstOrCreate(
                 ['user_id' => $candidate->id],
@@ -436,6 +442,15 @@ class RecruiterService
                     'from_status' => $fromStatus,
                     'to_status' => $status,
                 ]);
+            }
+
+            if ($recentActivity !== null) {
+                $cleanActivity = trim($recentActivity);
+                $profile->forceFill([
+                    'recent_activity' => $cleanActivity === '' ? null : $cleanActivity,
+                    'recent_activity_updated_at' => now(),
+                    'recent_activity_updated_by' => $recruiter->id,
+                ])->save();
             }
 
             // Add private comment if provided
@@ -582,11 +597,141 @@ class RecruiterService
     protected function visibleCandidatesQuery(User $recruiter): Builder
     {
         return User::query()
+            ->select('users.*')
+            ->distinct('users.id')
             ->where('role', Role::Candidate)
             ->when(
                 ! $recruiter->isSuperAdmin(),
                 fn (Builder $query): Builder => $query->whereHas('candidateProfile', fn (Builder $profileQuery): Builder => $profileQuery->whereNotNull('profile_completed_at')),
             );
+    }
+
+    /**
+     * @return array<string, list<string>>
+     */
+    public function filterOptions(User $recruiter): array
+    {
+        $profileQuery = CandidateProfile::query()
+            ->whereHas('user', fn (Builder $query): Builder => $query->where('role', Role::Candidate))
+            ->when(
+                ! $recruiter->isSuperAdmin(),
+                fn (Builder $query): Builder => $query->whereNotNull('profile_completed_at'),
+            );
+
+        $cities = $profileQuery->clone()
+            ->whereNotNull('city')
+            ->pluck('city')
+            ->filter()
+            ->map(fn ($value): string => trim((string) $value))
+            ->filter()
+            ->unique()
+            ->sort()
+            ->values()
+            ->all();
+
+        $degrees = $profileQuery->clone()
+            ->whereNotNull('degree')
+            ->pluck('degree')
+            ->filter()
+            ->map(fn ($value): string => trim((string) $value))
+            ->filter()
+            ->unique()
+            ->sort()
+            ->values()
+            ->all();
+
+        $majors = $profileQuery->clone()
+            ->whereNotNull('major')
+            ->pluck('major')
+            ->filter()
+            ->map(fn ($value): string => trim((string) $value))
+            ->filter()
+            ->unique()
+            ->sort()
+            ->values()
+            ->all();
+
+        $universities = $profileQuery->clone()
+            ->whereNotNull('university')
+            ->pluck('university')
+            ->filter()
+            ->map(fn ($value): string => trim((string) $value))
+            ->filter()
+            ->unique()
+            ->sort()
+            ->values()
+            ->all();
+
+        $currentCompanies = $profileQuery->clone()
+            ->whereNotNull('current_company')
+            ->pluck('current_company')
+            ->filter()
+            ->map(fn ($value): string => trim((string) $value))
+            ->filter()
+            ->unique()
+            ->sort()
+            ->values()
+            ->all();
+
+        $previousCompanies = $profileQuery->clone()
+            ->whereNotNull('previous_company')
+            ->pluck('previous_company')
+            ->filter()
+            ->map(fn ($value): string => trim((string) $value))
+            ->filter()
+            ->unique()
+            ->sort()
+            ->values()
+            ->all();
+
+        $industries = $this->flattenJsonOptions(
+            $profileQuery->clone()->whereNotNull('industries')->pluck('industries')->all(),
+        );
+
+        $languages = $this->flattenJsonOptions(
+            $profileQuery->clone()->whereNotNull('languages')->pluck('languages')->all(),
+        );
+
+        return [
+            'cities' => $cities,
+            'degrees' => $degrees,
+            'majors' => $majors,
+            'universities' => $universities,
+            'current_companies' => $currentCompanies,
+            'previous_companies' => $previousCompanies,
+            'industries' => $industries,
+            'languages' => $languages,
+        ];
+    }
+
+    /**
+     * @param  list<mixed>  $values
+     * @return list<string>
+     */
+    protected function flattenJsonOptions(array $values): array
+    {
+        $flattened = collect($values)
+            ->flatMap(function ($value): array {
+                if (is_array($value)) {
+                    return $value;
+                }
+
+                if (is_string($value)) {
+                    $decoded = json_decode($value, true);
+
+                    return is_array($decoded) ? $decoded : [];
+                }
+
+                return [];
+            })
+            ->map(fn ($item): string => trim((string) $item))
+            ->filter(fn (string $item): bool => $item !== '')
+            ->unique()
+            ->sort()
+            ->values()
+            ->all();
+
+        return $flattened;
     }
 
     protected function whereJsonArrayContainsInsensitive(

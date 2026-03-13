@@ -711,6 +711,54 @@ it('filters candidates by extended recruiter filters', function () {
         );
 });
 
+it('returns unique filter options for recruiter candidates', function () {
+    $admin = User::factory()->admin()->create();
+
+    $candidateA = User::factory()->candidate()->create();
+    $candidateB = User::factory()->candidate()->create();
+
+    CandidateProfile::factory()->create([
+        'user_id' => $candidateA->id,
+        'profile_completed_at' => now(),
+        'city' => 'Bengaluru',
+        'degree' => 'B.Tech',
+        'major' => 'Computer Science',
+        'university' => 'IIT Bombay',
+        'current_company' => 'Acme Corp',
+        'previous_company' => 'Globex',
+        'industries' => ['FinTech', 'EdTech'],
+        'languages' => ['English', 'Hindi'],
+    ]);
+
+    CandidateProfile::factory()->create([
+        'user_id' => $candidateB->id,
+        'profile_completed_at' => now(),
+        'city' => 'Bengaluru',
+        'degree' => 'B.Tech',
+        'major' => 'Computer Science',
+        'university' => 'IIT Bombay',
+        'current_company' => 'Acme Corp',
+        'previous_company' => 'Globex',
+        'industries' => ['FinTech'],
+        'languages' => ['English'],
+    ]);
+
+    actingAs($admin)
+        ->get(route('recruiter.candidates.index'))
+        ->assertSuccessful()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('recruiter/candidates/index')
+            ->where('filterOptions.cities.0', 'Bengaluru')
+            ->where('filterOptions.degrees.0', 'B.Tech')
+            ->where('filterOptions.majors.0', 'Computer Science')
+            ->where('filterOptions.universities.0', 'IIT Bombay')
+            ->where('filterOptions.current_companies.0', 'Acme Corp')
+            ->where('filterOptions.previous_companies.0', 'Globex')
+            ->where('filterOptions.industries.0', 'EdTech')
+            ->where('filterOptions.languages.0', 'English')
+        );
+});
+
 it('allows recruiters to delete candidates', function () {
     Storage::fake('local');
 
@@ -782,4 +830,29 @@ it('emails candidates in a recruiter collection', function () {
             && $mail->hasBcc($candidate->email)
             && $mail->hasTo($admin->email);
     });
+});
+
+it('updates recent activity notes for a candidate', function () {
+    $admin = User::factory()->admin()->create();
+    $candidate = User::factory()->candidate()->create();
+
+    CandidateProfile::factory()->create([
+        'user_id' => $candidate->id,
+        'profile_completed_at' => now(),
+    ]);
+
+    actingAs($admin)
+        ->put(route('recruiter.candidates.update', $candidate), [
+            'status' => CandidateStatus::New->value,
+            'comment' => null,
+            'collections' => [],
+            'recent_activity' => 'Published a new portfolio case study.',
+        ])
+        ->assertRedirect();
+
+    $this->assertDatabaseHas('candidate_profiles', [
+        'user_id' => $candidate->id,
+        'recent_activity' => 'Published a new portfolio case study.',
+        'recent_activity_updated_by' => $admin->id,
+    ]);
 });

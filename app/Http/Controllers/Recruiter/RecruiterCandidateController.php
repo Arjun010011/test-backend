@@ -68,6 +68,7 @@ class RecruiterCandidateController extends Controller
         ];
 
         $candidates = $recruiterService->queryCandidates($user, $filters);
+        $filterOptions = $recruiterService->filterOptions($user);
 
         $collections = RecruiterCollection::query()
             ->when(! $user->isSuperAdmin(), fn (Builder $query): Builder => $query->where('recruiter_id', $user->id))
@@ -82,6 +83,7 @@ class RecruiterCandidateController extends Controller
             'filters' => $filters,
             'collections' => RecruiterCollectionResource::collection($collections),
             'statuses' => $statusCatalog->options()->values(),
+            'filterOptions' => $filterOptions,
             'status' => $request->session()->get('status'),
         ]);
     }
@@ -173,6 +175,7 @@ class RecruiterCandidateController extends Controller
             $request->validated('status'),
             $request->validated('comment'),
             $request->validated('collections') ?? [],
+            $request->validated('recent_activity'),
         );
 
         return back()->with('status', 'candidate-updated');

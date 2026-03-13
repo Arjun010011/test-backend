@@ -26,6 +26,7 @@ class GlobalUpdateCandidateRequest extends FormRequest
             'comment' => ['nullable', 'string', 'max:5000'],
             'collections' => ['nullable', 'array'],
             'collections.*' => ['integer', 'exists:recruiter_collections,id'],
+            'recent_activity' => ['nullable', 'string', 'max:5000'],
         ];
     }
 }

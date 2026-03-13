@@ -53,6 +53,9 @@ class CandidateProfile extends Model
         'annual_salary_lpa',
         'languages',
         'english_fluency',
+        'recent_activity',
+        'recent_activity_updated_at',
+        'recent_activity_updated_by',
         'profile_completed_at',
     ];
 
@@ -75,6 +78,9 @@ class CandidateProfile extends Model
             'annual_salary_lpa' => 'decimal:2',
             'languages' => 'array',
             'english_fluency' => 'string',
+            'recent_activity' => 'string',
+            'recent_activity_updated_at' => 'datetime',
+            'recent_activity_updated_by' => 'integer',
             'profile_completed_at' => 'datetime',
         ];
     }

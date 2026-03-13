@@ -33,6 +33,8 @@ type Candidate = {
     achievements?: string | null;
     hackathons_experience?: string | null;
     projects_description?: string | null;
+    recent_activity?: string | null;
+    recent_activity_updated_at?: string | null;
     profile_photo_url?: string | null;
     education?: {
         is_currently_studying: boolean;
@@ -77,6 +79,7 @@ export default function RecruiterCandidateShow({ candidate, comments, collection
         status: candidate.status,
         comment: '',
         collections: (candidate.collections || []).map((c) => c.id),
+        recent_activity: candidate.recent_activity ?? '',
     });
 
     const [commentOpen, setCommentOpen] = useState(false);
@@ -92,6 +95,9 @@ export default function RecruiterCandidateShow({ candidate, comments, collection
         .join('')
         .slice(0, 2)
         .toUpperCase();
+    const recentActivityUpdatedAt = candidate.recent_activity_updated_at
+        ? new Date(candidate.recent_activity_updated_at).toLocaleString()
+        : null;
 
     const toggleCollection = (collectionId: number) => {
         if (data.collections.includes(collectionId)) {
@@ -277,6 +283,24 @@ export default function RecruiterCandidateShow({ candidate, comments, collection
                                 Download resume
                             </a>
                         )}
+                    </div>
+
+                    <div className="rounded-2xl border border-border/70 bg-card/80 p-5 shadow-sm backdrop-blur">
+                        <div className="flex items-center justify-between gap-2">
+                            <div className="text-sm font-semibold">Recent activity notes</div>
+                            {recentActivityUpdatedAt && (
+                                <span className="text-xs text-muted-foreground">
+                                    Updated {recentActivityUpdatedAt}
+                                </span>
+                            )}
+                        </div>
+                        <textarea
+                            value={data.recent_activity}
+                            onChange={(event) => setData('recent_activity', event.target.value)}
+                            rows={5}
+                            className="mt-3 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
+                            placeholder="Add any recent updates you found (portfolio, awards, new role, posts)."
+                        />
                     </div>
 
                     <div className="rounded-2xl border border-border/70 bg-card/80 p-5 shadow-sm backdrop-blur">

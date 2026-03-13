@@ -40,6 +40,8 @@ class RecruiterCandidateResource extends JsonResource
             'projects_description' => $profile?->projects_description,
             'profile_photo_url' => $profile?->profilePhotoUrl(),
             'education' => $education,
+            'recent_activity' => $profile?->recent_activity,
+            'recent_activity_updated_at' => $profile?->recent_activity_updated_at?->toDateTimeString(),
             'skills' => $skills,
             'status' => $status['value'],
             'status_label' => $status['label'],

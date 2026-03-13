@@ -69,6 +69,16 @@ type Props = {
         languages?: string[] | null;
         english_fluency?: string | null;
     };
+    filterOptions: {
+        cities: string[];
+        degrees: string[];
+        majors: string[];
+        universities: string[];
+        current_companies: string[];
+        previous_companies: string[];
+        industries: string[];
+        languages: string[];
+    };
     statuses: StatusOption[];
     collections: { data: CollectionOption[] };
 };
@@ -93,7 +103,7 @@ function FilterSection({ title, children, defaultOpen = true }: FilterSectionPro
     );
 }
 
-export default function RecruiterCandidatesIndex({ candidates, filters, statuses, collections }: Props) {
+export default function RecruiterCandidatesIndex({ candidates, filters, statuses, collections, filterOptions }: Props) {
     const [search, setSearch] = useState(filters.search ?? '');
     const [status, setStatus] = useState(filters.status ?? '');
     const [starred, setStarred] = useState(filters.starred ?? false);
@@ -320,11 +330,26 @@ export default function RecruiterCandidatesIndex({ candidates, filters, statuses
             </FilterSection>
 
             <FilterSection title="Current City / Area">
-                <Input
-                    value={city}
-                    onChange={(event) => setCity(event.target.value)}
-                    placeholder="Bengaluru"
-                />
+                {filterOptions.cities.length > 0 ? (
+                    <select
+                        value={city}
+                        onChange={(event) => setCity(event.target.value)}
+                        className="h-10 w-full rounded-lg border border-input bg-background px-3 text-sm"
+                    >
+                        <option value="">All cities</option>
+                        {filterOptions.cities.map((option) => (
+                            <option key={option} value={option}>
+                                {option}
+                            </option>
+                        ))}
+                    </select>
+                ) : (
+                    <Input
+                        value={city}
+                        onChange={(event) => setCity(event.target.value)}
+                        placeholder="Bengaluru"
+                    />
+                )}
             </FilterSection>
 
             <FilterSection title="Exclude Keywords">
@@ -357,25 +382,70 @@ export default function RecruiterCandidatesIndex({ candidates, filters, statuses
             </FilterSection>
 
             <FilterSection title="Industries">
-                <Input
-                    value={industries}
-                    onChange={(event) => setIndustries(event.target.value)}
-                    placeholder="FinTech, SaaS"
-                />
+                {filterOptions.industries.length > 0 ? (
+                    <select
+                        value={industries}
+                        onChange={(event) => setIndustries(event.target.value)}
+                        className="h-10 w-full rounded-lg border border-input bg-background px-3 text-sm"
+                    >
+                        <option value="">All industries</option>
+                        {filterOptions.industries.map((option) => (
+                            <option key={option} value={option}>
+                                {option}
+                            </option>
+                        ))}
+                    </select>
+                ) : (
+                    <Input
+                        value={industries}
+                        onChange={(event) => setIndustries(event.target.value)}
+                        placeholder="FinTech, SaaS"
+                    />
+                )}
             </FilterSection>
 
             <FilterSection title="Current / Previous Company">
                 <div className="grid gap-3">
-                    <Input
-                        value={currentCompany}
-                        onChange={(event) => setCurrentCompany(event.target.value)}
-                        placeholder="Current company"
-                    />
-                    <Input
-                        value={previousCompany}
-                        onChange={(event) => setPreviousCompany(event.target.value)}
-                        placeholder="Previous company"
-                    />
+                    {filterOptions.current_companies.length > 0 ? (
+                        <select
+                            value={currentCompany}
+                            onChange={(event) => setCurrentCompany(event.target.value)}
+                            className="h-10 w-full rounded-lg border border-input bg-background px-3 text-sm"
+                        >
+                            <option value="">All current companies</option>
+                            {filterOptions.current_companies.map((option) => (
+                                <option key={option} value={option}>
+                                    {option}
+                                </option>
+                            ))}
+                        </select>
+                    ) : (
+                        <Input
+                            value={currentCompany}
+                            onChange={(event) => setCurrentCompany(event.target.value)}
+                            placeholder="Current company"
+                        />
+                    )}
+                    {filterOptions.previous_companies.length > 0 ? (
+                        <select
+                            value={previousCompany}
+                            onChange={(event) => setPreviousCompany(event.target.value)}
+                            className="h-10 w-full rounded-lg border border-input bg-background px-3 text-sm"
+                        >
+                            <option value="">All previous companies</option>
+                            {filterOptions.previous_companies.map((option) => (
+                                <option key={option} value={option}>
+                                    {option}
+                                </option>
+                            ))}
+                        </select>
+                    ) : (
+                        <Input
+                            value={previousCompany}
+                            onChange={(event) => setPreviousCompany(event.target.value)}
+                            placeholder="Previous company"
+                        />
+                    )}
                 </div>
             </FilterSection>
 
@@ -402,25 +472,70 @@ export default function RecruiterCandidatesIndex({ candidates, filters, statuses
 
             <FilterSection title="Degrees / Specialization">
                 <div className="grid gap-3">
-                    <Input
-                        value={degree}
-                        onChange={(event) => setDegree(event.target.value)}
-                        placeholder="Degree"
-                    />
-                    <Input
-                        value={major}
-                        onChange={(event) => setMajor(event.target.value)}
-                        placeholder="Specialization"
-                    />
+                    {filterOptions.degrees.length > 0 ? (
+                        <select
+                            value={degree}
+                            onChange={(event) => setDegree(event.target.value)}
+                            className="h-10 w-full rounded-lg border border-input bg-background px-3 text-sm"
+                        >
+                            <option value="">All degrees</option>
+                            {filterOptions.degrees.map((option) => (
+                                <option key={option} value={option}>
+                                    {option}
+                                </option>
+                            ))}
+                        </select>
+                    ) : (
+                        <Input
+                            value={degree}
+                            onChange={(event) => setDegree(event.target.value)}
+                            placeholder="Degree"
+                        />
+                    )}
+                    {filterOptions.majors.length > 0 ? (
+                        <select
+                            value={major}
+                            onChange={(event) => setMajor(event.target.value)}
+                            className="h-10 w-full rounded-lg border border-input bg-background px-3 text-sm"
+                        >
+                            <option value="">All specializations</option>
+                            {filterOptions.majors.map((option) => (
+                                <option key={option} value={option}>
+                                    {option}
+                                </option>
+                            ))}
+                        </select>
+                    ) : (
+                        <Input
+                            value={major}
+                            onChange={(event) => setMajor(event.target.value)}
+                            placeholder="Specialization"
+                        />
+                    )}
                 </div>
             </FilterSection>
 
             <FilterSection title="Education">
-                <Input
-                    value={university}
-                    onChange={(event) => setUniversity(event.target.value)}
-                    placeholder="College / University"
-                />
+                {filterOptions.universities.length > 0 ? (
+                    <select
+                        value={university}
+                        onChange={(event) => setUniversity(event.target.value)}
+                        className="h-10 w-full rounded-lg border border-input bg-background px-3 text-sm"
+                    >
+                        <option value="">All universities</option>
+                        {filterOptions.universities.map((option) => (
+                            <option key={option} value={option}>
+                                {option}
+                            </option>
+                        ))}
+                    </select>
+                ) : (
+                    <Input
+                        value={university}
+                        onChange={(event) => setUniversity(event.target.value)}
+                        placeholder="College / University"
+                    />
+                )}
             </FilterSection>
 
             <FilterSection title="Gender">
@@ -459,11 +574,26 @@ export default function RecruiterCandidatesIndex({ candidates, filters, statuses
             </FilterSection>
 
             <FilterSection title="Languages">
-                <Input
-                    value={languages}
-                    onChange={(event) => setLanguages(event.target.value)}
-                    placeholder="English, Hindi"
-                />
+                {filterOptions.languages.length > 0 ? (
+                    <select
+                        value={languages}
+                        onChange={(event) => setLanguages(event.target.value)}
+                        className="h-10 w-full rounded-lg border border-input bg-background px-3 text-sm"
+                    >
+                        <option value="">All languages</option>
+                        {filterOptions.languages.map((option) => (
+                            <option key={option} value={option}>
+                                {option}
+                            </option>
+                        ))}
+                    </select>
+                ) : (
+                    <Input
+                        value={languages}
+                        onChange={(event) => setLanguages(event.target.value)}
+                        placeholder="English, Hindi"
+                    />
+                )}
             </FilterSection>
 
             <FilterSection title="English Fluency Level">
