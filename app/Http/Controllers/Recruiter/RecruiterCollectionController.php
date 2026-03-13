@@ -2,18 +2,22 @@
 
 namespace App\Http\Controllers\Recruiter;
 
+use App\Enums\Role;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Recruiter\CandidateIndexRequest;
+use App\Http\Requests\Recruiter\RecruiterCollectionEmailRequest;
 use App\Http\Requests\Recruiter\StoreRecruiterCollectionRequest;
 use App\Http\Requests\Recruiter\UpdateRecruiterCollectionRequest;
 use App\Http\Resources\Recruiter\RecruiterCandidateResource;
 use App\Http\Resources\Recruiter\RecruiterCollectionResource;
+use App\Mail\RecruiterCollectionMessage;
 use App\Models\RecruiterCollection;
 use App\Services\RecruiterService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Mail;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -117,5 +121,36 @@ class RecruiterCollectionController extends Controller
         $recruiterService->deleteCollection($user, $collection);
 
         return to_route('recruiter.collections.index')->with('status', 'collection-deleted');
+    }
+
+    public function email(RecruiterCollectionEmailRequest $request, RecruiterCollection $collection): RedirectResponse
+    {
+        $user = $request->user();
+
+        abort_unless($user !== null, 403);
+        Gate::authorize('view', $collection);
+
+        $emails = $collection->candidates()
+            ->where('role', Role::Candidate)
+            ->whereNotNull('email')
+            ->pluck('email')
+            ->filter()
+            ->unique()
+            ->values();
+
+        if ($emails->isEmpty()) {
+            return back()->with('status', 'collection-email-empty');
+        }
+
+        Mail::to($user->email)
+            ->bcc($emails->all())
+            ->send(new RecruiterCollectionMessage(
+                $user,
+                $collection,
+                $request->validated('subject'),
+                $request->validated('message'),
+            ));
+
+        return back()->with('status', 'collection-email-sent');
     }
 }

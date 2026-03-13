@@ -67,6 +67,7 @@ Route::middleware(['auth', 'role:admin'])->prefix('recruiter')->name('recruiter.
     Route::put('collections/{collection}', [RecruiterCollectionController::class, 'update'])->name('collections.update');
     Route::delete('collections/{collection}', [RecruiterCollectionController::class, 'destroy'])->name('collections.destroy');
     Route::get('collections/{collection}', [RecruiterCollectionController::class, 'show'])->name('collections.show');
+    Route::post('collections/{collection}/email', [RecruiterCollectionController::class, 'email'])->name('collections.email');
 
     Route::get('companies', [RecruiterCompanyController::class, 'index'])->name('companies.index');
     Route::post('companies', [RecruiterCompanyController::class, 'store'])->name('companies.store');

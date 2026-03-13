@@ -65,6 +65,17 @@ class OnboardingRequest extends FormRequest
             'achievements' => ['nullable', 'string', 'max:3000'],
             'hackathons_experience' => ['nullable', 'string', 'max:3000'],
             'projects_description' => ['nullable', 'string', 'max:4000'],
+            'gender' => ['nullable', 'string', Rule::in(['male', 'female', 'non_binary', 'prefer_not_to_say'])],
+            'date_of_birth' => ['nullable', 'date', 'before:today'],
+            'experience_years' => ['nullable', 'numeric', 'min:0', 'max:50'],
+            'current_company' => ['nullable', 'string', 'max:255'],
+            'previous_company' => ['nullable', 'string', 'max:255'],
+            'industries' => ['nullable', 'array', 'max:20'],
+            'industries.*' => ['nullable', 'string', 'max:120'],
+            'annual_salary_lpa' => ['nullable', 'numeric', 'min:0', 'max:1000'],
+            'languages' => ['nullable', 'array', 'max:20'],
+            'languages.*' => ['nullable', 'string', 'max:80'],
+            'english_fluency' => ['nullable', 'string', Rule::in(['basic', 'conversational', 'fluent', 'native'])],
             'skills' => ['nullable', 'array', 'max:100'],
             'skills.*' => ['nullable', 'string', 'max:120'],
             'resume' => [
@@ -104,6 +115,8 @@ class OnboardingRequest extends FormRequest
             'achievements.max' => 'Achievements must not exceed 3000 characters.',
             'hackathons_experience.max' => 'Hackathons experience must not exceed 3000 characters.',
             'projects_description.max' => 'Projects description must not exceed 4000 characters.',
+            'date_of_birth.before' => 'Date of birth must be in the past.',
+            'experience_years.max' => 'Experience must be 50 years or less.',
             'resume.required' => 'Please upload your resume to complete your profile.',
             'resume.max' => 'Resume file size must not exceed 5MB.',
             'resume.mimes' => 'Resume must be a PDF, DOC, DOCX, or TXT file.',
@@ -127,6 +140,10 @@ class OnboardingRequest extends FormRequest
             'portfolio_url' => 'portfolio URL',
             'hackathons_experience' => 'hackathons experience',
             'projects_description' => 'projects description',
+            'date_of_birth' => 'date of birth',
+            'experience_years' => 'years of experience',
+            'annual_salary_lpa' => 'annual salary (LPA)',
+            'english_fluency' => 'English fluency level',
         ];
     }
 
@@ -146,6 +163,24 @@ class OnboardingRequest extends FormRequest
                     ->values()
                     ->all(),
             ]);
+        }
+
+        foreach (['industries', 'languages'] as $field) {
+            $value = $this->input($field);
+
+            if (is_string($value)) {
+                $value = preg_split('/[,\n;]+/u', $value) ?: [];
+            }
+
+            if (is_array($value)) {
+                $this->merge([
+                    $field => collect($value)
+                        ->map(fn ($item): string => trim((string) $item))
+                        ->filter(fn (string $item): bool => $item !== '')
+                        ->values()
+                        ->all(),
+                ]);
+            }
         }
     }
 

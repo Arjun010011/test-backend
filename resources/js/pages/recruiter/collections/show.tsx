@@ -13,7 +13,7 @@ import {
 } from '@/components/ui/dialog';
 import RecruiterLayout from '@/layouts/recruiter-layout';
 import { show as showCandidate } from '@/routes/recruiter/candidates';
-import { show, store } from '@/routes/recruiter/collections';
+import { email as sendCollectionEmail, show, store } from '@/routes/recruiter/collections';
 
 type CollectionItem = {
     id: number;
@@ -74,6 +74,10 @@ export default function RecruiterCollectionShow({ collection, children, candidat
         name: '',
         description: '',
         parent_id: String(collection.id),
+    });
+    const emailForm = useForm({
+        subject: '',
+        message: '',
     });
 
     const submitSearch = () => {
@@ -238,6 +242,62 @@ export default function RecruiterCollectionShow({ collection, children, candidat
                         No sub-collections yet.
                     </div>
                 )}
+            </section>
+
+            <section className="mb-6 rounded-2xl border border-border/70 bg-card/80 p-5 shadow-sm">
+                <div className="flex flex-col gap-2">
+                    <div className="text-sm font-semibold text-foreground">Email this collection</div>
+                    <p className="text-xs text-muted-foreground">
+                        Sends to {collection.candidates_count} candidates in this collection.
+                    </p>
+                </div>
+                <form
+                    className="mt-4 grid gap-3"
+                    onSubmit={(event) => {
+                        event.preventDefault();
+                        emailForm.post(sendCollectionEmail(collection.id).url, {
+                            preserveScroll: true,
+                            onSuccess: () => emailForm.reset(),
+                        });
+                    }}
+                >
+                    <div className="grid gap-2">
+                        <label className="text-sm font-medium text-foreground" htmlFor="collection_email_subject">
+                            Subject
+                        </label>
+                        <input
+                            id="collection_email_subject"
+                            value={emailForm.data.subject}
+                            onChange={(event) => emailForm.setData('subject', event.target.value)}
+                            className="h-10 w-full rounded-lg border border-input bg-background px-3 text-sm"
+                            placeholder="Hiring update"
+                        />
+                        {emailForm.errors.subject && (
+                            <p className="text-xs text-red-600">{emailForm.errors.subject}</p>
+                        )}
+                    </div>
+                    <div className="grid gap-2">
+                        <label className="text-sm font-medium text-foreground" htmlFor="collection_email_message">
+                            Message
+                        </label>
+                        <textarea
+                            id="collection_email_message"
+                            value={emailForm.data.message}
+                            onChange={(event) => emailForm.setData('message', event.target.value)}
+                            rows={5}
+                            className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
+                            placeholder="Share the role details, next steps, or interview information."
+                        />
+                        {emailForm.errors.message && (
+                            <p className="text-xs text-red-600">{emailForm.errors.message}</p>
+                        )}
+                    </div>
+                    <div className="flex items-center justify-end">
+                        <Button type="submit" disabled={emailForm.processing}>
+                            {emailForm.processing ? 'Sending...' : 'Send Email'}
+                        </Button>
+                    </div>
+                </form>
             </section>
 
             <section className="rounded-2xl border border-border/70 bg-card/80 p-5 shadow-sm">

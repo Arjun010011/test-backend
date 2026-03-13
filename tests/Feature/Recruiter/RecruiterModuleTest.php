@@ -1,12 +1,14 @@
 <?php
 
 use App\Enums\CandidateStatus;
+use App\Mail\RecruiterCollectionMessage;
 use App\Models\CandidateProfile;
 use App\Models\CandidateWorkflowStatus;
 use App\Models\Company;
 use App\Models\CompanyApplication;
 use App\Models\RecruiterCollection;
 use App\Models\User;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Testing\AssertableInertia as Assert;
 
@@ -621,6 +623,94 @@ it('filters only passed out candidates', function () {
         );
 });
 
+it('filters candidates by extended recruiter filters', function () {
+    $admin = User::factory()->admin()->create();
+
+    $match = User::factory()->candidate()->create([
+        'name' => 'Filter Match',
+    ]);
+
+    CandidateProfile::factory()->create([
+        'user_id' => $match->id,
+        'profile_completed_at' => now(),
+        'experience_years' => 5,
+        'city' => 'Bengaluru',
+        'industries' => ['FinTech'],
+        'current_company' => 'Acme Corp',
+        'previous_company' => 'Globex',
+        'annual_salary_lpa' => 12,
+        'degree' => 'B.Tech',
+        'major' => 'Computer Science',
+        'university' => 'IIT Bombay',
+        'gender' => 'female',
+        'date_of_birth' => now()->subYears(26)->toDateString(),
+        'languages' => ['English', 'Hindi'],
+        'english_fluency' => 'fluent',
+    ]);
+
+    $match->resumes()->create([
+        'file_path' => "resumes/{$match->id}/resume.txt",
+        'original_name' => 'resume.txt',
+        'mime_type' => 'text/plain',
+        'file_size' => 14,
+        'is_primary' => true,
+        'extracted_skills' => ['FinTech'],
+        'raw_text' => 'FinTech specialist',
+    ]);
+
+    $nonMatch = User::factory()->candidate()->create([
+        'name' => 'Filter Miss',
+    ]);
+
+    CandidateProfile::factory()->create([
+        'user_id' => $nonMatch->id,
+        'profile_completed_at' => now(),
+        'experience_years' => 1,
+        'city' => 'Mumbai',
+        'industries' => ['Retail'],
+        'current_company' => 'Retail Corp',
+        'annual_salary_lpa' => 3,
+        'degree' => 'BCA',
+        'major' => 'Information Technology',
+        'university' => 'Local College',
+        'gender' => 'male',
+        'date_of_birth' => now()->subYears(21)->toDateString(),
+        'languages' => ['Hindi'],
+        'english_fluency' => 'basic',
+    ]);
+
+    actingAs($admin)
+        ->get(route('recruiter.candidates.index', [
+            'has_resume' => 1,
+            'include_keywords' => 'FinTech',
+            'city' => 'Bengaluru',
+            'experience_min' => 3,
+            'experience_max' => 6,
+            'industries' => ['FinTech'],
+            'current_company' => 'Acme',
+            'salary_min' => 10,
+            'salary_max' => 20,
+            'degree' => 'B.Tech',
+            'major' => 'Computer Science',
+            'university' => 'IIT',
+            'gender' => 'female',
+            'age_min' => 24,
+            'age_max' => 30,
+            'languages' => ['English'],
+            'english_fluency' => 'fluent',
+        ]))
+        ->assertSuccessful()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('recruiter/candidates/index')
+            ->has('candidates.data', 1)
+            ->where('candidates.data.0.name', 'Filter Match')
+            ->where('filters.has_resume', true)
+            ->where('filters.city', 'Bengaluru')
+            ->where('filters.industries.0', 'FinTech')
+            ->where('filters.languages.0', 'English')
+        );
+});
+
 it('allows recruiters to delete candidates', function () {
     Storage::fake('local');
 
@@ -653,4 +743,43 @@ it('allows recruiters to delete candidates', function () {
     ]);
 
     Storage::disk('local')->assertMissing("resumes/{$candidate->id}/resume.txt");
+});
+
+it('emails candidates in a recruiter collection', function () {
+    Mail::fake();
+
+    $admin = User::factory()->admin()->create();
+    $collection = RecruiterCollection::factory()->create([
+        'recruiter_id' => $admin->id,
+        'name' => 'Backend Candidates',
+    ]);
+
+    $candidate = User::factory()->candidate()->create([
+        'email' => 'candidate@example.com',
+    ]);
+
+    CandidateProfile::factory()->create([
+        'user_id' => $candidate->id,
+        'profile_completed_at' => now(),
+    ]);
+
+    $collection->candidates()->attach($candidate->id, [
+        'added_by_recruiter_id' => $admin->id,
+    ]);
+
+    actingAs($admin)
+        ->post(route('recruiter.collections.email', $collection), [
+            'subject' => 'Interview Update',
+            'message' => 'Please confirm your availability.',
+        ])
+        ->assertRedirect();
+
+    Mail::assertSent(RecruiterCollectionMessage::class, function (RecruiterCollectionMessage $mail) use ($admin, $collection, $candidate) {
+        $mail->assertHasSubject('Interview Update');
+        $mail->assertHasReplyTo($admin->email);
+
+        return $mail->collection->is($collection)
+            && $mail->hasBcc($candidate->email)
+            && $mail->hasTo($admin->email);
+    });
 });

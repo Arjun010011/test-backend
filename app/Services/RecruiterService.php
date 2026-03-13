@@ -51,8 +51,170 @@ class RecruiterService
                 fn (Builder $builder): Builder => $builder->whereHas('candidateProfile', fn (Builder $profileQuery): Builder => $this->whereCandidatePassedOut($profileQuery)),
             )
             ->when(
+                isset($filters['has_resume']) && (bool) $filters['has_resume'] === true,
+                fn (Builder $builder): Builder => $builder->whereHas('resumes', fn (Builder $resumeQuery): Builder => $resumeQuery->where('is_primary', true)),
+            )
+            ->when(
                 filled($filters['status'] ?? null),
                 fn (Builder $builder): Builder => $builder->whereHas('candidateProfile', fn (Builder $profileQuery): Builder => $profileQuery->where('candidate_status', $filters['status'])),
+            )
+            ->when(
+                filled($filters['include_keywords'] ?? null),
+                function (Builder $builder) use ($filters): void {
+                    $keywords = $this->normalizeKeywords($filters['include_keywords']);
+
+                    foreach ($keywords as $keyword) {
+                        $builder->where(function (Builder $keywordQuery) use ($keyword): void {
+                            $this->applyKeywordMatch($keywordQuery, $keyword);
+                        });
+                    }
+                },
+            )
+            ->when(
+                filled($filters['exclude_keywords'] ?? null),
+                function (Builder $builder) use ($filters): void {
+                    $keywords = $this->normalizeKeywords($filters['exclude_keywords']);
+
+                    foreach ($keywords as $keyword) {
+                        $builder->whereNot(function (Builder $keywordQuery) use ($keyword): void {
+                            $this->applyKeywordMatch($keywordQuery, $keyword);
+                        });
+                    }
+                },
+            )
+            ->when(
+                filled($filters['city'] ?? null),
+                fn (Builder $builder): Builder => $builder->whereHas('candidateProfile', fn (Builder $profileQuery): Builder => $profileQuery->where('city', 'like', '%'.trim((string) $filters['city']).'%')),
+            )
+            ->when(
+                filled($filters['experience_min'] ?? null) || filled($filters['experience_max'] ?? null),
+                function (Builder $builder) use ($filters): void {
+                    $builder->whereHas('candidateProfile', function (Builder $profileQuery) use ($filters): void {
+                        if (filled($filters['experience_min'] ?? null)) {
+                            $profileQuery->where('experience_years', '>=', (float) $filters['experience_min']);
+                        }
+
+                        if (filled($filters['experience_max'] ?? null)) {
+                            $profileQuery->where('experience_years', '<=', (float) $filters['experience_max']);
+                        }
+                    });
+                },
+            )
+            ->when(
+                filled($filters['industries'] ?? null),
+                function (Builder $builder) use ($filters): void {
+                    $industries = collect(is_array($filters['industries']) ? $filters['industries'] : [])
+                        ->map(fn ($value): string => trim((string) $value))
+                        ->filter(fn (string $value): bool => $value !== '')
+                        ->values()
+                        ->all();
+
+                    if ($industries === []) {
+                        return;
+                    }
+
+                    $builder->whereHas('candidateProfile', function (Builder $profileQuery) use ($industries): void {
+                        $profileQuery->where(function (Builder $where) use ($industries): void {
+                            foreach ($industries as $index => $industry) {
+                                $boolean = $index === 0 ? 'and' : 'or';
+                                $this->whereJsonArrayContainsInsensitive(
+                                    $where,
+                                    'industries',
+                                    mb_strtolower($industry),
+                                    $boolean,
+                                );
+                            }
+                        });
+                    });
+                },
+            )
+            ->when(
+                filled($filters['current_company'] ?? null),
+                fn (Builder $builder): Builder => $builder->whereHas('candidateProfile', fn (Builder $profileQuery): Builder => $profileQuery->where('current_company', 'like', '%'.trim((string) $filters['current_company']).'%')),
+            )
+            ->when(
+                filled($filters['previous_company'] ?? null),
+                fn (Builder $builder): Builder => $builder->whereHas('candidateProfile', fn (Builder $profileQuery): Builder => $profileQuery->where('previous_company', 'like', '%'.trim((string) $filters['previous_company']).'%')),
+            )
+            ->when(
+                filled($filters['salary_min'] ?? null) || filled($filters['salary_max'] ?? null),
+                function (Builder $builder) use ($filters): void {
+                    $builder->whereHas('candidateProfile', function (Builder $profileQuery) use ($filters): void {
+                        if (filled($filters['salary_min'] ?? null)) {
+                            $profileQuery->where('annual_salary_lpa', '>=', (float) $filters['salary_min']);
+                        }
+
+                        if (filled($filters['salary_max'] ?? null)) {
+                            $profileQuery->where('annual_salary_lpa', '<=', (float) $filters['salary_max']);
+                        }
+                    });
+                },
+            )
+            ->when(
+                filled($filters['degree'] ?? null),
+                fn (Builder $builder): Builder => $builder->whereHas('candidateProfile', fn (Builder $profileQuery): Builder => $profileQuery->where('degree', 'like', '%'.trim((string) $filters['degree']).'%')),
+            )
+            ->when(
+                filled($filters['major'] ?? null),
+                fn (Builder $builder): Builder => $builder->whereHas('candidateProfile', fn (Builder $profileQuery): Builder => $profileQuery->where('major', 'like', '%'.trim((string) $filters['major']).'%')),
+            )
+            ->when(
+                filled($filters['university'] ?? null),
+                fn (Builder $builder): Builder => $builder->whereHas('candidateProfile', fn (Builder $profileQuery): Builder => $profileQuery->where('university', 'like', '%'.trim((string) $filters['university']).'%')),
+            )
+            ->when(
+                filled($filters['gender'] ?? null),
+                fn (Builder $builder): Builder => $builder->whereHas('candidateProfile', fn (Builder $profileQuery): Builder => $profileQuery->where('gender', $filters['gender'])),
+            )
+            ->when(
+                filled($filters['age_min'] ?? null) || filled($filters['age_max'] ?? null),
+                function (Builder $builder) use ($filters): void {
+                    $builder->whereHas('candidateProfile', function (Builder $profileQuery) use ($filters): void {
+                        $today = now()->startOfDay();
+
+                        if (filled($filters['age_min'] ?? null)) {
+                            $maxDob = $today->copy()->subYears((int) $filters['age_min'])->endOfDay();
+                            $profileQuery->whereDate('date_of_birth', '<=', $maxDob->toDateString());
+                        }
+
+                        if (filled($filters['age_max'] ?? null)) {
+                            $minDob = $today->copy()->subYears((int) $filters['age_max'])->startOfDay();
+                            $profileQuery->whereDate('date_of_birth', '>=', $minDob->toDateString());
+                        }
+                    });
+                },
+            )
+            ->when(
+                filled($filters['languages'] ?? null),
+                function (Builder $builder) use ($filters): void {
+                    $languages = collect(is_array($filters['languages']) ? $filters['languages'] : [])
+                        ->map(fn ($value): string => trim((string) $value))
+                        ->filter(fn (string $value): bool => $value !== '')
+                        ->values()
+                        ->all();
+
+                    if ($languages === []) {
+                        return;
+                    }
+
+                    $builder->whereHas('candidateProfile', function (Builder $profileQuery) use ($languages): void {
+                        $profileQuery->where(function (Builder $where) use ($languages): void {
+                            foreach ($languages as $index => $language) {
+                                $boolean = $index === 0 ? 'and' : 'or';
+                                $this->whereJsonArrayContainsInsensitive(
+                                    $where,
+                                    'languages',
+                                    mb_strtolower($language),
+                                    $boolean,
+                                );
+                            }
+                        });
+                    });
+                },
+            )
+            ->when(
+                filled($filters['english_fluency'] ?? null),
+                fn (Builder $builder): Builder => $builder->whereHas('candidateProfile', fn (Builder $profileQuery): Builder => $profileQuery->where('english_fluency', $filters['english_fluency'])),
             )
             ->when(
                 $effectiveCollectionIds !== [],
@@ -427,24 +589,78 @@ class RecruiterService
             );
     }
 
-    protected function whereJsonArrayContainsInsensitive(Builder $query, string $column, string $normalizedNeedle): Builder
-    {
+    protected function whereJsonArrayContainsInsensitive(
+        Builder $query,
+        string $column,
+        string $normalizedNeedle,
+        string $boolean = 'and',
+    ): Builder {
         $driver = $query->getModel()->getConnection()->getDriverName();
 
         return match ($driver) {
             'mysql', 'mariadb' => $query->whereRaw(
                 "JSON_SEARCH(LOWER(CAST(COALESCE({$column}, JSON_ARRAY()) AS CHAR)), 'one', ?) IS NOT NULL",
                 [$normalizedNeedle],
+                $boolean,
             ),
             'pgsql' => $query->whereRaw(
                 "LOWER(COALESCE({$column}::text, '[]')) LIKE ?",
                 ['%"'.$normalizedNeedle.'"%'],
+                $boolean,
             ),
             default => $query->whereRaw(
                 "LOWER(COALESCE({$column}, '[]')) LIKE ?",
                 ['%"'.$normalizedNeedle.'"%'],
+                $boolean,
             ),
         };
+    }
+
+    /**
+     * @return list<string>
+     */
+    protected function normalizeKeywords(mixed $input): array
+    {
+        $values = is_array($input)
+            ? $input
+            : (is_string($input) ? preg_split('/[,\n;]+/u', $input) : []);
+
+        return collect($values)
+            ->map(fn ($value): string => trim((string) $value))
+            ->filter(fn (string $value): bool => $value !== '')
+            ->values()
+            ->all();
+    }
+
+    protected function applyKeywordMatch(Builder $builder, string $keyword): void
+    {
+        $normalized = mb_strtolower($keyword);
+
+        $builder->where(function (Builder $where) use ($keyword, $normalized): void {
+            $where->where('name', 'like', "%{$keyword}%")
+                ->orWhere('email', 'like', "%{$keyword}%")
+                ->orWhereHas('resumes', function (Builder $resumeQuery) use ($normalized): void {
+                    $this->whereJsonArrayContainsInsensitive($resumeQuery, 'extracted_skills', $normalized)
+                        ->orWhereRaw('LOWER(COALESCE(raw_text, \'\')) LIKE ?', ["%{$normalized}%"]);
+                })
+                ->orWhereHas('candidateProfile', function (Builder $profileQuery) use ($normalized): void {
+                    $this->whereJsonArrayContainsInsensitive($profileQuery, 'skills', $normalized)
+                        ->orWhere('location', 'like', "%{$normalized}%")
+                        ->orWhere('city', 'like', "%{$normalized}%")
+                        ->orWhere('state', 'like', "%{$normalized}%")
+                        ->orWhere('university', 'like', "%{$normalized}%")
+                        ->orWhere('degree', 'like', "%{$normalized}%")
+                        ->orWhere('major', 'like', "%{$normalized}%")
+                        ->orWhere('current_company', 'like', "%{$normalized}%")
+                        ->orWhere('previous_company', 'like', "%{$normalized}%")
+                        ->orWhere('projects_description', 'like', "%{$normalized}%")
+                        ->orWhere('achievements', 'like', "%{$normalized}%")
+                        ->orWhere('hackathons_experience', 'like', "%{$normalized}%");
+
+                    $this->whereJsonArrayContainsInsensitive($profileQuery, 'industries', $normalized, 'or');
+                    $this->whereJsonArrayContainsInsensitive($profileQuery, 'languages', $normalized, 'or');
+                });
+        });
     }
 
     protected function whereCandidatePassedOut(Builder $query): Builder

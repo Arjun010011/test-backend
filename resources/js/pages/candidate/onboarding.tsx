@@ -47,6 +47,15 @@ type CandidateProfile = {
     hackathons_experience: string | null;
     projects_description: string | null;
     skills: string[];
+    gender: string | null;
+    date_of_birth: string | null;
+    experience_years: number | null;
+    current_company: string | null;
+    previous_company: string | null;
+    industries: string[];
+    annual_salary_lpa: number | null;
+    languages: string[];
+    english_fluency: string | null;
 };
 
 type PageProps = {
@@ -142,6 +151,14 @@ export default function CandidateOnboarding() {
     const [skillTags, setSkillTags] =
         useState<Array<{ value: string; valid: boolean }>>(initialSkillTags);
     const [skillInput, setSkillInput] = useState('');
+    const [industryTags, setIndustryTags] = useState<Array<{ value: string }>>(
+        (profile?.industries ?? []).map((value) => ({ value })),
+    );
+    const [industryInput, setIndustryInput] = useState('');
+    const [languageTags, setLanguageTags] = useState<Array<{ value: string }>>(
+        (profile?.languages ?? []).map((value) => ({ value })),
+    );
+    const [languageInput, setLanguageInput] = useState('');
     const [selectedState, setSelectedState] = useState(initialState);
     const [selectedDistrict, setSelectedDistrict] = useState(initialDistrict);
     const [selectedCity, setSelectedCity] = useState(initialCity);
@@ -232,6 +249,40 @@ export default function CandidateOnboarding() {
             },
         ]);
         setSkillInput('');
+    };
+
+    const addSimpleTag = (
+        rawValue: string,
+        tags: Array<{ value: string }>,
+        setTags: (next: Array<{ value: string }> | ((previous: Array<{ value: string }>) => Array<{ value: string }>)) => void,
+        setInput: (value: string) => void,
+    ) => {
+        const trimmed = rawValue.trim();
+
+        if (trimmed === '') {
+            return;
+        }
+
+        const exists = tags.some(
+            (tag) => tag.value.toLowerCase() === trimmed.toLowerCase(),
+        );
+
+        if (exists) {
+            setInput('');
+
+            return;
+        }
+
+        setTags((previous) => [...previous, { value: trimmed }]);
+        setInput('');
+    };
+
+    const addIndustryTag = (rawValue: string) => {
+        addSimpleTag(rawValue, industryTags, setIndustryTags, setIndustryInput);
+    };
+
+    const addLanguageTag = (rawValue: string) => {
+        addSimpleTag(rawValue, languageTags, setLanguageTags, setLanguageInput);
     };
 
     const goToStep = (index: number) => {
@@ -1092,6 +1143,342 @@ export default function CandidateOnboarding() {
                                             </span>
                                         </div>
                                         <div className="grid gap-4">
+                                            <div className="grid gap-4 sm:grid-cols-2">
+                                                <div className="grid gap-2">
+                                                    <Label htmlFor="experience_years">
+                                                        Total experience (years)
+                                                    </Label>
+                                                    <Input
+                                                        id="experience_years"
+                                                        name="experience_years"
+                                                        type="number"
+                                                        step="0.1"
+                                                        min={0}
+                                                        max={50}
+                                                        placeholder="2.5"
+                                                        defaultValue={
+                                                            profile?.experience_years ??
+                                                            ''
+                                                        }
+                                                    />
+                                                    <InputError
+                                                        message={
+                                                            errors.experience_years
+                                                        }
+                                                    />
+                                                </div>
+
+                                                <div className="grid gap-2">
+                                                    <Label htmlFor="annual_salary_lpa">
+                                                        Annual salary (LPA)
+                                                    </Label>
+                                                    <Input
+                                                        id="annual_salary_lpa"
+                                                        name="annual_salary_lpa"
+                                                        type="number"
+                                                        step="0.1"
+                                                        min={0}
+                                                        max={1000}
+                                                        placeholder="6"
+                                                        defaultValue={
+                                                            profile?.annual_salary_lpa ??
+                                                            ''
+                                                        }
+                                                    />
+                                                    <InputError
+                                                        message={
+                                                            errors.annual_salary_lpa
+                                                        }
+                                                    />
+                                                </div>
+
+                                                <div className="grid gap-2">
+                                                    <Label htmlFor="current_company">
+                                                        Current company
+                                                    </Label>
+                                                    <Input
+                                                        id="current_company"
+                                                        name="current_company"
+                                                        placeholder="Acme Corp"
+                                                        defaultValue={
+                                                            profile?.current_company ??
+                                                            ''
+                                                        }
+                                                    />
+                                                    <InputError
+                                                        message={
+                                                            errors.current_company
+                                                        }
+                                                    />
+                                                </div>
+
+                                                <div className="grid gap-2">
+                                                    <Label htmlFor="previous_company">
+                                                        Previous company
+                                                    </Label>
+                                                    <Input
+                                                        id="previous_company"
+                                                        name="previous_company"
+                                                        placeholder="Globex"
+                                                        defaultValue={
+                                                            profile?.previous_company ??
+                                                            ''
+                                                        }
+                                                    />
+                                                    <InputError
+                                                        message={
+                                                            errors.previous_company
+                                                        }
+                                                    />
+                                                </div>
+
+                                                <div className="grid gap-2">
+                                                    <Label htmlFor="gender">
+                                                        Gender
+                                                    </Label>
+                                                    <select
+                                                        id="gender"
+                                                        name="gender"
+                                                        defaultValue={
+                                                            profile?.gender ??
+                                                            ''
+                                                        }
+                                                        className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
+                                                    >
+                                                        <option value="">
+                                                            Prefer not to say
+                                                        </option>
+                                                        <option value="male">
+                                                            Male
+                                                        </option>
+                                                        <option value="female">
+                                                            Female
+                                                        </option>
+                                                        <option value="non_binary">
+                                                            Non-binary
+                                                        </option>
+                                                        <option value="prefer_not_to_say">
+                                                            Prefer not to say
+                                                        </option>
+                                                    </select>
+                                                    <InputError
+                                                        message={errors.gender}
+                                                    />
+                                                </div>
+
+                                                <div className="grid gap-2">
+                                                    <Label htmlFor="date_of_birth">
+                                                        Date of birth
+                                                    </Label>
+                                                    <Input
+                                                        id="date_of_birth"
+                                                        name="date_of_birth"
+                                                        type="date"
+                                                        defaultValue={
+                                                            profile?.date_of_birth ??
+                                                            ''
+                                                        }
+                                                    />
+                                                    <InputError
+                                                        message={
+                                                            errors.date_of_birth
+                                                        }
+                                                    />
+                                                </div>
+
+                                                <div className="grid gap-2">
+                                                    <Label htmlFor="english_fluency">
+                                                        English fluency
+                                                    </Label>
+                                                    <select
+                                                        id="english_fluency"
+                                                        name="english_fluency"
+                                                        defaultValue={
+                                                            profile?.english_fluency ??
+                                                            ''
+                                                        }
+                                                        className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
+                                                    >
+                                                        <option value="">
+                                                            Select level
+                                                        </option>
+                                                        <option value="basic">
+                                                            Basic
+                                                        </option>
+                                                        <option value="conversational">
+                                                            Conversational
+                                                        </option>
+                                                        <option value="fluent">
+                                                            Fluent
+                                                        </option>
+                                                        <option value="native">
+                                                            Native
+                                                        </option>
+                                                    </select>
+                                                    <InputError
+                                                        message={
+                                                            errors.english_fluency
+                                                        }
+                                                    />
+                                                </div>
+                                            </div>
+
+                                            <div className="grid gap-2">
+                                                <Label htmlFor="industries">
+                                                    Industries
+                                                </Label>
+                                                <div className="rounded-xl border border-border bg-muted/30 p-3">
+                                                    <div className="flex flex-wrap gap-2">
+                                                        {industryTags.map(
+                                                            (tag) => (
+                                                                <button
+                                                                    key={tag.value}
+                                                                    type="button"
+                                                                    onClick={() =>
+                                                                        setIndustryTags(
+                                                                            (
+                                                                                previous,
+                                                                            ) =>
+                                                                                previous.filter(
+                                                                                    (
+                                                                                        item,
+                                                                                    ) =>
+                                                                                        item.value !==
+                                                                                        tag.value,
+                                                                                ),
+                                                                        )
+                                                                    }
+                                                                    className="rounded-full border border-border/70 bg-background px-2.5 py-1 text-xs text-foreground"
+                                                                >
+                                                                    {tag.value}{' '}
+                                                                    ×
+                                                                </button>
+                                                            ),
+                                                        )}
+                                                    </div>
+                                                    <Input
+                                                        id="industries"
+                                                        value={industryInput}
+                                                        onChange={(event) =>
+                                                            setIndustryInput(
+                                                                event.target
+                                                                    .value,
+                                                            )
+                                                        }
+                                                        onKeyDown={(event) => {
+                                                            if (
+                                                                event.key ===
+                                                                    'Enter' ||
+                                                                event.key ===
+                                                                    ','
+                                                            ) {
+                                                                event.preventDefault();
+                                                                addIndustryTag(
+                                                                    industryInput,
+                                                                );
+                                                            }
+                                                        }}
+                                                        placeholder="Type an industry and press Enter"
+                                                        className="mt-3 border-border bg-background"
+                                                    />
+                                                    {industryTags.map(
+                                                        (industry) => (
+                                                            <input
+                                                                key={
+                                                                    industry.value
+                                                                }
+                                                                type="hidden"
+                                                                name="industries[]"
+                                                                value={
+                                                                    industry.value
+                                                                }
+                                                            />
+                                                        ),
+                                                    )}
+                                                </div>
+                                                <InputError
+                                                    message={errors.industries}
+                                                />
+                                            </div>
+
+                                            <div className="grid gap-2">
+                                                <Label htmlFor="languages">
+                                                    Languages
+                                                </Label>
+                                                <div className="rounded-xl border border-border bg-muted/30 p-3">
+                                                    <div className="flex flex-wrap gap-2">
+                                                        {languageTags.map(
+                                                            (tag) => (
+                                                                <button
+                                                                    key={tag.value}
+                                                                    type="button"
+                                                                    onClick={() =>
+                                                                        setLanguageTags(
+                                                                            (
+                                                                                previous,
+                                                                            ) =>
+                                                                                previous.filter(
+                                                                                    (
+                                                                                        item,
+                                                                                    ) =>
+                                                                                        item.value !==
+                                                                                        tag.value,
+                                                                                ),
+                                                                        )
+                                                                    }
+                                                                    className="rounded-full border border-border/70 bg-background px-2.5 py-1 text-xs text-foreground"
+                                                                >
+                                                                    {tag.value}{' '}
+                                                                    ×
+                                                                </button>
+                                                            ),
+                                                        )}
+                                                    </div>
+                                                    <Input
+                                                        id="languages"
+                                                        value={languageInput}
+                                                        onChange={(event) =>
+                                                            setLanguageInput(
+                                                                event.target
+                                                                    .value,
+                                                            )
+                                                        }
+                                                        onKeyDown={(event) => {
+                                                            if (
+                                                                event.key ===
+                                                                    'Enter' ||
+                                                                event.key ===
+                                                                    ','
+                                                            ) {
+                                                                event.preventDefault();
+                                                                addLanguageTag(
+                                                                    languageInput,
+                                                                );
+                                                            }
+                                                        }}
+                                                        placeholder="Type a language and press Enter"
+                                                        className="mt-3 border-border bg-background"
+                                                    />
+                                                    {languageTags.map(
+                                                        (language) => (
+                                                            <input
+                                                                key={
+                                                                    language.value
+                                                                }
+                                                                type="hidden"
+                                                                name="languages[]"
+                                                                value={
+                                                                    language.value
+                                                                }
+                                                            />
+                                                        ),
+                                                    )}
+                                                </div>
+                                                <InputError
+                                                    message={errors.languages}
+                                                />
+                                            </div>
+
                                             <div className="grid gap-2">
                                                 <Label htmlFor="achievements">
                                                     Achievements (Optional)

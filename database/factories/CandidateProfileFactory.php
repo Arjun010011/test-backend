@@ -57,6 +57,15 @@ class CandidateProfileFactory extends Factory
             'linkedin_url' => 'https://linkedin.com/in/'.fake()->userName(),
             'github_url' => 'https://github.com/'.fake()->userName(),
             'portfolio_url' => fake()->url(),
+            'gender' => fake()->randomElement(['male', 'female', 'non_binary', 'prefer_not_to_say']),
+            'date_of_birth' => fake()->dateTimeBetween('-35 years', '-18 years')->format('Y-m-d'),
+            'experience_years' => fake()->randomFloat(1, 0, 8),
+            'current_company' => fake()->company(),
+            'previous_company' => fake()->company(),
+            'industries' => fake()->randomElements(['IT Services', 'FinTech', 'EdTech', 'Retail', 'Healthcare'], 2),
+            'annual_salary_lpa' => fake()->randomFloat(2, 2, 25),
+            'languages' => fake()->randomElements(['English', 'Hindi', 'Tamil', 'Telugu', 'Kannada'], 2),
+            'english_fluency' => fake()->randomElement(['basic', 'conversational', 'fluent', 'native']),
             'profile_completed_at' => now(),
         ];
     }

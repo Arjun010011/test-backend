@@ -44,6 +44,15 @@ class CandidateProfile extends Model
         'github_url',
         'portfolio_url',
         'profile_photo_path',
+        'gender',
+        'date_of_birth',
+        'experience_years',
+        'current_company',
+        'previous_company',
+        'industries',
+        'annual_salary_lpa',
+        'languages',
+        'english_fluency',
         'profile_completed_at',
     ];
 
@@ -57,6 +66,15 @@ class CandidateProfile extends Model
             'current_semester' => 'integer',
             'total_semesters' => 'integer',
             'semester_recorded_at' => 'date',
+            'gender' => 'string',
+            'date_of_birth' => 'date',
+            'experience_years' => 'decimal:2',
+            'current_company' => 'string',
+            'previous_company' => 'string',
+            'industries' => 'array',
+            'annual_salary_lpa' => 'decimal:2',
+            'languages' => 'array',
+            'english_fluency' => 'string',
             'profile_completed_at' => 'datetime',
         ];
     }
