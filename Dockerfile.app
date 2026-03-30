@@ -11,6 +11,7 @@ RUN composer install \
   --prefer-dist \
   --no-interaction \
   --no-progress \
+  --no-scripts \
   --optimize-autoloader
 
 FROM node:22-bookworm-slim AS frontend
@@ -50,4 +51,3 @@ RUN chmod +x /entrypoint.sh
 
 ENTRYPOINT ["/entrypoint.sh"]
 CMD ["php-fpm"]
-
