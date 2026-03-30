@@ -155,7 +155,6 @@ Update at least:
 docker-compose build
 docker-compose run --rm app php artisan key:generate
 docker-compose up -d
-docker-compose exec app php artisan package:discover --ansi
 docker-compose exec app php artisan migrate --force
 docker-compose exec app php artisan optimize
 ```

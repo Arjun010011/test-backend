@@ -1,33 +1,19 @@
 ##
-# App image (PHP-FPM) for production.
+# App image for production.
 # Runs PHP 8.3 in-container so the EC2 host PHP version doesn't matter.
+#
+# Note: Vite Wayfinder plugin runs `php artisan wayfinder:generate` during `npm run build`,
+# so the build stage includes PHP + Composer.
 ##
 
-FROM composer:2 AS vendor
-WORKDIR /app
-COPY composer.json composer.lock ./
-RUN composer install \
-  --no-dev \
-  --prefer-dist \
-  --no-interaction \
-  --no-progress \
-  --no-scripts \
-  --optimize-autoloader
-
-FROM node:22-bookworm-slim AS frontend
-WORKDIR /app
-COPY package.json package-lock.json ./
-RUN npm ci
-COPY resources ./resources
-COPY public ./public
-COPY vite.config.ts tsconfig.json components.json eslint.config.js .prettierrc .prettierignore ./
-RUN npm run build
-
-FROM php:8.3-fpm-bookworm AS app
+FROM php:8.3-cli-bookworm AS build
 WORKDIR /var/www/html
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates \
+    curl \
     git \
+    gnupg \
     unzip \
     libicu-dev \
     libonig-dev \
@@ -42,12 +28,38 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     zip \
   && rm -rf /var/lib/apt/lists/*
 
+# Composer
+COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
+
+# Node.js (for Vite build)
+RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
+  && apt-get update && apt-get install -y --no-install-recommends nodejs \
+  && rm -rf /var/lib/apt/lists/*
+
 COPY . .
-COPY --from=vendor /app/vendor ./vendor
-COPY --from=frontend /app/public/build ./public/build
+
+# Avoid build-time failures when commands boot Laravel.
+ENV APP_ENV=production
+ENV APP_KEY=base64:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
+
+RUN composer install --no-dev --prefer-dist --no-interaction --no-progress --optimize-autoloader
+RUN npm ci
+RUN npm run build
+
+FROM php:8.3-cli-bookworm AS app
+WORKDIR /var/www/html
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libicu72 \
+    libzip4 \
+    sqlite3 \
+  && rm -rf /var/lib/apt/lists/*
+
+COPY --from=build /var/www/html /var/www/html
 
 COPY docker/entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
+EXPOSE 8000
 ENTRYPOINT ["/entrypoint.sh"]
-CMD ["php-fpm"]
+CMD ["php", "artisan", "serve", "--host=0.0.0.0", "--port=8000"]
