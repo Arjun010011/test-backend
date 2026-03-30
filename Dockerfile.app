@@ -40,9 +40,19 @@ RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
 
 COPY . .
 
-# Avoid build-time failures when commands boot Laravel.
+# Build-time env to keep Artisan commands from requiring external services.
+# (Wayfinder runs `php artisan wayfinder:generate` during `npm run build`.)
 ENV APP_ENV=production
 ENV APP_KEY=base64:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
+ENV DB_CONNECTION=sqlite
+ENV DB_DATABASE=/var/www/html/database/database.sqlite
+ENV CACHE_STORE=array
+ENV SESSION_DRIVER=array
+ENV QUEUE_CONNECTION=sync
+ENV FILESYSTEM_DISK=local
+ENV RESUME_STORAGE_DISK=local
+
+RUN mkdir -p database && touch database/database.sqlite
 
 RUN composer install --no-dev --prefer-dist --no-interaction --no-progress --optimize-autoloader
 RUN npm ci
