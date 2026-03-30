@@ -134,3 +134,32 @@ Run a specific file:
 ```bash
 php artisan test --compact tests/Feature/Recruiter/RecruiterModuleTest.php
 ```
+
+## Deploy on EC2 (Docker, PHP 8.3 in-container)
+This repo includes a production-oriented `Dockerfile` + `docker-compose.yml` that runs PHP inside containers, so the EC2 host PHP version does not need to match.
+
+### 1) Copy env + set production values
+```bash
+cp .env.example .env
+```
+Update at least:
+- `APP_ENV=production`
+- `APP_DEBUG=false`
+- `APP_URL=http://<your-ec2-ip-or-domain>`
+- `APP_KEY=...` (generate once)
+- Database (`DB_*`) to your production DB (recommended: RDS)
+- Resume storage: set `RESUME_STORAGE_DISK=s3` (recommended) or `local`
+
+### 2) Build + start containers
+```bash
+docker compose build
+docker compose run --rm app php artisan key:generate
+docker compose up -d
+docker compose exec app php artisan migrate --force
+docker compose exec app php artisan optimize
+```
+
+### 3) Open inbound ports
+In the EC2 Security Group inbound rules:
+- Allow `80` (and `443` if you add TLS) from `0.0.0.0/0`
+- Restrict `22` (SSH) to your IP
