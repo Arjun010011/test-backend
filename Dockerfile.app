@@ -14,9 +14,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     git \
     gnupg \
+    pkg-config \
     unzip \
     libicu-dev \
     libonig-dev \
+    libsqlite3-dev \
     libzip-dev \
     libxml2-dev \
   && docker-php-ext-install \
@@ -46,16 +48,7 @@ RUN composer install --no-dev --prefer-dist --no-interaction --no-progress --opt
 RUN npm ci
 RUN npm run build
 
-FROM php:8.3-cli-bookworm AS app
-WORKDIR /var/www/html
-
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    libicu72 \
-    libzip4 \
-    sqlite3 \
-  && rm -rf /var/lib/apt/lists/*
-
-COPY --from=build /var/www/html /var/www/html
+FROM build AS app
 
 COPY docker/entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
