@@ -152,11 +152,11 @@ Update at least:
 
 ### 2) Build + start containers
 ```bash
-docker compose build
-docker compose run --rm app php artisan key:generate
-docker compose up -d
-docker compose exec app php artisan migrate --force
-docker compose exec app php artisan optimize
+docker-compose build
+docker-compose run --rm app php artisan key:generate
+docker-compose up -d
+docker-compose exec app php artisan migrate --force
+docker-compose exec app php artisan optimize
 ```
 
 ### 3) Open inbound ports

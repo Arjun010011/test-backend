@@ -1,6 +1,6 @@
 ##
-# Production container for Laravel + Inertia (React) app.
-# Uses PHP 8.3 in-container so the EC2 host PHP version doesn't matter.
+# App image (PHP-FPM) for production.
+# Runs PHP 8.3 in-container so the EC2 host PHP version doesn't matter.
 ##
 
 FROM composer:2 AS vendor
@@ -51,9 +51,3 @@ RUN chmod +x /entrypoint.sh
 ENTRYPOINT ["/entrypoint.sh"]
 CMD ["php-fpm"]
 
-FROM nginx:1.27-alpine AS web
-WORKDIR /var/www/html
-
-COPY docker/nginx/default.conf /etc/nginx/conf.d/default.conf
-COPY public ./public
-COPY --from=frontend /app/public/build ./public/build
