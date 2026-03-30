@@ -55,6 +55,14 @@ ENV RESUME_STORAGE_DISK=local
 RUN mkdir -p database && touch database/database.sqlite
 
 RUN composer install --no-dev --prefer-dist --no-interaction --no-progress --optimize-autoloader
+
+# Some apps touch the DB during boot; ensure tables exist for build-time artisan commands.
+RUN php artisan migrate --force --no-interaction || (echo "---- laravel.log ----" && (tail -n 200 storage/logs/laravel.log 2>/dev/null || true) && exit 1)
+
+# Wayfinder's Vite plugin runs this during `npm run build`. Running it explicitly first
+# surfaces any underlying Laravel boot errors in Docker build logs.
+RUN php artisan wayfinder:generate --with-form -vvv || (echo "---- laravel.log ----" && (tail -n 200 storage/logs/laravel.log 2>/dev/null || true) && exit 1)
+
 RUN npm ci
 RUN npm run build
 
