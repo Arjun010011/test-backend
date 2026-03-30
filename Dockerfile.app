@@ -6,7 +6,7 @@
 # so the build stage includes PHP + Composer.
 ##
 
-FROM php:8.3-cli-bookworm AS build
+FROM php:8.4-cli-bookworm AS build
 WORKDIR /var/www/html
 
 RUN apt-get update && apt-get install -y --no-install-recommends \

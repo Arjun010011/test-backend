@@ -135,7 +135,7 @@ Run a specific file:
 php artisan test --compact tests/Feature/Recruiter/RecruiterModuleTest.php
 ```
 
-## Deploy on EC2 (Docker, PHP 8.3 in-container)
+## Deploy on EC2 (Docker, PHP 8.4 in-container)
 This repo includes a production-oriented `Dockerfile` + `docker-compose.yml` that runs PHP inside containers, so the EC2 host PHP version does not need to match.
 
 ### 1) Copy env + set production values
