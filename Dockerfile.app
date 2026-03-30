@@ -51,8 +51,10 @@ ENV SESSION_DRIVER=array
 ENV QUEUE_CONNECTION=sync
 ENV FILESYSTEM_DISK=local
 ENV RESUME_STORAGE_DISK=local
+ENV VIEW_COMPILED_PATH=/var/www/html/storage/framework/views
 
 RUN mkdir -p database && touch database/database.sqlite
+RUN mkdir -p storage/framework/{cache,sessions,views} bootstrap/cache
 
 RUN composer install --no-dev --prefer-dist --no-interaction --no-progress --optimize-autoloader
 
